@@ -7,6 +7,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "emulator": "bun run src/server/index.ts",
+    "emulator:shared": "bun --env-file=../../.env.shared run src/server/index.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -46,7 +46,7 @@
   {/if}
   <div class="px-5 py-3 flex items-center justify-between drag">
     <h1 class="text-lg font-bold leading-[1.45] text-(--sidebar-header)">
-      Slack Simulator
+      Botbox
     </h1>
     {#if onOpenSettings}
       <IconButton

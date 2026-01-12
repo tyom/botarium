@@ -19,6 +19,7 @@ interface EmulatorServerOptions {
   port?: number
   host?: string
   workspaceConfig?: WorkspaceConfig
+  dataDir?: string
 }
 
 export interface LogEntry {
@@ -48,6 +49,13 @@ export function startEmulatorServer(
 
   // Initialize state and servers
   const state = getEmulatorState(options.workspaceConfig)
+
+  // Enable persistence if dataDir is provided
+  if (options.dataDir) {
+    state.enablePersistence(options.dataDir).catch((err) => {
+      emulatorLogger.error({ err }, 'Failed to enable persistence')
+    })
+  }
   const socketMode = new SocketModeServer(state)
   const webApi = new SlackWebAPI(state, socketMode, wsUrl)
 
@@ -385,5 +393,8 @@ export function startEmulatorServer(
 
 // If run directly, start the server
 if (import.meta.main) {
-  startEmulatorServer({ port: getEmulatorPort() })
+  startEmulatorServer({
+    port: getEmulatorPort(),
+    dataDir: process.env.DATA_DIR,
+  })
 }
