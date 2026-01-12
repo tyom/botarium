@@ -1,5 +1,5 @@
 /**
- * Settings store for the Botbox app
+ * Settings store for the Botarium app
  * In web mode: uses localStorage
  * In Electron mode: uses encrypted file storage
  */

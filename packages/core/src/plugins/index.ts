@@ -1,5 +1,5 @@
 export type {
-  BotboxPlugin,
+  BotariumPlugin,
   Emulator,
   EmulatorOptions,
   Message,

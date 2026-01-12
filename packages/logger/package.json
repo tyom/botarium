@@ -1,7 +1,7 @@
 {
-  "name": "@tyom/botbox-logger",
+  "name": "@tyom/botarium-logger",
   "version": "0.1.0",
-  "description": "Logger utility that forwards logs to botbox simulator",
+  "description": "Logger utility that forwards logs to botarium simulator",
   "module": "src/index.ts",
   "type": "module",
   "exports": {

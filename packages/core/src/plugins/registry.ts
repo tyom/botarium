@@ -1,24 +1,24 @@
-import type { BotboxPlugin, PluginRegistry } from './types'
+import type { BotariumPlugin, PluginRegistry } from './types'
 
 /**
  * Create a plugin registry
  */
 export function createPluginRegistry(): PluginRegistry {
-  const plugins = new Map<string, BotboxPlugin>()
+  const plugins = new Map<string, BotariumPlugin>()
 
   return {
-    register(plugin: BotboxPlugin): void {
+    register(plugin: BotariumPlugin): void {
       if (plugins.has(plugin.name)) {
         throw new Error(`Plugin "${plugin.name}" is already registered`)
       }
       plugins.set(plugin.name, plugin)
     },
 
-    get(name: string): BotboxPlugin | undefined {
+    get(name: string): BotariumPlugin | undefined {
       return plugins.get(name)
     },
 
-    getAll(): BotboxPlugin[] {
+    getAll(): BotariumPlugin[] {
       return Array.from(plugins.values())
     },
 

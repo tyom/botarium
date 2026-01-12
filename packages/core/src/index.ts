@@ -1,6 +1,6 @@
 // Plugin system
 export type {
-  BotboxPlugin,
+  BotariumPlugin,
   Emulator,
   EmulatorOptions,
   Message,

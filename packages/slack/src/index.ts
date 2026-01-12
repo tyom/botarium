@@ -1,8 +1,8 @@
 import type {
-  BotboxPlugin,
+  BotariumPlugin,
   Emulator,
   EmulatorOptions,
-} from '@tyom/botbox/plugins'
+} from '@tyom/botarium/plugins'
 import { startEmulatorServer } from './server'
 import { DEFAULT_EMULATOR_PORT } from './lib/config'
 
@@ -37,9 +37,9 @@ function createSlackEmulator(options: EmulatorOptions): Emulator {
 }
 
 /**
- * Slack platform plugin for Botbox
+ * Slack platform plugin for Botarium
  */
-export const slackPlugin: BotboxPlugin = {
+export const slackPlugin: BotariumPlugin = {
   name: 'slack',
   displayName: 'Slack',
   createEmulator: createSlackEmulator,

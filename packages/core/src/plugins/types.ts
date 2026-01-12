@@ -41,9 +41,9 @@ export interface Message {
  *
  * @example
  * ```typescript
- * import type { BotboxPlugin } from '@tyom/botbox/plugins'
+ * import type { BotariumPlugin } from '@tyom/botarium/plugins'
  *
- * const slackPlugin: BotboxPlugin = {
+ * const slackPlugin: BotariumPlugin = {
  *   name: 'slack',
  *   displayName: 'Slack',
  *   createEmulator: (options) => new SlackEmulator(options),
@@ -52,7 +52,7 @@ export interface Message {
  * }
  * ```
  */
-export interface BotboxPlugin {
+export interface BotariumPlugin {
   /** Unique plugin identifier (e.g., 'slack', 'whatsapp') */
   name: string
 
@@ -74,13 +74,13 @@ export interface BotboxPlugin {
  */
 export interface PluginRegistry {
   /** Register a plugin */
-  register(plugin: BotboxPlugin): void
+  register(plugin: BotariumPlugin): void
 
   /** Get a plugin by name */
-  get(name: string): BotboxPlugin | undefined
+  get(name: string): BotariumPlugin | undefined
 
   /** Get all registered plugins */
-  getAll(): BotboxPlugin[]
+  getAll(): BotariumPlugin[]
 
   /** Check if a plugin is registered */
   has(name: string): boolean

@@ -1,5 +1,5 @@
 /**
- * Main entry point for the Botbox web app
+ * Main entry point for the Botarium web app
  * Connects to the emulator server
  */
 
@@ -16,7 +16,7 @@ setupLogCapture()
 
 function initializeSimulator(): MockApp {
   const app = createMockApp()
-  appLogger.info(`Botbox initialized (connecting to ${EMULATOR_API_URL})`)
+  appLogger.info(`Botarium initialized (connecting to ${EMULATOR_API_URL})`)
   return app
 }
 
@@ -43,7 +43,7 @@ async function main() {
       }
     })
 
-    appLogger.info('Botbox ready. Use Ctrl+L to toggle logs.')
+    appLogger.info('Botarium ready. Use Ctrl+L to toggle logs.')
   } catch (error) {
     appLogger.error('Failed to initialize:', error)
   }

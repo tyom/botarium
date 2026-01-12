@@ -1,5 +1,5 @@
 /**
- * Electron entry point for Botbox
+ * Electron entry point for Botarium
  * In dev mode: spawns Bun with TypeScript backend
  * In production: spawns compiled backend binary
  */
@@ -101,7 +101,7 @@ function showKeychainExplanation() {
   dialog.showMessageBoxSync({
     type: 'info',
     title: 'Keychain Access Required',
-    message: 'Botbox uses macOS Keychain to securely store your API keys.',
+    message: 'Botarium uses macOS Keychain to securely store your API keys.',
     detail:
       'You may see a system prompt asking for your password. This is normal and ensures your credentials are encrypted.\n\nClick "Always Allow" to avoid this prompt in the future.',
     buttons: ['OK'],
@@ -774,7 +774,7 @@ function createWindow() {
     y,
     minWidth: 800,
     minHeight: 600,
-    title: 'Botbox',
+    title: 'Botarium',
     icon: iconPath,
     webPreferences: {
       nodeIntegration: false,
@@ -798,7 +798,7 @@ function createWindow() {
       <html>
         <body style="font-family: system-ui; padding: 40px; background: #1a1d21; color: #d1d2d3;">
           <h1>Build Required</h1>
-          <p>Run <code style="background: #333; padding: 4px 8px; border-radius: 4px;">bun run --filter @tyom/botbox-web build</code> first to build the web app.</p>
+          <p>Run <code style="background: #333; padding: 4px 8px; border-radius: 4px;">bun run --filter @tyom/botarium-web build</code> first to build the web app.</p>
           <p style="color: #888; margin-top: 20px;">Or run <code style="background: #333; padding: 4px 8px; border-radius: 4px;">bun run dev:electron</code> to use the dev server.</p>
         </body>
       </html>

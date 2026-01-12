@@ -1,23 +1,23 @@
 #!/usr/bin/env bun
 
 /**
- * Botbox CLI
+ * Botarium CLI
  *
  * Usage:
- *   npx @tyom/botbox --platform slack
- *   npx @tyom/botbox-slack (shorthand)
- *   npx @tyom/botbox package
+ *   npx @tyom/botarium --platform slack
+ *   npx @tyom/botarium-slack (shorthand)
+ *   npx @tyom/botarium package
  */
 
 const args = process.argv.slice(2)
 
 if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
   console.log(`
-Botbox - Bot Development Simulator
+Botarium - Bot Development Simulator
 
 Usage:
-  botbox --platform <platform>  Start emulator for a platform
-  botbox package                Package bot into distributable app
+  botarium --platform <platform>  Start emulator for a platform
+  botarium package                Package bot into distributable app
 
 Options:
   --platform <name>  Platform plugin to use (e.g., slack)
@@ -25,13 +25,13 @@ Options:
   --help, -h         Show this help message
 
 Examples:
-  botbox --platform slack
-  botbox --platform slack --port 8080
-  botbox package
+  botarium --platform slack
+  botarium --platform slack --port 8080
+  botarium package
 `)
   process.exit(0)
 }
 
 // TODO: Implement CLI commands
-console.log('Botbox CLI - coming soon')
+console.log('Botarium CLI - coming soon')
 console.log('Args:', args)

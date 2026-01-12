@@ -1,5 +1,5 @@
 /**
- * Backend state management for the Botbox web app.
+ * Backend state management for the Botarium web app.
  * Consolidates settings and backend status into a single reactive store.
  *
  * In web-only mode: Settings come from localStorage or defaults.
@@ -15,7 +15,7 @@ import {
 import { simulatorState } from './state.svelte'
 import { initializeDispatcher } from './dispatcher.svelte'
 
-const SETTINGS_STORAGE_KEY = 'botbox-settings'
+const SETTINGS_STORAGE_KEY = 'botarium-settings'
 
 function syncUserSettingsToState(s: SimulatorSettings) {
   simulatorState.simulatedUserName = s.simulatedUserName

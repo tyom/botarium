@@ -1,7 +1,7 @@
 {
-  "name": "@tyom/botbox-web",
+  "name": "@tyom/botarium-web",
   "version": "0.1.0",
-  "description": "Botbox web UI",
+  "description": "Botarium web UI",
   "type": "module",
   "private": true,
   "scripts": {

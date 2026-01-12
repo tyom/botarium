@@ -121,21 +121,21 @@ function getLogStream(forwardLog?: (log: LogEntry) => void) {
 }
 
 /**
- * Create a pino logger with botbox simulator forwarding support.
+ * Create a pino logger with botarium simulator forwarding support.
  *
  * When SLACK_API_URL points to localhost, logs are forwarded to the simulator.
  *
  * @example
  * ```typescript
- * import { createBotboxLogger } from '@tyom/botbox-logger'
+ * import { createBotariumLogger } from '@tyom/botarium-logger'
  *
- * const logger = createBotboxLogger({ level: 'info' })
+ * const logger = createBotariumLogger({ level: 'info' })
  * const appLogger = logger.child({ module: 'App' })
  *
  * appLogger.info('Hello world')
  * ```
  */
-export function createBotboxLogger(options?: LoggerOptions): pino.Logger {
+export function createBotariumLogger(options?: LoggerOptions): pino.Logger {
   const level = options?.level ?? 'info'
   const emulatorUrl = options?.emulatorUrl ?? getEmulatorUrl()
 

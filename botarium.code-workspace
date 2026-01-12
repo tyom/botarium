@@ -53,7 +53,7 @@
       {
         "label": "Dev Electron",
         "detail": "Electron app with embedded emulator",
-        "command": "bun run --filter botbox-desktop dev:electron",
+        "command": "bun run --filter botarium-desktop dev:electron",
         "icon": {
           "id": "device-desktop",
           "color": "terminal.ansiMagenta"
@@ -77,7 +77,7 @@
       {
         "label": "Emulator",
         "hide": true,
-        "command": "bun run --filter @tyom/botbox-slack emulator",
+        "command": "bun run --filter @tyom/botarium-slack emulator",
         "type": "shell",
         "isBackground": true,
         "problemMatcher": [],
@@ -88,7 +88,7 @@
       {
         "label": "Emulator Shared",
         "hide": true,
-        "command": "bun run --filter @tyom/botbox-slack emulator:shared",
+        "command": "bun run --filter @tyom/botarium-slack emulator:shared",
         "type": "shell",
         "isBackground": true,
         "problemMatcher": [],
@@ -99,7 +99,7 @@
       {
         "label": "Web UI",
         "hide": true,
-        "command": "bun run --filter @tyom/botbox-web dev",
+        "command": "bun run --filter @tyom/botarium-web dev",
         "type": "shell",
         "isBackground": true,
         "problemMatcher": [],

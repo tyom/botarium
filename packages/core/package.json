@@ -1,10 +1,10 @@
 {
-  "name": "@tyom/botbox",
+  "name": "@tyom/botarium",
   "version": "0.1.0",
   "description": "Bot development simulator - core framework",
   "type": "module",
   "bin": {
-    "botbox": "./bin/cli.ts"
+    "botarium": "./bin/cli.ts"
   },
   "exports": {
     ".": "./src/index.ts",
