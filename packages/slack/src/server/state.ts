@@ -540,9 +540,7 @@ export class EmulatorState {
       // Keep bot in connectedBots but clear the connection mapping
       this.connectionToBotId.delete(connectionId)
 
-      stateLogger.info(
-        `Bot disconnected: ${bot.appConfig.app.name} (${botId})`
-      )
+      stateLogger.info(`Bot disconnected: ${bot.appConfig.app.name} (${botId})`)
 
       // Emit bot_disconnected event (frontend updates status indicator)
       this.emitEvent({ type: 'bot_disconnected', botId, bot })
@@ -591,7 +589,9 @@ export class EmulatorState {
     const bot = this.connectedBots.get(botId)
     if (bot && bot.status === 'connected') {
       bot.status = 'disconnected'
-      stateLogger.info(`Bot marked disconnected: ${bot.appConfig.app.name} (${botId})`)
+      stateLogger.info(
+        `Bot marked disconnected: ${bot.appConfig.app.name} (${botId})`
+      )
       this.emitEvent({ type: 'bot_disconnected', botId, bot })
     }
   }

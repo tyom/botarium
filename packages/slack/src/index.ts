@@ -1,4 +1,8 @@
-import type { BotboxPlugin, Emulator, EmulatorOptions } from '@tyom/botbox/plugins'
+import type {
+  BotboxPlugin,
+  Emulator,
+  EmulatorOptions,
+} from '@tyom/botbox/plugins'
 import { startEmulatorServer } from './server'
 import { DEFAULT_EMULATOR_PORT } from './lib/config'
 

@@ -1122,7 +1122,10 @@ export class SlackWebAPI {
     const connectionId = this.socketMode.getUnassociatedConnectionId()
 
     // Register the bot (with or without connection - bot clearly works if it's registering)
-    const botId = this.state.registerBot(connectionId ?? `config-${crypto.randomUUID()}`, config)
+    const botId = this.state.registerBot(
+      connectionId ?? `config-${crypto.randomUUID()}`,
+      config
+    )
 
     if (connectionId) {
       webApiLogger.info(
@@ -1134,7 +1137,10 @@ export class SlackWebAPI {
       )
     }
 
-    return Response.json({ ok: true, bot_id: botId }, { headers: corsHeaders() })
+    return Response.json(
+      { ok: true, bot_id: botId },
+      { headers: corsHeaders() }
+    )
   }
 
   getSimulatorConfig(): Response {
