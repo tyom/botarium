@@ -75,6 +75,18 @@
         "group": "build"
       },
       {
+        "label": "Package Electron",
+        "detail": "Build Electron app for release (DMG/portable/AppImage)",
+        "command": "bun run --filter @botarium/desktop package",
+        "icon": {
+          "id": "package",
+          "color": "terminal.ansiYellow"
+        },
+        "type": "shell",
+        "problemMatcher": [],
+        "group": "build"
+      },
+      {
         "label": "Emulator",
         "hide": true,
         "command": "bun run --filter @botarium/slack emulator",
