@@ -1,13 +1,34 @@
 {
-  "name": "@tyom/botarium-logger",
+  "name": "@botarium/logger",
   "version": "0.1.0",
   "description": "Logger utility that forwards logs to botarium simulator",
-  "module": "src/index.ts",
   "type": "module",
-  "exports": {
-    ".": "./src/index.ts"
+  "license": "MIT",
+  "author": "Tyom Semonov",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tyom/botarium",
+    "directory": "packages/logger"
   },
+  "keywords": [
+    "logger",
+    "pino",
+    "bot",
+    "botarium"
+  ],
+  "main": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./src/index.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

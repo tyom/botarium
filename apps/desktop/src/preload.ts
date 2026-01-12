@@ -5,7 +5,7 @@
 
 import { contextBridge, ipcRenderer } from 'electron'
 
-// Settings type definition (mirrors @tyom/botarium-web/lib/settings-store)
+// Settings type definition (mirrors @botarium/web/lib/settings-store)
 export type AIProvider = 'openai' | 'anthropic' | 'google'
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 

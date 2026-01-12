@@ -127,7 +127,7 @@ function getLogStream(forwardLog?: (log: LogEntry) => void) {
  *
  * @example
  * ```typescript
- * import { createBotariumLogger } from '@tyom/botarium-logger'
+ * import { createBotariumLogger } from '@botarium/logger'
  *
  * const logger = createBotariumLogger({ level: 'info' })
  * const appLogger = logger.child({ module: 'App' })

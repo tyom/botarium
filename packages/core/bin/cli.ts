@@ -4,9 +4,9 @@
  * Botarium CLI
  *
  * Usage:
- *   npx @tyom/botarium --platform slack
- *   npx @tyom/botarium-slack (shorthand)
- *   npx @tyom/botarium package
+ *   npx botarium --platform slack
+ *   npx @botarium/slack (shorthand)
+ *   npx botarium package
  */
 
 const args = process.argv.slice(2)

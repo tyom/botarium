@@ -41,7 +41,7 @@ export interface Message {
  *
  * @example
  * ```typescript
- * import type { BotariumPlugin } from '@tyom/botarium/plugins'
+ * import type { BotariumPlugin } from 'botarium/plugins'
  *
  * const slackPlugin: BotariumPlugin = {
  *   name: 'slack',

@@ -798,7 +798,7 @@ function createWindow() {
       <html>
         <body style="font-family: system-ui; padding: 40px; background: #1a1d21; color: #d1d2d3;">
           <h1>Build Required</h1>
-          <p>Run <code style="background: #333; padding: 4px 8px; border-radius: 4px;">bun run --filter @tyom/botarium-web build</code> first to build the web app.</p>
+          <p>Run <code style="background: #333; padding: 4px 8px; border-radius: 4px;">bun run --filter @botarium/web build</code> first to build the web app.</p>
           <p style="color: #888; margin-top: 20px;">Or run <code style="background: #333; padding: 4px 8px; border-radius: 4px;">bun run dev:electron</code> to use the dev server.</p>
         </body>
       </html>

@@ -2,7 +2,7 @@ import type {
   BotariumPlugin,
   Emulator,
   EmulatorOptions,
-} from '@tyom/botarium/plugins'
+} from 'botarium/plugins'
 import { startEmulatorServer } from './server'
 import { DEFAULT_EMULATOR_PORT } from './lib/config'
 

@@ -1,16 +1,41 @@
 {
-  "name": "@tyom/botarium",
+  "name": "botarium",
   "version": "0.1.0",
-  "description": "Bot development simulator - core framework",
+  "description": "Bot development simulator - build and test bots locally",
   "type": "module",
-  "bin": {
-    "botarium": "./bin/cli.ts"
+  "license": "MIT",
+  "author": "Tyom Semonov",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tyom/botarium",
+    "directory": "packages/core"
   },
+  "keywords": [
+    "bot",
+    "chatbot",
+    "slack",
+    "discord",
+    "simulator",
+    "emulator",
+    "development"
+  ],
+  "main": "./dist/index.js",
   "exports": {
-    ".": "./src/index.ts",
-    "./plugins": "./src/plugins/index.ts"
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./src/index.ts"
+    },
+    "./plugins": {
+      "import": "./dist/plugins/index.js",
+      "types": "./src/plugins/index.ts"
+    }
   },
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
+    "build": "bun build ./src/index.ts ./src/plugins/index.ts --outdir ./dist --target node --splitting",
     "dev": "bun run bin/cli.ts",
     "typecheck": "tsc --noEmit"
   },

@@ -8,10 +8,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "bun run --filter @tyom/botarium dev",
-    "dev:electron": "bun run --filter botarium-desktop dev:electron",
+    "dev": "bun run --filter botarium dev",
+    "dev:electron": "bun run --filter @botarium/desktop dev:electron",
     "build": "bun run --filter '*' build",
-    "package": "bun run --filter botarium-desktop package",
+    "package": "bun run --filter @botarium/desktop package",
     "typecheck": "bun run --filter '*' typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
