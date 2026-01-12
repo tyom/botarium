@@ -1,0 +1,19 @@
+{
+  "name": "@tyom/botbox-logger",
+  "version": "0.1.0",
+  "description": "Logger utility that forwards logs to botbox simulator",
+  "module": "src/index.ts",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pino": "^10.1.0"
+  },
+  "devDependencies": {
+    "pino-pretty": "^13.1.3"
+  }
+}

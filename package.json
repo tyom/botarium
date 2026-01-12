@@ -1,0 +1,33 @@
+{
+  "name": "botbox",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter @tyom/botbox dev",
+    "dev:electron": "bun run --filter botbox-desktop dev:electron",
+    "build": "bun run --filter '*' build",
+    "package": "bun run --filter botbox-desktop package",
+    "typecheck": "bun run --filter '*' typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "bun run typecheck && bun run format:check && bun run lint"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/bun": "latest",
+    "concurrently": "^8.2.2",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.0.0",
+    "prettier": "^3.7.4",
+    "prettier-plugin-svelte": "^3.4.1",
+    "typescript": "^5",
+    "typescript-eslint": "^8.52.0"
+  }
+}

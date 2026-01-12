@@ -1,0 +1,23 @@
+{
+  "name": "@tyom/botbox",
+  "version": "0.1.0",
+  "description": "Bot development simulator - core framework",
+  "type": "module",
+  "bin": {
+    "botbox": "./bin/cli.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./plugins": "./src/plugins/index.ts"
+  },
+  "scripts": {
+    "dev": "bun run bin/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pino": "^10.1.0"
+  },
+  "devDependencies": {
+    "pino-pretty": "^13.1.3"
+  }
+}
