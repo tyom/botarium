@@ -4,15 +4,15 @@
 
   interface Props {
     element: SlackCheckboxesElement
-    selectedOptions: SlackOption[]
+    selectedOptions: SlackOption[] | undefined
     onChange?: (selectedOptions: SlackOption[]) => void
   }
 
   let { element, selectedOptions, onChange }: Props = $props()
 
   function isSelected(option: SlackOption): boolean {
-    // Check current selections first
-    if (selectedOptions.length > 0) {
+    // Check current selections first (undefined = no interaction, [] = user cleared all)
+    if (selectedOptions !== undefined) {
       return selectedOptions.some((o) => o.value === option.value)
     }
     // Fall back to initial options
@@ -20,7 +20,7 @@
   }
 
   function handleToggle(option: SlackOption, checked: boolean) {
-    const current = selectedOptions.length > 0 ? selectedOptions : (element.initial_options ?? [])
+    const current = selectedOptions !== undefined ? selectedOptions : (element.initial_options ?? [])
 
     let newSelected: SlackOption[]
     if (checked) {

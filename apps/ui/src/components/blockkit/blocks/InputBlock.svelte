@@ -42,8 +42,8 @@
     return values[blockId]?.[actionId]?.selected_option
   }
 
-  function getSelectedOptions(actionId: string): SlackOption[] {
-    return values[blockId]?.[actionId]?.selected_options ?? []
+  function getSelectedOptions(actionId: string): SlackOption[] | undefined {
+    return values[blockId]?.[actionId]?.selected_options
   }
 
   function getFiles(actionId: string): UploadedFile[] {

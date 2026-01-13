@@ -5,7 +5,6 @@
  * For new code, consider importing directly from:
  * - ./log-types - Types and constants
  * - ./log-state.svelte - Reactive state management
- * - ./log-parser - Parsing utilities
  * - ./log-stream - SSE connection handling
  */
 

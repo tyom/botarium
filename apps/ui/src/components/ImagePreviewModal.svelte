@@ -19,8 +19,15 @@
   let panStart = $state({ x: 0, y: 0 })
   let hasDragged = $state(false)
   let imageEl = $state<HTMLImageElement | null>(null)
-  let wheelTimeout: ReturnType<typeof setTimeout> | null = null
+  let wheelTimeout: ReturnType<typeof setTimeout> | null = $state(null)
   let isWheeling = $state(false)
+
+  // Clean up timeout on unmount
+  $effect(() => {
+    return () => {
+      if (wheelTimeout) clearTimeout(wheelTimeout)
+    }
+  })
 
   const shortcuts: KeyboardShortcut[] = [
     { key: 'Escape', action: () => onClose() },

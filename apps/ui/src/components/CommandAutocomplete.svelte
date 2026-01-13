@@ -6,22 +6,22 @@
     filter: string
     selectedIndex: number
     onSelect: (command: SlashCommand) => void
+    onHover?: (index: number) => void
   }
 
-  let { commands, filter, selectedIndex, onSelect }: Props = $props()
+  let { commands, filter, selectedIndex, onSelect, onHover }: Props = $props()
 
   // Filter commands based on input
-  let filteredCommands = $derived(() => {
-    const lowerFilter = filter.toLowerCase()
-    return commands.filter(
+  let filteredCommands = $derived(
+    commands.filter(
       (cmd) =>
-        cmd.command.toLowerCase().includes(lowerFilter) ||
-        cmd.description.toLowerCase().includes(lowerFilter)
+        cmd.command.toLowerCase().includes(filter.toLowerCase()) ||
+        cmd.description.toLowerCase().includes(filter.toLowerCase())
     )
-  })
+  )
 </script>
 
-{#if filteredCommands().length > 0}
+{#if filteredCommands.length > 0}
   <div
     class="absolute bottom-full left-0 mb-1 bg-slack-input border border-white/20 rounded-lg shadow-lg overflow-hidden z-50 max-w-md w-full"
   >
@@ -30,16 +30,14 @@
     >
       Commands matching "{filter || '/'}"
     </div>
-    {#each filteredCommands() as cmd, i}
+    {#each filteredCommands as cmd, i}
       <button
         class="w-full px-3 py-2 text-left transition-colors flex items-start gap-3 {i ===
         selectedIndex
           ? 'bg-white/10'
           : 'hover:bg-white/5'}"
         onclick={() => onSelect(cmd)}
-        onmouseenter={() => {
-          // Update selected index on hover
-        }}
+        onmouseenter={() => onHover?.(i)}
       >
         <span class="font-medium text-slack-text shrink-0">{cmd.command}</span>
         <span class="text-sm text-slack-text-muted truncate">

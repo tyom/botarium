@@ -769,10 +769,10 @@ export class EmulatorState {
 
   storeTriggerContext(triggerId: string, context: TriggerContext): void {
     this.triggerContexts.set(triggerId, context)
-    // Auto-expire after 3 seconds (Slack's timeout for trigger_id)
+    // Auto-expire after 30 seconds (Slack's trigger_id timeout is ~3s, using longer for safety margin)
     setTimeout(() => {
       this.triggerContexts.delete(triggerId)
-    }, 30000) // 30 seconds to be safe
+    }, 30000)
   }
 
   getTriggerContext(triggerId: string): TriggerContext | undefined {

@@ -38,9 +38,13 @@
   let showSecrets: Record<string, boolean> = $state({})
   let collapsedGroups: Record<string, boolean> = $state({})
 
-  // Initialize form data from initial values
+  // Initialize form data once from initial values
+  let initialized = false
   $effect.pre(() => {
-    formData = { ...initialValues }
+    if (!initialized) {
+      formData = { ...initialValues }
+      initialized = true
+    }
   })
 
   onMount(async () => {

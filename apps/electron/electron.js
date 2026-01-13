@@ -755,14 +755,14 @@ function setupIpcHandlers() {
     saveSettings(settings)
     // Restart backend with new settings
     await stopBackend()
-    startBackend(settings)
+    await startBackend(settings)
   })
 
   ipcMain.handle('backend:restart', async () => {
     const settings = loadSettings()
     if (settings) {
       await stopBackend()
-      startBackend(settings)
+      await startBackend(settings)
     }
   })
 

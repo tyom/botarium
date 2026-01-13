@@ -82,7 +82,8 @@ export class SocketModeServer {
 
       // Handle acknowledgments from bot
       if (data.envelope_id) {
-        const pending = this.pendingAcks.get(data.envelope_id)
+        const ackKey = `${connectionId}:${data.envelope_id}`
+        const pending = this.pendingAcks.get(ackKey)
         if (pending) {
           clearTimeout(pending.timeout)
 
@@ -119,7 +120,7 @@ export class SocketModeServer {
           }
 
           pending.resolve()
-          this.pendingAcks.delete(data.envelope_id)
+          this.pendingAcks.delete(ackKey)
           socketModeLogger.debug(
             `Received ack for envelope: ${data.envelope_id}`
           )
@@ -221,22 +222,25 @@ export class SocketModeServer {
     message: string,
     viewId?: string
   ): Promise<void> {
+    // Use composite key to handle multiple connections with same envelope_id
+    const ackKey = `${conn.connectionId}:${envelopeId}`
+
     return new Promise((resolve, reject) => {
       // Set up acknowledgment tracking with timeout
       const timeout = setTimeout(() => {
-        this.pendingAcks.delete(envelopeId)
+        this.pendingAcks.delete(ackKey)
         socketModeLogger.warn(`Ack timeout for envelope: ${envelopeId}`)
         resolve() // Don't reject, just warn
       }, 5000)
 
-      this.pendingAcks.set(envelopeId, { resolve, reject, timeout, viewId })
+      this.pendingAcks.set(ackKey, { resolve, reject, timeout, viewId })
 
       // Send the message
       try {
         conn.ws.send(message)
       } catch (err) {
         clearTimeout(timeout)
-        this.pendingAcks.delete(envelopeId)
+        this.pendingAcks.delete(ackKey)
         socketModeLogger.error(
           { err, connectionId: conn.connectionId },
           'Failed to send message'

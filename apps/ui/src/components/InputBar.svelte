@@ -155,6 +155,7 @@
       filter={commandFilter()}
       {selectedIndex}
       onSelect={selectCommand}
+      onHover={(i) => (selectedIndex = i)}
     />
   {/if}
   <div

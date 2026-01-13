@@ -48,13 +48,16 @@ export function extractContext(
   return Object.keys(context).length > 0 ? context : undefined
 }
 
+/** Valid log level strings derived from PINO_LEVELS values */
+const VALID_LOG_LEVELS = new Set(Object.values(PINO_LEVELS))
+
 /** Convert Pino level number to LogLevel string */
 function parseLevel(level: number | string): LogLevel {
   if (typeof level === 'number') {
     return PINO_LEVELS[level] ?? 'INFO'
   }
   const upper = String(level).toUpperCase()
-  return (upper in PINO_LEVELS ? upper : 'INFO') as LogLevel
+  return (VALID_LOG_LEVELS.has(upper as LogLevel) ? upper : 'INFO') as LogLevel
 }
 
 /** Parse a backend Pino log entry into a display-friendly LogEntry */

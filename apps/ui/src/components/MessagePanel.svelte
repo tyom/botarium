@@ -115,9 +115,10 @@
     CHANNELS.find((c) => c.id === simulatorState.currentChannel)
   )
   let isBotDisconnected = $derived(
-    Array.from(simulatorState.connectedBots.values()).every(
-      (bot) => bot.status === 'disconnected'
-    )
+    simulatorState.connectedBots.size > 0 &&
+      Array.from(simulatorState.connectedBots.values()).every(
+        (bot) => bot.status === 'disconnected'
+      )
   )
 
   // Save scroll position on every scroll event

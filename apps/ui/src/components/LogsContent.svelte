@@ -75,9 +75,9 @@
           {#if log.context}
             {#each Object.entries(log.context) as [key, value]}
               <div class="pl-6 text-blue-400">
-                {key}: {typeof value === 'object'
+                {key}: {typeof value === 'object' && value !== null
                   ? JSON.stringify(value)
-                  : JSON.stringify(value)}
+                  : String(value)}
               </div>
             {/each}
           {/if}
