@@ -106,7 +106,7 @@
               <span class="size-2 rounded-full bg-red-500 shrink-0"></span>
             {/if}
           </button>
-          {#if channel.type === 'dm' && bot && onOpenAppSettings}
+          {#if channel.type === 'dm' && bot && bot.status !== 'disconnected' && onOpenAppSettings}
             <IconButton
               icon={Settings}
               size={14}
