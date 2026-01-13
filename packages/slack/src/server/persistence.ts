@@ -4,7 +4,7 @@
  */
 
 import { Database } from 'bun:sqlite'
-import { join, resolve } from 'path'
+import { basename, join, resolve } from 'path'
 import { mkdir, writeFile, readFile, unlink } from 'fs/promises'
 import type { SlackMessage, SlackFile } from './types'
 import { persistenceLogger } from '../lib/logger'
@@ -212,6 +212,19 @@ export class EmulatorPersistence {
   // ==========================================================================
 
   /**
+   * Sanitize fileId to prevent path traversal attacks.
+   * Returns null if the fileId is invalid (contains path separators).
+   */
+  private sanitizeFileId(fileId: string): string | null {
+    const sanitizedId = basename(fileId)
+    if (sanitizedId !== fileId || !fileId) {
+      persistenceLogger.warn(`Invalid file ID rejected: ${fileId}`)
+      return null
+    }
+    return sanitizedId
+  }
+
+  /**
    * Save file metadata to database and binary data to disk
    */
   async saveFile(file: SlackFile, data: Buffer): Promise<void> {
@@ -237,7 +250,10 @@ export class EmulatorPersistence {
     )
 
     // Save binary data to disk
-    const filePath = join(this.uploadsDir, file.id)
+    const sanitizedId = this.sanitizeFileId(file.id)
+    if (!sanitizedId) return
+
+    const filePath = join(this.uploadsDir, sanitizedId)
     await writeFile(filePath, data)
     persistenceLogger.info(`Saved file ${file.id} (${file.name})`)
   }
@@ -283,7 +299,10 @@ export class EmulatorPersistence {
    * Load file binary data from disk
    */
   async loadFileData(fileId: string): Promise<Buffer | null> {
-    const filePath = join(this.uploadsDir, fileId)
+    const sanitizedId = this.sanitizeFileId(fileId)
+    if (!sanitizedId) return null
+
+    const filePath = join(this.uploadsDir, sanitizedId)
     try {
       return await readFile(filePath)
     } catch {
@@ -313,12 +332,15 @@ export class EmulatorPersistence {
   async deleteFile(fileId: string): Promise<boolean> {
     if (!this.db) return false
 
+    const sanitizedId = this.sanitizeFileId(fileId)
+    if (!sanitizedId) return false
+
     const result = this.db.run(`DELETE FROM simulator_files WHERE id = ?`, [
       fileId,
     ])
 
     // Delete from disk
-    const filePath = join(this.uploadsDir, fileId)
+    const filePath = join(this.uploadsDir, sanitizedId)
     try {
       await unlink(filePath)
     } catch {
