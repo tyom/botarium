@@ -226,9 +226,12 @@ function connectSSE(): void {
 
   sseConnection.onerror = (err) => {
     sseLogger.error('Connection error:', err)
+    // Close and clear the broken connection
+    sseConnection?.close()
+    sseConnection = null
     // Reconnect after a delay
     setTimeout(() => {
-      if (initialized && !sseConnection) {
+      if (initialized) {
         connectSSE()
       }
     }, 2000)
@@ -271,6 +274,10 @@ function handleSSEEvent(event: {
   switch (event.type) {
     case 'connected':
       sseLogger.info('Emulator connection confirmed')
+      // Refresh bot list on SSE reconnect (emulator may have restarted)
+      loadConnectedBots()
+      loadAppConfig()
+      loadCommands()
       break
 
     case 'message':
