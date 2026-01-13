@@ -80,7 +80,7 @@ function getSensitiveFields(settings) {
 
   // Get fields marked as secret in schema
   const sensitiveFromSchema = Object.entries(schema)
-    .filter(([_, s]) => s.type === 'secret')
+    .filter(([, s]) => s.type === 'secret')
     .map(([key]) => key)
 
   // Fallback: naming convention for fields not in schema

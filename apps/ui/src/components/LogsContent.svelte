@@ -3,7 +3,7 @@
   import { logState, LEVEL_COLORS } from '../lib/logger.svelte'
   import { isModuleEnabled, filterState } from '../lib/log-filter-state.svelte'
   import LogFilterToolbar from './LogFilterToolbar.svelte'
-  import type { LogLevel, LogEntry } from '../lib/log-types'
+  import type { LogEntry } from '../lib/log-types'
 
   let logsContainer: HTMLDivElement
 

@@ -169,17 +169,16 @@
 
 <svelte:window onkeydown={handleKeyDown} />
 
-<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <!-- svelte-ignore a11y_interactive_supports_focus -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
+  role="dialog"
   class="fixed inset-0 bg-black/90 flex items-center justify-center z-70"
   onclick={handleBackdropClick}
   onmouseup={handleMouseUp}
   onmousemove={handleMouseMove}
   onmouseleave={handleMouseUp}
   onwheel={handleWheel}
-  role="dialog"
   aria-modal="true"
 >
   <!-- Close button -->
