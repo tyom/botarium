@@ -1,29 +1,23 @@
 /**
  * Settings store constants for the Botarium app
  *
- * Settings are now dynamic and driven by bot config schema.
- * This module only contains constants used across the app.
+ * Global simulator settings are defined in simulator-settings.ts.
+ * Bot-specific settings come from each bot's config.yaml.
  */
 
-// Log level type for UI filtering
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
+import {
+  DEFAULT_SIMULATOR_SETTINGS,
+  type SimulatorSettings,
+} from './simulator-settings'
+
+// Re-export types for convenience
+export type { SimulatorSettings, LogLevel } from './simulator-settings'
 
 // Internal ID used for message storage - never changes
 export const INTERNAL_SIMULATED_USER_ID = '__SIMULATED_USER__'
 
-export const DEFAULT_SIMULATED_USER_NAME = 'You'
+// Default simulated user name
+export const DEFAULT_SIMULATED_USER_NAME = DEFAULT_SIMULATOR_SETTINGS.simulated_user_name
 
-// Default settings - minimal defaults for new users
-export const DEFAULT_SETTINGS: Record<string, unknown> = {
-  ai_provider: 'openai',
-  simulated_user_name: DEFAULT_SIMULATED_USER_NAME,
-}
-
-/**
- * Get the API key for the current provider from settings
- */
-export function getApiKey(settings: Record<string, unknown>): string {
-  const provider = settings.ai_provider as string
-  if (!provider) return ''
-  return (settings[`${provider}_api_key`] as string) ?? ''
-}
+// Default settings for the simulator
+export const DEFAULT_SETTINGS: SimulatorSettings = DEFAULT_SIMULATOR_SETTINGS

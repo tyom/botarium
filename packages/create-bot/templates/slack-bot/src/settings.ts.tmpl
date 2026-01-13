@@ -37,7 +37,8 @@ export type ModelTier = 'fast' | 'default'
 {{~/if}}
 
 // Local simulator mode (SLACK_API_URL set)
-const isLocalMode = Boolean(process.env.SLACK_API_URL)
+export const isSimulatorMode = Boolean(process.env.SLACK_API_URL)
+const isLocalMode = isSimulatorMode
 
 const envSchema = z.object({
   // Bot Configuration

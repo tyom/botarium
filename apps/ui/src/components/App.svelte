@@ -209,15 +209,6 @@
 
 {#if !backendState.settingsLoaded && isElectron}
   <LoadingSpinner delay={1000} />
-{:else if backendState.showSettings && !backendState.hasApiKey}
-  <!-- Initial setup: full-screen settings (no modal) -->
-  <Settings
-    settings={backendState.effectiveSettings}
-    onSave={backendState.saveSettings}
-    onCancel={backendState.closeSettings}
-    showCancel={false}
-    isModal={false}
-  />
 {:else if backendState.shouldShowApp}
   {#if backendState.backendError}
     <div
@@ -286,7 +277,7 @@
   onCancel={backendState.closeSettings}
   showCancel={true}
   isModal={true}
-  open={backendState.showSettings && backendState.hasApiKey}
+  open={backendState.showSettings}
 />
 
 <!-- App Settings modal -->
@@ -294,7 +285,7 @@
   <AppSettings
     appId={backendState.showAppSettings.appId}
     appName={backendState.showAppSettings.appName}
-    globalSettings={backendState.effectiveSettings}
+    globalSettings={backendState.effectiveSettings as unknown as Record<string, unknown>}
     appSettings={backendState.getAppSettings(backendState.showAppSettings.appId)}
     onSave={(settings) => backendState.saveAppSettings(backendState.showAppSettings!.appId, settings)}
     onCancel={backendState.closeAppSettings}

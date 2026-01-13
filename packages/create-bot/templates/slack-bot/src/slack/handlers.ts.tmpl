@@ -6,6 +6,7 @@ import { chatWithHistory } from '../ai/chat'
 {{/if}}
 import { threadTracker } from './thread-tracker'
 import { settings } from '../settings'
+import { slackConfig } from '../config/loader'
 import { slackLogger } from '../utils/logger'
 
 let botUserId: string | null = null
@@ -274,30 +275,40 @@ async function handleResponse(
 /**
  * Register app config with the Botarium emulator.
  * This allows the emulator to discover and display the bot.
+ * Retries if the emulator isn't ready yet.
  */
-async function registerWithEmulator(): Promise<void> {
+async function registerWithEmulator(
+  maxRetries = 30,
+  retryDelayMs = 2000
+): Promise<void> {
   const apiUrl = process.env.SLACK_API_URL
   if (!apiUrl) return
 
-  const appConfig = {
-    app: { name: settings.BOT_NAME },
-    commands: [],
-    shortcuts: [],
-  }
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Register full app config (includes commands, shortcuts, etc.)
+      const response = await fetch(`${apiUrl}/api/config/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(slackConfig),
+      })
 
-  try {
-    const response = await fetch(`${apiUrl}/api/config/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(appConfig),
-    })
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
+      slackLogger.info('Registered with emulator')
+      return
+    } catch (error) {
+      if (attempt < maxRetries) {
+        slackLogger.debug(
+          { attempt, maxRetries },
+          'Emulator not ready, retrying...'
+        )
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs))
+      } else {
+        slackLogger.warn({ err: error }, 'Failed to register with emulator')
+      }
     }
-
-    slackLogger.info('Registered with emulator')
-  } catch (error) {
-    slackLogger.warn({ err: error }, 'Failed to register with emulator')
   }
 }

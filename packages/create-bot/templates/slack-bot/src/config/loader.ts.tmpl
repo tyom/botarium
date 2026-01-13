@@ -1,0 +1,112 @@
+/**
+ * Config loader - parses config.yaml and provides typed access
+ *
+ * This is the single source of truth for bot configuration.
+ * Settings can have:
+ *   - value: direct value
+ *   - env: reference to environment variable (for secrets)
+ *   - schema: metadata for UI generation
+ */
+
+import rawConfig from '../../config.yaml'
+
+// Schema field types for UI generation
+export type FieldType =
+  | 'string'
+  | 'text'
+  | 'number'
+  | 'secret'
+  | 'select'
+  | 'model_select'
+  | 'boolean'
+
+export interface SelectOption {
+  value: string
+  label: string
+}
+
+export interface FieldCondition {
+  field: string
+  equals: string
+}
+
+export interface SettingSchema {
+  type: FieldType
+  label: string
+  description?: string
+  group: string
+  required?: boolean
+  required_when?: FieldCondition
+  condition?: FieldCondition
+  options?: SelectOption[]
+  min?: number
+  max?: number
+  placeholder?: string
+  tier?: string // For model_select: fast, default
+  provider_field?: string // For model_select: which field determines provider
+}
+
+export interface SettingDefinition {
+  value?: unknown
+  env?: string
+  schema: SettingSchema
+}
+
+export interface GroupDefinition {
+  id: string
+  label: string
+  order: number
+  collapsed?: boolean
+}
+
+// Slack app configuration types
+export interface SlashCommand {
+  command: string
+  description: string
+  usage_hint?: string
+}
+
+export interface Shortcut {
+  callback_id: string
+  name: string
+  description: string
+  type: 'message' | 'global'
+}
+
+export interface SlackConfig {
+  commands: SlashCommand[]
+  shortcuts: Shortcut[]
+  actions: Record<string, string>
+  modals: Record<string, string>
+}
+
+export interface ConfigFile {
+  app_id: string
+  slack: SlackConfig
+  settings: Record<string, SettingDefinition>
+  groups: GroupDefinition[]
+{{#if isAi}}
+  model_tiers: Record<string, Record<string, string[]>>
+{{/if}}
+}
+
+// Export typed config
+export const config = rawConfig as ConfigFile
+
+// Get bot name from settings (with fallback)
+const botName = (config.settings.bot_name?.value as string) ?? '{{botNamePascal}}'
+
+// Export app_id for message isolation
+export const appId = config.app_id
+
+// Convenience exports for Slack config
+// Include app info for emulator registration (derived from bot_name setting)
+export const slackConfig = {
+  app: { name: botName, id: appId },
+  ...config.slack,
+}
+{{~#if isAi}}
+
+// Export model tiers from config
+export const MODEL_TIERS = config.model_tiers
+{{~/if}}

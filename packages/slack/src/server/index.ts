@@ -279,7 +279,7 @@ export async function startEmulatorServer(
 
       // App config registration (called by bot at startup)
       if (path === '/api/config/register' && req.method === 'POST') {
-        return webApi.handleConfigRegister(await req.json())
+        return await webApi.handleConfigRegister(await req.json())
       }
 
       // Get available commands (called by frontend)

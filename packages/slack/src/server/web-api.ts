@@ -1110,7 +1110,7 @@ export class SlackWebAPI {
     return Response.json({ ok: true, commands }, { headers: corsHeaders() })
   }
 
-  handleConfigRegister(config: SlackAppConfig): Response {
+  async handleConfigRegister(config: SlackAppConfig): Promise<Response> {
     if (!config || !config.app) {
       return Response.json(
         { ok: false, error: 'invalid_config' },
@@ -1122,7 +1122,7 @@ export class SlackWebAPI {
     const connectionId = this.socketMode.getUnassociatedConnectionId()
 
     // Register the bot (with or without connection - bot clearly works if it's registering)
-    const botId = this.state.registerBot(
+    const botId = await this.state.registerBot(
       connectionId ?? `config-${crypto.randomUUID()}`,
       config
     )

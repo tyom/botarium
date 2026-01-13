@@ -847,10 +847,9 @@ function createWindow() {
   })
 
   // Start backend if settings exist
+  // Note: API keys are now bot-specific (in config.yaml), not global settings
   const settings = loadSettings()
-  const provider = settings?.ai_provider
-  const apiKey = provider ? settings?.[`${provider}_api_key`] : null
-  if (settings && apiKey) {
+  if (settings) {
     startBackend(settings)
   }
 }

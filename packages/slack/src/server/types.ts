@@ -65,6 +65,7 @@ export interface ShortcutDefinition {
 export interface SlackAppConfig {
   app: {
     name: string
+    id?: string // App ID for message isolation (from config.yaml app_id)
   }
   commands: SlashCommandDefinition[]
   shortcuts: ShortcutDefinition[]
