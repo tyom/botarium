@@ -21,7 +21,7 @@ let messageCounter = 0
 
 export function createTimestamp(): string {
   messageCounter++
-  return `${Date.now() / 1000}.${String(messageCounter).padStart(6, '0')}`
+  return `${Math.floor(Date.now() / 1000)}.${String(messageCounter).padStart(6, '0')}`
 }
 
 // Modal state interface

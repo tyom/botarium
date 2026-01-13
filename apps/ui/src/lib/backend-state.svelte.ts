@@ -105,11 +105,13 @@ function createBackendState() {
   let backendError = $state<string | null>(null)
   let initialized = false
 
-  function setBackendReady(onReady: () => void) {
+  function setBackendReady(onReady: () => void | Promise<void>) {
     backendReady = true
     backendError = null
     initializeDispatcher()
-    onReady()
+    Promise.resolve(onReady()).catch((err) => {
+      console.error('Failed to execute onReady callback:', err)
+    })
   }
 
   async function initialize(onReady: () => void) {
