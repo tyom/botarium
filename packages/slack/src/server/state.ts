@@ -146,6 +146,92 @@ export class EmulatorState {
     }
   }
 
+  /**
+   * Clear only DM messages from memory (keep channel messages)
+   * Used when switching between bots with different app_ids
+   */
+  private clearDmMessagesFromMemory(): void {
+    for (const [channelId, _] of this.messages.entries()) {
+      if (this.isDirectMessage(channelId)) {
+        this.messages.set(channelId, [])
+      }
+    }
+    // Also clear DM files from memory
+    for (const [fileId, file] of this.files.entries()) {
+      const channel = file.channels?.[0]
+      if (channel && channel.startsWith('D_')) {
+        this.files.delete(fileId)
+        this.fileData.delete(fileId)
+      }
+    }
+  }
+
+  /**
+   * Load only DM messages from persistence for the current app
+   * Used when switching between bots with different app_ids
+   */
+  private async loadPersistedDmMessages(): Promise<void> {
+    if (!this.persistence) return
+
+    const records = await this.persistence.loadAllMessages()
+    for (const record of records) {
+      // Only load DM messages (channel messages are already in memory)
+      if (!record.channel.startsWith('D_')) continue
+
+      const message: SlackMessage = {
+        type: 'message',
+        channel: record.channel,
+        user: record.user,
+        text: record.text,
+        ts: record.ts,
+        thread_ts: record.threadTs,
+        reactions: record.reactions?.map((name) => ({
+          name,
+          users: [],
+          count: 1,
+        })),
+      }
+      if (record.fileId) {
+        const file = this.files.get(record.fileId)
+        if (file) {
+          message.file = file
+        }
+      }
+      this.loadMessageToMemory(message)
+    }
+  }
+
+  /**
+   * Load only DM files from persistence for the current app
+   * Used when switching between bots with different app_ids
+   */
+  private async loadPersistedDmFiles(): Promise<void> {
+    if (!this.persistence) return
+
+    const baseUrl = getEmulatorUrl()
+    const records = await this.persistence.loadAllFiles()
+    for (const record of records) {
+      // Only load DM files (channel files are already in memory)
+      if (!record.channel || !record.channel.startsWith('D_')) continue
+
+      const fileUrl = `${baseUrl}/api/simulator/files/${record.id}`
+      const file: SlackFile = {
+        id: record.id,
+        name: record.name,
+        title: record.title || record.name,
+        mimetype: record.mimetype,
+        size: record.size,
+        filetype: record.mimetype.split('/')[1] || 'binary',
+        url_private: fileUrl,
+        url_private_download: fileUrl,
+        channels: record.channel ? [record.channel] : [],
+        user: record.user,
+        isExpanded: record.is_expanded,
+      }
+      this.files.set(file.id, file)
+    }
+  }
+
   private initializeWorkspace(): void {
     // Add bot user
     const botUser: SlackUser = {
@@ -472,7 +558,22 @@ export class EmulatorState {
    * If a disconnected bot with the same app name exists, reuse it.
    * Returns the bot ID.
    */
-  registerBot(connectionId: string, appConfig: SlackAppConfig): string {
+  async registerBot(connectionId: string, appConfig: SlackAppConfig): Promise<string> {
+    // Switch app_id for filtering DM messages
+    const appId = appConfig.app?.id
+    if (appId && this.persistence) {
+      const currentAppId = this.persistence.getAppId()
+      if (currentAppId !== appId) {
+        stateLogger.info({ appId, currentAppId }, 'Switching to bot app_id')
+        this.persistence.setAppId(appId)
+        // Clear only DM messages from memory (keep channel messages)
+        this.clearDmMessagesFromMemory()
+        // Reload DM messages and files for the new app
+        await this.loadPersistedDmFiles()
+        await this.loadPersistedDmMessages()
+      }
+    }
+
     // Check for existing disconnected bot with the same app name
     const existingBot = Array.from(this.connectedBots.values()).find(
       (bot) =>

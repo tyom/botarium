@@ -19,6 +19,7 @@ import {
   setConnectedBots,
   addConnectedBot,
   markBotDisconnected,
+  restoreMessages,
 } from './state.svelte'
 import type {
   SimulatorMessage,
@@ -208,6 +209,21 @@ export function isInitialized(): boolean {
 }
 
 /**
+ * Reconnect SSE after backend restart.
+ * Unlike initializeDispatcher(), this bypasses the initialization guard
+ * and properly closes any existing connection before reconnecting.
+ */
+export function reconnectSSE(): void {
+  // Close existing connection if any
+  if (sseConnection) {
+    sseConnection.close()
+    sseConnection = null
+  }
+  connectSSE()
+  dispatcherLogger.info('Reconnected SSE after backend restart')
+}
+
+/**
  * Connect to SSE endpoint for real-time updates from emulator
  */
 function connectSSE(): void {
@@ -376,6 +392,12 @@ function handleSSEEvent(event: {
         // Also update app config and commands when a bot connects
         loadAppConfig()
         loadCommands()
+        // Reload messages (DM messages are filtered by app_id)
+        loadMessages().then((messages) => {
+          if (messages.length > 0) {
+            restoreMessages(messages)
+          }
+        })
       }
       break
 

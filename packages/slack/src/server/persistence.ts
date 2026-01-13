@@ -41,10 +41,27 @@ export class EmulatorPersistence {
   private db: Database | null = null
   private dataDir: string
   private uploadsDir: string
+  private appId: string
 
-  constructor(dataDir: string) {
+  constructor(dataDir: string, appId: string = 'default') {
     this.dataDir = resolve(dataDir)
     this.uploadsDir = join(this.dataDir, 'uploads')
+    this.appId = appId
+  }
+
+  /** Update the app ID for filtering DM messages */
+  setAppId(appId: string): void {
+    this.appId = appId
+    // No database switching needed - queries use app_id filter
+  }
+
+  /** Check if a channel is a direct message (DM) */
+  private isDirectMessage(channelId: string): boolean {
+    return channelId.startsWith('D_')
+  }
+
+  getAppId(): string {
+    return this.appId
   }
 
   async initialize(): Promise<void> {
@@ -53,13 +70,15 @@ export class EmulatorPersistence {
     await mkdir(this.dataDir, { recursive: true })
     await mkdir(this.uploadsDir, { recursive: true })
 
+    // Single database file for all apps - app_id column handles scoping
     const dbPath = resolve(join(this.dataDir, 'simulator.sqlite'))
+    persistenceLogger.info({ dbPath, appId: this.appId }, 'Initializing database')
     this.db = new Database(dbPath, { create: true, strict: true })
 
     // Enable WAL mode for better concurrent access
     this.db.run('PRAGMA journal_mode = WAL')
 
-    // Create messages table (same schema as bot's simulator-messages.ts)
+    // Create messages table with app_id for scoping (NULL = global, value = DM)
     this.db.run(`
       CREATE TABLE IF NOT EXISTS simulator_messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,6 +89,7 @@ export class EmulatorPersistence {
         thread_ts TEXT,
         reactions TEXT,
         file_id TEXT,
+        app_id TEXT,
         created_at TEXT NOT NULL
       )
     `)
@@ -81,7 +101,14 @@ export class EmulatorPersistence {
       // Column already exists, ignore
     }
 
-    // Create files table
+    // Migration: add app_id column for message scoping (NULL = global, value = DM)
+    try {
+      this.db.run(`ALTER TABLE simulator_messages ADD COLUMN app_id TEXT`)
+    } catch {
+      // Column already exists, ignore
+    }
+
+    // Create files table with app_id for scoping
     this.db.run(`
       CREATE TABLE IF NOT EXISTS simulator_files (
         id TEXT PRIMARY KEY,
@@ -91,6 +118,7 @@ export class EmulatorPersistence {
         size INTEGER NOT NULL,
         channel TEXT,
         user TEXT,
+        app_id TEXT,
         created_at TEXT NOT NULL
       )
     `)
@@ -111,12 +139,25 @@ export class EmulatorPersistence {
       // Column already exists, ignore
     }
 
+    // Migration: add app_id column for file scoping (NULL = global, value = DM)
+    try {
+      this.db.run(`ALTER TABLE simulator_files ADD COLUMN app_id TEXT`)
+    } catch {
+      // Column already exists, ignore
+    }
+
     // Create indexes
     this.db.run(
       'CREATE INDEX IF NOT EXISTS idx_sim_messages_channel ON simulator_messages(channel)'
     )
     this.db.run(
       'CREATE INDEX IF NOT EXISTS idx_sim_messages_thread ON simulator_messages(thread_ts)'
+    )
+    this.db.run(
+      'CREATE INDEX IF NOT EXISTS idx_sim_messages_app_id ON simulator_messages(app_id)'
+    )
+    this.db.run(
+      'CREATE INDEX IF NOT EXISTS idx_sim_files_app_id ON simulator_files(app_id)'
     )
 
     persistenceLogger.info(`Initialized at ${dbPath}`)
@@ -133,10 +174,12 @@ export class EmulatorPersistence {
     }))
     const reactionsJson = reactions ? JSON.stringify(reactions) : null
     const fileId = message.file?.id ?? null
+    // DM messages are scoped to app_id, channel messages are global (NULL)
+    const appIdValue = this.isDirectMessage(message.channel) ? this.appId : null
 
     this.db.run(
-      `INSERT INTO simulator_messages (ts, channel, user, text, thread_ts, reactions, file_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO simulator_messages (ts, channel, user, text, thread_ts, reactions, file_id, app_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(ts) DO UPDATE SET text = excluded.text, reactions = excluded.reactions, file_id = excluded.file_id`,
       [
         message.ts,
@@ -146,6 +189,7 @@ export class EmulatorPersistence {
         message.thread_ts ?? null,
         reactionsJson,
         fileId,
+        appIdValue,
         now,
       ]
     )
@@ -173,13 +217,16 @@ export class EmulatorPersistence {
   async loadAllMessages(): Promise<MessageRecord[]> {
     if (!this.db) return []
 
+    // Load channel messages (always) + DM messages only for current app
     const results = this.db
       .query(
         `SELECT ts, channel, user, text, thread_ts as threadTs, reactions, file_id as fileId
          FROM simulator_messages
+         WHERE channel NOT LIKE 'D_%'
+            OR app_id = ?
          ORDER BY ts ASC`
       )
-      .all() as Array<{
+      .all(this.appId) as Array<{
       ts: string
       channel: string
       user: string
@@ -212,13 +259,31 @@ export class EmulatorPersistence {
   async clearChannel(channel: string): Promise<void> {
     if (!this.db) return
 
-    this.db.run(`DELETE FROM simulator_messages WHERE channel = ?`, [channel])
+    if (this.isDirectMessage(channel)) {
+      // For DM channels, only clear messages for the current app
+      this.db.run(
+        `DELETE FROM simulator_messages WHERE channel = ? AND app_id = ?`,
+        [channel, this.appId]
+      )
+    } else {
+      // For regular channels, clear all messages (they're global)
+      this.db.run(`DELETE FROM simulator_messages WHERE channel = ?`, [channel])
+    }
   }
 
   async clearAll(): Promise<void> {
     if (!this.db) return
 
     this.db.run(`DELETE FROM simulator_messages`)
+  }
+
+  /**
+   * Clear only DM messages for the current app (used when switching bots)
+   */
+  async clearAppDmMessages(): Promise<void> {
+    if (!this.db) return
+
+    this.db.run(`DELETE FROM simulator_messages WHERE app_id = ?`, [this.appId])
   }
 
   // ==========================================================================
@@ -249,6 +314,9 @@ export class EmulatorPersistence {
     if (!sanitizedId) return
 
     const now = new Date().toISOString()
+    const channel = file.channels?.[0] ?? null
+    // Files in DM channels are scoped to app_id, channel files are global (NULL)
+    const appIdValue = channel && this.isDirectMessage(channel) ? this.appId : null
 
     // Save binary data to disk
     const filePath = join(this.uploadsDir, sanitizedId)
@@ -256,8 +324,8 @@ export class EmulatorPersistence {
 
     // Save metadata to SQLite only after successful file write
     this.db.run(
-      `INSERT INTO simulator_files (id, name, title, mimetype, size, channel, user, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO simulator_files (id, name, title, mimetype, size, channel, user, app_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET name = excluded.name, title = excluded.title, mimetype = excluded.mimetype, size = excluded.size`,
       [
         file.id,
@@ -265,8 +333,9 @@ export class EmulatorPersistence {
         file.title ?? null,
         file.mimetype,
         file.size ?? 0,
-        file.channels?.[0] ?? null,
+        channel,
         file.user ?? null,
+        appIdValue,
         now,
       ]
     )
@@ -280,13 +349,16 @@ export class EmulatorPersistence {
   async loadAllFiles(): Promise<FileRecord[]> {
     if (!this.db) return []
 
+    // Load channel files (always) + DM files only for current app
     const results = this.db
       .query(
         `SELECT id, name, title, mimetype, size, channel, user, created_at, is_expanded
          FROM simulator_files
+         WHERE channel IS NULL OR channel NOT LIKE 'D_%'
+            OR app_id = ?
          ORDER BY created_at ASC`
       )
-      .all() as Array<{
+      .all(this.appId) as Array<{
       id: string
       name: string
       title: string | null
