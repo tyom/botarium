@@ -18,9 +18,10 @@
 </script>
 
 <button
+  {...rest}
+  type={rest.type ?? 'button'}
   class="bg-transparent border-none p-1 rounded text-(--text-muted) cursor-pointer flex items-center justify-center transition-colors hover:bg-(--sidebar-hover) hover:text-(--text-primary) {className}"
   aria-label={label}
-  {...rest}
 >
   <Icon {size} />
 </button>

@@ -158,7 +158,7 @@
     />
   {/if}
   <div
-    class="flex items-end gap-2 bg-slack-input border border-white/20 rounded-lg px-3 py-2 transition-[border-color] duration-150 focus-within:border-white/60"
+    class="flex items-end gap-2 bg-slack-input border border-white/20 rounded-lg px-3 py-2 transition-[border-color] duration-150 focus-within:border-slack-accent"
   >
     <textarea
       bind:value
