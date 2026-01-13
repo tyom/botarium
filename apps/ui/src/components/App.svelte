@@ -30,6 +30,7 @@
   import MessagePanel from './MessagePanel.svelte'
   import RhsPanel from './RhsPanel.svelte'
   import Settings from './Settings.svelte'
+  import AppSettings from './AppSettings.svelte'
   import Sidebar from './Sidebar.svelte'
   import ThreadPanel from './ThreadPanel.svelte'
   import ModalOverlay from './ModalOverlay.svelte'
@@ -233,7 +234,10 @@
   {/if}
 
   <div class="app flex h-screen bg-slack-bg text-slack-text">
-    <Sidebar onOpenSettings={backendState.openSettings} />
+    <Sidebar
+      onOpenSettings={backendState.openSettings}
+      onOpenAppSettings={backendState.openAppSettings}
+    />
 
     {#if sidePanelVisible}
       <PaneGroup
@@ -284,6 +288,19 @@
   isModal={true}
   open={backendState.showSettings && backendState.hasApiKey}
 />
+
+<!-- App Settings modal -->
+{#if backendState.showAppSettings}
+  <AppSettings
+    appId={backendState.showAppSettings.appId}
+    appName={backendState.showAppSettings.appName}
+    globalSettings={backendState.effectiveSettings}
+    appSettings={backendState.getAppSettings(backendState.showAppSettings.appId)}
+    onSave={(settings) => backendState.saveAppSettings(backendState.showAppSettings!.appId, settings)}
+    onCancel={backendState.closeAppSettings}
+    open={true}
+  />
+{/if}
 
 <!-- Modal overlay for slash command modals -->
 <ModalOverlay />

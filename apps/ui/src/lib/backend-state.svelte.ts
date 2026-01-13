@@ -100,6 +100,7 @@ function createBackendState() {
   let settings = $state<Record<string, unknown> | null>(null)
   let settingsLoaded = $state(false)
   let showSettings = $state(false)
+  let showAppSettings = $state<{ appId: string; appName: string } | null>(null)
   let backendReady = $state(false)
   let backendError = $state<string | null>(null)
   let initialized = false
@@ -221,6 +222,51 @@ function createBackendState() {
     showSettings = false
   }
 
+  function getAppSettings(appId: string): Record<string, unknown> {
+    if (!settings) return {}
+    const appSettings = settings.app_settings as
+      | Record<string, Record<string, unknown>>
+      | undefined
+    return appSettings?.[appId] ?? {}
+  }
+
+  async function saveAppSettings(
+    appId: string,
+    appSettings: Record<string, unknown>
+  ) {
+    if (!settings) return
+
+    const allAppSettings = (settings.app_settings ?? {}) as Record<
+      string,
+      Record<string, unknown>
+    >
+    const newSettings = {
+      ...settings,
+      app_settings: {
+        ...allAppSettings,
+        [appId]: appSettings,
+      },
+    }
+
+    const api = getElectronAPI()
+    if (api) {
+      // Save without triggering backend restart (app settings only affect model selection)
+      await api.saveSettings(newSettings)
+    } else {
+      saveSettingsToStorage(newSettings)
+    }
+    settings = newSettings
+    showAppSettings = null
+  }
+
+  function openAppSettings(appId: string, appName: string) {
+    showAppSettings = { appId, appName }
+  }
+
+  function closeAppSettings() {
+    showAppSettings = null
+  }
+
   return {
     get settings() {
       return settings
@@ -230,6 +276,9 @@ function createBackendState() {
     },
     get showSettings() {
       return showSettings
+    },
+    get showAppSettings() {
+      return showAppSettings
     },
     get backendReady() {
       return backendReady
@@ -254,6 +303,10 @@ function createBackendState() {
     updateSetting,
     openSettings,
     closeSettings,
+    getAppSettings,
+    saveAppSettings,
+    openAppSettings,
+    closeAppSettings,
   }
 }
 

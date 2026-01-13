@@ -13,16 +13,24 @@
     type GroupDefinition,
   } from '../lib/config-client'
 
+  import type { Snippet } from 'svelte'
+
   interface Props {
     /** Initial form values */
     initialValues: Record<string, unknown>
     /** Bindable form data - updated as user edits */
     formData?: Record<string, unknown>
+    /** Filter fields by scope: 'global', 'app', or 'all' (default) */
+    filterScope?: 'global' | 'app' | 'all'
+    /** Additional content to render inside the advanced group */
+    advancedContent?: Snippet
   }
 
   let {
     initialValues,
     formData = $bindable({}),
+    filterScope = 'all',
+    advancedContent,
   }: Props = $props()
 
   let config: BotConfig | null = $state(null)
@@ -60,12 +68,23 @@
     return [...config.schema.groups].sort((a, b) => a.order - b.order)
   }
 
-  // Get fields for a group
+  // Get fields for a group, filtered by scope
+  // Global fields: ai_provider, *_api_key, and 'advanced' group
+  // All other fields are app-scoped by default
   function getFieldsForGroup(groupId: string): [string, SettingSchema][] {
     if (!config) return []
-    return Object.entries(config.schema.settings).filter(
-      ([_, schema]) => schema.group === groupId
-    )
+    return Object.entries(config.schema.settings).filter(([key, schema]) => {
+      const matchesGroup = schema.group === groupId
+      // Determine field scope: global for provider/API keys/advanced, app for everything else
+      const isGlobalField =
+        key === 'ai_provider' ||
+        key.endsWith('_api_key') ||
+        schema.group === 'advanced'
+      const fieldScope = schema.scope ?? (isGlobalField ? 'global' : 'app')
+      const matchesScope =
+        filterScope === 'all' || fieldScope === filterScope
+      return matchesGroup && matchesScope
+    })
   }
 
   // Check if field should be visible based on condition
@@ -122,14 +141,18 @@
     <p class="text-sm">Make sure the bot is running in simulator mode.</p>
   </div>
 {:else}
-  {#each getSortedGroups() as group, groupIndex}
+  {@const groupsWithVisibleFields = getSortedGroups().filter(g => {
+    const fields = getFieldsForGroup(g.id)
+    return fields.some(([_, schema]) => shouldShowField(schema))
+  })}
+  {#each groupsWithVisibleFields as group, visibleGroupIndex}
     {@const fields = getFieldsForGroup(group.id)}
     {@const visibleFields = fields.filter(([_, schema]) =>
       shouldShowField(schema)
     )}
 
     {#if visibleFields.length > 0}
-      {#if groupIndex > 0}
+      {#if visibleGroupIndex > 0}
         <div class="h-px bg-(--border-color) my-5"></div>
       {/if}
 
@@ -150,6 +173,9 @@
           </button>
           {#if !collapsedGroups[group.id]}
             {@render groupFields(visibleFields)}
+            {#if group.id === 'advanced' && advancedContent}
+              {@render advancedContent()}
+            {/if}
           {/if}
         </div>
       {:else}
@@ -186,15 +212,15 @@
         </Tabs.List>
       </Tabs.Root>
     {:else if schema.type === 'secret'}
-      <Label for={key} class="justify-between mb-1.5 text-(--text-secondary)">
+      <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
         {#if !isFieldRequired(schema)}
-          <span class="text-xs text-(--text-muted)">(optional)</span>
+          <span class="text-xs text-(--text-muted) ml-1">(optional)</span>
         {/if}
         <Button
           type="button"
           variant="link"
-          class="h-auto p-0 text-xs"
+          class="h-auto p-0 text-xs ml-auto"
           onclick={() => toggleSecret(key)}
         >
           {showSecrets[key] ? 'Hide' : 'Show'}

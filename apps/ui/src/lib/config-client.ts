@@ -37,6 +37,7 @@ export interface SettingSchema {
   label: string
   description?: string
   group: string
+  scope?: 'global' | 'app' // defaults to 'global'
   required?: boolean
   required_when?: FieldCondition
   condition?: FieldCondition

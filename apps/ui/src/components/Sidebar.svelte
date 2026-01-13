@@ -9,9 +9,10 @@
   interface Props {
     onChannelSelect?: (channel: Channel) => void
     onOpenSettings?: () => void
+    onOpenAppSettings?: (appId: string, appName: string) => void
   }
 
-  let { onChannelSelect, onOpenSettings }: Props = $props()
+  let { onChannelSelect, onOpenSettings, onOpenAppSettings }: Props = $props()
 
   const sections = [
     { type: 'channel' as const, label: 'Channels' },
@@ -71,8 +72,9 @@
       {/if}
       {#each CHANNELS.filter((c) => c.type === section.type && (c.type !== 'dm' || simulatorState.connectedBots.size > 0)) as channel}
         {@const isActive = simulatorState.currentChannel === channel.id}
+        {@const bot = channel.type === 'dm' ? Array.from(simulatorState.connectedBots.values())[0] : null}
         <div
-          class="flex items-center relative hover:bg-(--sidebar-hover) rounded-lg"
+          class="flex items-center relative hover:bg-(--sidebar-hover) rounded-lg group"
           class:!bg-(--sidebar-active)={isActive}
         >
           <button
@@ -104,6 +106,18 @@
               <span class="size-2 rounded-full bg-red-500 shrink-0"></span>
             {/if}
           </button>
+          {#if channel.type === 'dm' && bot && onOpenAppSettings}
+            <IconButton
+              icon={Settings}
+              size={14}
+              label="{bot.name} settings"
+              class="opacity-0 group-hover:opacity-100 transition-opacity mr-2"
+              onclick={(e) => {
+                e.stopPropagation()
+                onOpenAppSettings(bot.id, bot.name)
+              }}
+            />
+          {/if}
         </div>
       {/each}
     {/each}

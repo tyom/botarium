@@ -120,36 +120,38 @@
         <DynamicSettings
           initialValues={settings}
           bind:formData
-        />
-
-        <!-- Delete All Data section -->
-        <div class="h-px bg-(--border-color) my-5"></div>
-        <div class="mb-4">
-          <Label class="mb-1.5 text-(--text-secondary)">Delete All Data</Label>
-          <div class="flex gap-2">
-            <Input
-              type="text"
-              bind:value={deleteConfirmText}
-              placeholder="Type DELETE to confirm"
-              autocomplete="off"
-              class="h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) placeholder:text-(--text-muted) flex-1"
-            />
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={deleteConfirmText !== 'DELETE' || deleting}
-              onclick={handleDeleteAllData}
-            >
-              {#if deleting}
-                Deleting...
-              {:else if deleteSuccess}
-                Deleted!
-              {:else}
-                DELETE
-              {/if}
-            </Button>
-          </div>
-        </div>
+          filterScope="global"
+        >
+          {#snippet advancedContent()}
+            <!-- Delete All Data section -->
+            <div class="mb-4 mt-4">
+              <Label class="mb-1.5 text-(--text-secondary)">Delete All Data</Label>
+              <div class="flex gap-2">
+                <Input
+                  type="text"
+                  bind:value={deleteConfirmText}
+                  placeholder="Type DELETE to confirm"
+                  autocomplete="off"
+                  class="h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) placeholder:text-(--text-muted) flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={deleteConfirmText !== 'DELETE' || deleting}
+                  onclick={handleDeleteAllData}
+                >
+                  {#if deleting}
+                    Deleting...
+                  {:else if deleteSuccess}
+                    Deleted!
+                  {:else}
+                    DELETE
+                  {/if}
+                </Button>
+              </div>
+            </div>
+          {/snippet}
+        </DynamicSettings>
       </div>
 
       <!-- Footer with buttons -->
@@ -188,6 +190,7 @@
         <DynamicSettings
           initialValues={settings}
           bind:formData
+          filterScope="global"
         />
 
         {#if error}
