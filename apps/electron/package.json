@@ -1,16 +1,16 @@
 {
-  "name": "@botarium/desktop",
+  "name": "@botarium/electron",
   "version": "0.1.0",
   "description": "Botarium desktop application",
   "type": "module",
   "private": true,
   "main": "electron.js",
   "scripts": {
-    "dev:electron": "bun run build && VITE_DEV=1 concurrently -k \"bun run --filter @botarium/web dev:server\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev:electron": "bun run build && VITE_DEV=1 concurrently -k \"bun run --filter @botarium/ui dev:server\" \"wait-on http://localhost:5173 && electron .\"",
     "electron": "electron .",
     "build": "bun build src/preload.ts --outfile=dist/preload.cjs --target=node --format=cjs --external=electron",
     "build:bots": "bun run scripts/compile-bots.ts",
-    "build:full": "bun run build && bun run --filter @botarium/web build",
+    "build:full": "bun run build && bun run --filter @botarium/ui build",
     "package": "bun run build:full && electron-builder",
     "package:with-bots": "bun run build:bots && bun run package",
     "typecheck": "tsc --noEmit"

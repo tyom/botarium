@@ -17,8 +17,8 @@
         "typescript-eslint": "^8.52.0",
       },
     },
-    "apps/desktop": {
-      "name": "@botarium/desktop",
+    "apps/electron": {
+      "name": "@botarium/electron",
       "version": "0.1.0",
       "dependencies": {
         "es-toolkit": "^1.32.0",
@@ -32,8 +32,8 @@
         "wait-on": "^8.0.0",
       },
     },
-    "apps/web": {
-      "name": "@botarium/web",
+    "apps/ui": {
+      "name": "@botarium/ui",
       "version": "0.1.0",
       "dependencies": {
         "@lucide/svelte": "^0.561.0",
@@ -59,7 +59,7 @@
     },
     "packages/core": {
       "name": "botarium",
-      "version": "0.0.1",
+      "version": "0.1.0",
       "dependencies": {
         "pino": "^10.1.0",
       },
@@ -96,13 +96,13 @@
 
     "@babel/runtime": ["@babel/runtime@7.28.6", "", {}, "sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA=="],
 
-    "@botarium/desktop": ["@botarium/desktop@workspace:apps/desktop"],
+    "@botarium/electron": ["@botarium/electron@workspace:apps/electron"],
 
     "@botarium/logger": ["@botarium/logger@workspace:packages/logger"],
 
     "@botarium/slack": ["@botarium/slack@workspace:packages/slack"],
 
-    "@botarium/web": ["@botarium/web@workspace:apps/web"],
+    "@botarium/ui": ["@botarium/ui@workspace:apps/ui"],
 
     "@develar/schema-utils": ["@develar/schema-utils@2.6.5", "", { "dependencies": { "ajv": "^6.12.0", "ajv-keywords": "^3.4.1" } }, "sha512-0cp4PsWQ/9avqTVMCtZ+GirikIA36ikvjtHweU4/j8yLtgObI0+JUPhYFScgwlteveGB1rt3Cm8UhN04XayDig=="],
 

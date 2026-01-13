@@ -5,35 +5,14 @@
 
 import { contextBridge, ipcRenderer } from 'electron'
 
-// Settings type definition (mirrors @botarium/web/lib/settings-store)
-export type AIProvider = 'openai' | 'anthropic' | 'google'
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
-
-export interface SimulatorSettings {
-  aiProvider: AIProvider
-  providerKeys: {
-    openai?: string
-    anthropic?: string
-    google?: string
-  }
-  modelFast?: string
-  modelDefault?: string
-  modelThinking?: string
-  githubToken?: string
-  githubOrg?: string
-  tavilyApiKey?: string
-  simulatedUserName: string
-  appLogLevel?: LogLevel
-}
-
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   isElectron: true,
 
-  // Settings management
-  loadSettings: (): Promise<SimulatorSettings | null> =>
+  // Settings management - uses dynamic Record<string, unknown> format
+  loadSettings: (): Promise<Record<string, unknown> | null> =>
     ipcRenderer.invoke('settings:load'),
-  saveSettings: (settings: SimulatorSettings): Promise<void> =>
+  saveSettings: (settings: Record<string, unknown>): Promise<void> =>
     ipcRenderer.invoke('settings:save', settings),
 
   // Backend control

@@ -36,6 +36,10 @@ const EMULATOR_URL = `http://localhost:${EMULATOR_PORT}`
 const isRunningFromDist =
   __filename.endsWith('.cjs') || __dirname.endsWith('dist')
 
+// Set app name for consistent userData path (~/Library/Application Support/Botarium/)
+// This must be set before any app.getPath() calls
+app.setName('Botarium')
+
 // Disable Autofill feature to suppress DevTools protocol errors
 app.commandLine.appendSwitch('disable-features', 'AutofillServerCommunication')
 
@@ -48,10 +52,10 @@ let logsPanelChecked = false
 const useDevServer = process.env.VITE_DEV === '1'
 const useBundledBots = process.env.USE_BUNDLED_BOTS === '1'
 
-// In dev mode, web app is at ../web/dist, in packaged mode it's at dist/
+// In dev mode, web app is at ../ui/dist, in packaged mode it's at dist/
 const webAppDir = isRunningFromDist
   ? __dirname
-  : path.join(__dirname, '..', 'web', 'dist')
+  : path.join(__dirname, '..', 'ui', 'dist')
 const builtFile = path.join(webAppDir, 'index.html')
 const preloadPath = isRunningFromDist
   ? path.join(__dirname, 'preload.cjs')
@@ -66,8 +70,28 @@ const iconPath = path.join(
   app.isPackaged ? 'icon.png' : 'icon-dev.png'
 )
 
-// Sensitive fields to encrypt
-const SENSITIVE_FIELDS = ['apiKey', 'githubToken', 'tavilyApiKey']
+/**
+ * Get sensitive fields to encrypt from schema or naming convention
+ * @param {Record<string, unknown>} settings
+ * @returns {string[]}
+ */
+function getSensitiveFields(settings) {
+  const schema = settings._schema?.settings || {}
+
+  // Get fields marked as secret in schema
+  const sensitiveFromSchema = Object.entries(schema)
+    .filter(([_, s]) => s.type === 'secret')
+    .map(([key]) => key)
+
+  // Fallback: naming convention for fields not in schema
+  const sensitiveByConvention = Object.keys(settings).filter(
+    (k) =>
+      !k.startsWith('_') &&
+      (k.endsWith('_key') || k.endsWith('_token') || k.endsWith('_secret'))
+  )
+
+  return [...new Set([...sensitiveFromSchema, ...sensitiveByConvention])]
+}
 
 // Path to persist keychain explanation state (so we only show it once after install)
 const keychainExplainedPath = path.join(
@@ -118,8 +142,10 @@ function encryptSensitiveFields(settings) {
   }
 
   const encrypted = { ...settings }
-  for (const field of SENSITIVE_FIELDS) {
-    if (encrypted[field]) {
+  const sensitiveFields = getSensitiveFields(settings)
+
+  for (const field of sensitiveFields) {
+    if (encrypted[field] && typeof encrypted[field] === 'string') {
       const buffer = safeStorage.encryptString(encrypted[field])
       encrypted[field] = buffer.toString('base64')
       encrypted[`${field}_encrypted`] = true
@@ -132,19 +158,19 @@ function encryptSensitiveFields(settings) {
 function decryptSensitiveFields(settings) {
   if (!settings) return null
 
-  // Check if any fields need decryption
-  const hasEncryptedFields = SENSITIVE_FIELDS.some(
-    (field) => settings[`${field}_encrypted`] && settings[field]
-  )
+  // Find all fields that have been encrypted (marked with _encrypted suffix)
+  const encryptedFields = Object.keys(settings)
+    .filter((k) => k.endsWith('_encrypted') && settings[k] === true)
+    .map((k) => k.replace('_encrypted', ''))
 
   // Show explanation dialog before keychain prompt
-  if (hasEncryptedFields) {
+  if (encryptedFields.length > 0) {
     showKeychainExplanation()
   }
 
   const decrypted = { ...settings }
-  for (const field of SENSITIVE_FIELDS) {
-    if (decrypted[`${field}_encrypted`] && decrypted[field]) {
+  for (const field of encryptedFields) {
+    if (decrypted[field]) {
       try {
         const buffer = Buffer.from(decrypted[field], 'base64')
         decrypted[field] = safeStorage.decryptString(buffer)
@@ -282,13 +308,71 @@ function getBotConfigs() {
     .filter((config) => fs.existsSync(config.path))
 }
 
+/**
+ * Migrate old camelCase settings format to new snake_case format
+ */
+function migrateSettings(settings) {
+  // Check if this is the old format (has camelCase keys)
+  if (!('aiProvider' in settings)) {
+    return settings // Already new format
+  }
+
+  electronLogger.info('Migrating settings to new format')
+
+  const migrated = {}
+
+  // Map old keys to new keys
+  const keyMap = {
+    aiProvider: 'ai_provider',
+    modelFast: 'model_fast',
+    modelDefault: 'model_default',
+    modelThinking: 'model_thinking',
+    githubToken: 'github_token',
+    githubOrg: 'github_default_org',
+    tavilyApiKey: 'tavily_api_key',
+    simulatedUserName: 'simulated_user_name',
+    appLogLevel: 'app_log_level',
+  }
+
+  for (const [oldKey, newKey] of Object.entries(keyMap)) {
+    if (settings[oldKey] !== undefined) {
+      migrated[newKey] = settings[oldKey]
+    }
+  }
+
+  // Handle nested providerKeys
+  if (settings.providerKeys) {
+    if (settings.providerKeys.openai)
+      migrated.openai_api_key = settings.providerKeys.openai
+    if (settings.providerKeys.anthropic)
+      migrated.anthropic_api_key = settings.providerKeys.anthropic
+    if (settings.providerKeys.google)
+      migrated.google_api_key = settings.providerKeys.google
+  }
+
+  // Handle old single apiKey field
+  if (settings.apiKey && settings.aiProvider) {
+    migrated[`${settings.aiProvider}_api_key`] = settings.apiKey
+  }
+
+  // Copy over any _encrypted markers (they may need re-encrypting in new format)
+  for (const key of Object.keys(settings)) {
+    if (key.endsWith('_encrypted')) {
+      // Skip old format markers, they'll be recreated on save
+    }
+  }
+
+  return migrated
+}
+
 // Settings management
 function loadSettings() {
   try {
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf-8')
       const settings = JSON.parse(data)
-      return decryptSensitiveFields(settings)
+      const decrypted = decryptSensitiveFields(settings)
+      return decrypted ? migrateSettings(decrypted) : null
     }
   } catch (err) {
     electronLogger.error({ err }, 'Failed to load settings')
@@ -314,31 +398,33 @@ function settingsToEnv(settings) {
 
   const env = {
     SLACK_API_URL: `http://localhost:${EMULATOR_PORT}/api`,
-    AI_PROVIDER: settings.aiProvider,
     DATA_DIR: dataDir,
   }
 
-  const keyMap = {
-    openai: 'OPENAI_API_KEY',
-    anthropic: 'ANTHROPIC_API_KEY',
-    google: 'GOOGLE_API_KEY',
-  }
-  const apiKeyEnvVar = keyMap[settings.aiProvider]
-  if (apiKeyEnvVar) {
-    // Support both old format (apiKey) and new format (providerKeys[provider])
-    const apiKey =
-      settings.providerKeys?.[settings.aiProvider] || settings.apiKey
-    env[apiKeyEnvVar] = apiKey
+  // Convert all settings to env vars using convention: snake_case -> UPPER_SNAKE_CASE
+  for (const [key, value] of Object.entries(settings)) {
+    if (key.startsWith('_')) continue // Skip internal fields like _schema
+    if (value === undefined || value === null || value === '') continue
+    if (typeof value !== 'string' && typeof value !== 'number') continue
+
+    // Convert snake_case to UPPER_SNAKE_CASE
+    const envKey = key.toUpperCase()
+    env[envKey] = String(value)
   }
 
-  if (settings.githubToken) {
-    env.GITHUB_TOKEN = settings.githubToken
-  }
-  if (settings.githubOrg) {
-    env.GITHUB_DEFAULT_ORG = settings.githubOrg
-  }
-  if (settings.tavilyApiKey) {
-    env.TAVILY_API_KEY = settings.tavilyApiKey
+  // Special handling: set provider-specific API key env var
+  // Bots expect OPENAI_API_KEY, ANTHROPIC_API_KEY, or GOOGLE_API_KEY
+  const provider = settings.ai_provider
+  const apiKey = settings[`${provider}_api_key`]
+  if (apiKey) {
+    const keyMap = {
+      openai: 'OPENAI_API_KEY',
+      anthropic: 'ANTHROPIC_API_KEY',
+      google: 'GOOGLE_API_KEY',
+    }
+    if (keyMap[provider]) {
+      env[keyMap[provider]] = apiKey
+    }
   }
 
   return env
@@ -811,8 +897,8 @@ function createWindow() {
 
   // Start backend if settings exist
   const settings = loadSettings()
-  const apiKey =
-    settings?.providerKeys?.[settings?.aiProvider] || settings?.apiKey
+  const provider = settings?.ai_provider
+  const apiKey = provider ? settings?.[`${provider}_api_key`] : null
   if (settings && apiKey) {
     startBackend(settings)
   }

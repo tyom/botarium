@@ -3,8 +3,6 @@
  * In web-only mode, this always returns null/false to indicate Electron is not available.
  */
 
-import type { SimulatorSettings } from './settings-store'
-
 /**
  * Interface matching the API exposed in preload.ts
  */
@@ -12,9 +10,9 @@ export interface ElectronAPI {
   platform: NodeJS.Platform
   isElectron: true
 
-  // Settings management
-  loadSettings: () => Promise<SimulatorSettings | null>
-  saveSettings: (settings: SimulatorSettings) => Promise<void>
+  // Settings management - uses dynamic Record<string, unknown> format
+  loadSettings: () => Promise<Record<string, unknown> | null>
+  saveSettings: (settings: Record<string, unknown>) => Promise<void>
 
   // Backend control
   restartBackend: () => Promise<void>

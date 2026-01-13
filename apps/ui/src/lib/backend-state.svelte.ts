@@ -7,28 +7,25 @@
  */
 
 import { getElectronAPI, isElectron } from './electron-api'
-import {
-  DEFAULT_SETTINGS,
-  getApiKey,
-  type SimulatorSettings,
-} from './settings-store'
+import { DEFAULT_SETTINGS, getApiKey } from './settings-store'
 import { simulatorState } from './state.svelte'
 import { initializeDispatcher } from './dispatcher.svelte'
 
 const SETTINGS_STORAGE_KEY = 'botarium-settings'
 
-function syncUserSettingsToState(s: SimulatorSettings) {
-  simulatorState.simulatedUserName = s.simulatedUserName
+function syncUserSettingsToState(s: Record<string, unknown>) {
+  simulatorState.simulatedUserName =
+    (s.simulated_user_name as string) || 'You'
 }
 
 /**
  * Load settings from localStorage (web mode only)
  */
-function loadSettingsFromStorage(): SimulatorSettings | null {
+function loadSettingsFromStorage(): Record<string, unknown> | null {
   try {
     const stored = localStorage.getItem(SETTINGS_STORAGE_KEY)
     if (stored) {
-      return JSON.parse(stored) as SimulatorSettings
+      return JSON.parse(stored) as Record<string, unknown>
     }
   } catch {
     // Ignore parse errors
@@ -39,7 +36,7 @@ function loadSettingsFromStorage(): SimulatorSettings | null {
 /**
  * Save settings to localStorage (web mode only)
  */
-function saveSettingsToStorage(settings: SimulatorSettings): void {
+function saveSettingsToStorage(settings: Record<string, unknown>): void {
   try {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings))
   } catch {
@@ -47,8 +44,60 @@ function saveSettingsToStorage(settings: SimulatorSettings): void {
   }
 }
 
+/**
+ * Migrate old camelCase settings format to new snake_case format
+ */
+function migrateSettings(
+  settings: Record<string, unknown>
+): Record<string, unknown> {
+  // Check if this is the old format (has camelCase keys)
+  if (!('aiProvider' in settings)) {
+    return settings // Already new format
+  }
+
+  const migrated: Record<string, unknown> = {}
+
+  // Map old keys to new keys
+  const keyMap: Record<string, string> = {
+    aiProvider: 'ai_provider',
+    modelFast: 'model_fast',
+    modelDefault: 'model_default',
+    modelThinking: 'model_thinking',
+    githubToken: 'github_token',
+    githubOrg: 'github_default_org',
+    tavilyApiKey: 'tavily_api_key',
+    simulatedUserName: 'simulated_user_name',
+    appLogLevel: 'app_log_level',
+  }
+
+  for (const [oldKey, newKey] of Object.entries(keyMap)) {
+    if (settings[oldKey] !== undefined) {
+      migrated[newKey] = settings[oldKey]
+    }
+  }
+
+  // Handle nested providerKeys
+  const providerKeys = settings.providerKeys as
+    | Record<string, string>
+    | undefined
+  if (providerKeys) {
+    if (providerKeys.openai) migrated.openai_api_key = providerKeys.openai
+    if (providerKeys.anthropic)
+      migrated.anthropic_api_key = providerKeys.anthropic
+    if (providerKeys.google) migrated.google_api_key = providerKeys.google
+  }
+
+  // Handle old single apiKey field
+  if (settings.apiKey && settings.aiProvider) {
+    const provider = settings.aiProvider as string
+    migrated[`${provider}_api_key`] = settings.apiKey
+  }
+
+  return migrated
+}
+
 function createBackendState() {
-  let settings = $state<SimulatorSettings | null>(null)
+  let settings = $state<Record<string, unknown> | null>(null)
   let settingsLoaded = $state(false)
   let showSettings = $state(false)
   let backendReady = $state(false)
@@ -72,14 +121,17 @@ function createBackendState() {
     } else {
       // Browser mode: load from localStorage or use defaults
       const storedSettings = loadSettingsFromStorage()
+      const migratedSettings = storedSettings
+        ? migrateSettings(storedSettings)
+        : null
       const simulatedUserName =
         import.meta.env.VITE_SIMULATED_USER_NAME ||
-        storedSettings?.simulatedUserName ||
-        DEFAULT_SETTINGS.simulatedUserName
+        (migratedSettings?.simulated_user_name as string) ||
+        DEFAULT_SETTINGS.simulated_user_name
 
-      settings = storedSettings
-        ? { ...DEFAULT_SETTINGS, ...storedSettings, simulatedUserName }
-        : { ...DEFAULT_SETTINGS, simulatedUserName }
+      settings = migratedSettings
+        ? { ...DEFAULT_SETTINGS, ...migratedSettings, simulated_user_name: simulatedUserName }
+        : { ...DEFAULT_SETTINGS, simulated_user_name: simulatedUserName }
 
       settingsLoaded = true
       syncUserSettingsToState(settings)
@@ -89,21 +141,13 @@ function createBackendState() {
 
   async function loadSettingsElectron(onReady: () => void) {
     const api = getElectronAPI()!
-    const loaded = (await api.loadSettings()) as
-      | (SimulatorSettings & { apiKey?: string })
-      | null
-    // Merge with defaults to handle new settings fields (including nested providerKeys)
+    const loaded = await api.loadSettings()
+    // Migrate and merge with defaults
     if (loaded) {
-      // Migrate old apiKey field to providerKeys if needed
-      const providerKeys = { ...(loaded.providerKeys ?? {}) }
-      if (loaded.apiKey && !providerKeys[loaded.aiProvider]) {
-        providerKeys[loaded.aiProvider] = loaded.apiKey
-      }
-
+      const migrated = migrateSettings(loaded)
       settings = {
         ...DEFAULT_SETTINGS,
-        ...loaded,
-        providerKeys,
+        ...migrated,
       }
     } else {
       settings = null
@@ -141,7 +185,7 @@ function createBackendState() {
     })
   }
 
-  async function saveSettings(newSettings: SimulatorSettings) {
+  async function saveSettings(newSettings: Record<string, unknown>) {
     const api = getElectronAPI()
     if (api) {
       // Electron mode: save via IPC
@@ -157,10 +201,7 @@ function createBackendState() {
   }
 
   /** Update a single setting without restarting backend (for UI-only settings like log level) */
-  async function updateSetting<K extends keyof SimulatorSettings>(
-    key: K,
-    value: SimulatorSettings[K]
-  ) {
+  async function updateSetting(key: string, value: unknown) {
     if (!settings) return
     const newSettings = { ...settings, [key]: value }
     const api = getElectronAPI()
@@ -203,9 +244,7 @@ function createBackendState() {
       return !!settings && !!getApiKey(settings)
     },
     get shouldShowApp() {
-      return (
-        !isElectron || (settingsLoaded && !!settings && !!getApiKey(settings))
-      )
+      return !isElectron || (settingsLoaded && !!settings && !!getApiKey(settings))
     },
     get isInputDisabled() {
       return isElectron && !backendReady
