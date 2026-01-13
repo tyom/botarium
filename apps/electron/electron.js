@@ -308,63 +308,6 @@ function getBotConfigs() {
     .filter((config) => fs.existsSync(config.path))
 }
 
-/**
- * Migrate old camelCase settings format to new snake_case format
- */
-function migrateSettings(settings) {
-  // Check if this is the old format (has camelCase keys)
-  if (!('aiProvider' in settings)) {
-    return settings // Already new format
-  }
-
-  electronLogger.info('Migrating settings to new format')
-
-  const migrated = {}
-
-  // Map old keys to new keys
-  const keyMap = {
-    aiProvider: 'ai_provider',
-    modelFast: 'model_fast',
-    modelDefault: 'model_default',
-    modelThinking: 'model_thinking',
-    githubToken: 'github_token',
-    githubOrg: 'github_default_org',
-    tavilyApiKey: 'tavily_api_key',
-    simulatedUserName: 'simulated_user_name',
-    appLogLevel: 'app_log_level',
-  }
-
-  for (const [oldKey, newKey] of Object.entries(keyMap)) {
-    if (settings[oldKey] !== undefined) {
-      migrated[newKey] = settings[oldKey]
-    }
-  }
-
-  // Handle nested providerKeys
-  if (settings.providerKeys) {
-    if (settings.providerKeys.openai)
-      migrated.openai_api_key = settings.providerKeys.openai
-    if (settings.providerKeys.anthropic)
-      migrated.anthropic_api_key = settings.providerKeys.anthropic
-    if (settings.providerKeys.google)
-      migrated.google_api_key = settings.providerKeys.google
-  }
-
-  // Handle old single apiKey field
-  if (settings.apiKey && settings.aiProvider) {
-    migrated[`${settings.aiProvider}_api_key`] = settings.apiKey
-  }
-
-  // Copy over any _encrypted markers (they may need re-encrypting in new format)
-  for (const key of Object.keys(settings)) {
-    if (key.endsWith('_encrypted')) {
-      // Skip old format markers, they'll be recreated on save
-    }
-  }
-
-  return migrated
-}
-
 // Settings management
 function loadSettings() {
   try {
@@ -372,7 +315,7 @@ function loadSettings() {
       const data = fs.readFileSync(settingsPath, 'utf-8')
       const settings = JSON.parse(data)
       const decrypted = decryptSensitiveFields(settings)
-      return decrypted ? migrateSettings(decrypted) : null
+      return decrypted
     }
   } catch (err) {
     electronLogger.error({ err }, 'Failed to load settings')
