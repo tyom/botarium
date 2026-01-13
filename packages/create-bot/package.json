@@ -1,0 +1,44 @@
+{
+  "name": "create-botarium",
+  "version": "0.1.0",
+  "description": "Create a new Botarium Slack bot",
+  "type": "module",
+  "license": "MIT",
+  "author": "Tyom Semonov",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tyom/botarium",
+    "directory": "packages/create-bot"
+  },
+  "keywords": [
+    "botarium",
+    "slack",
+    "bot",
+    "create",
+    "scaffold",
+    "cli"
+  ],
+  "bin": {
+    "create-botarium": "./bin/cli.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "bin",
+    "src",
+    "templates"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "handlebars": "^4.7.8",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/prompts": "^2.4.9"
+  }
+}

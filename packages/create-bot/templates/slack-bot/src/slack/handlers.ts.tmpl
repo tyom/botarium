@@ -1,0 +1,303 @@
+import type { SlackApp } from './app'
+import type { WebClient } from '@slack/web-api'
+import type { GenericMessageEvent } from '@slack/types'
+{{#if isAi}}
+import { chatWithHistory } from '../ai/chat'
+{{/if}}
+import { threadTracker } from './thread-tracker'
+import { settings } from '../settings'
+import { slackLogger } from '../utils/logger'
+
+let botUserId: string | null = null
+
+// Track messages being processed to prevent duplicates
+const processingMessages = new Map<string, number>()
+const PROCESSING_TTL_MS = 30000
+
+function isMessageBeingProcessed(channel: string, ts: string): boolean {
+  const key = `${channel}:${ts}`
+  const startTime = processingMessages.get(key)
+  return startTime !== undefined && Date.now() - startTime < PROCESSING_TTL_MS
+}
+
+function markMessageProcessing(channel: string, ts: string): void {
+  const key = `${channel}:${ts}`
+  processingMessages.set(key, Date.now())
+  // Cleanup old entries
+  for (const [k, time] of processingMessages) {
+    if (Date.now() - time > PROCESSING_TTL_MS) {
+      processingMessages.delete(k)
+    }
+  }
+}
+{{#if isAi}}
+
+type ChatMessage = { role: 'user' | 'assistant'; content: string }
+type SlackMessage = { text?: string; user?: string; subtype?: string }
+{{/if}}
+
+const REACTION = {
+  thinking: 'thinking_face',
+  done: 'white_check_mark',
+} as const
+
+async function addReaction(
+  client: WebClient,
+  channel: string,
+  timestamp: string,
+  name: string
+) {
+  try {
+    await client.reactions.add({ channel, timestamp, name })
+  } catch {
+    // Ignore reaction errors
+  }
+}
+
+async function removeReaction(
+  client: WebClient,
+  channel: string,
+  timestamp: string,
+  name: string
+) {
+  try {
+    await client.reactions.remove({ channel, timestamp, name })
+  } catch {
+    // Ignore reaction errors
+  }
+}
+{{#if isAi}}
+
+function transformMessages(messages: SlackMessage[]): ChatMessage[] {
+  return messages
+    .filter((msg): msg is SlackMessage & { text: string } =>
+      Boolean(msg.text && !msg.subtype)
+    )
+    .map((msg) => ({
+      role: (msg.user === botUserId ? 'assistant' : 'user') as ChatMessage['role'],
+      content: msg.text.replace(/<@[A-Z0-9]+>/g, '').trim(),
+    }))
+    .filter((msg) => msg.content)
+}
+
+async function getThreadHistory(
+  client: WebClient,
+  channel: string,
+  threadTs: string
+): Promise<ChatMessage[]> {
+  try {
+    const result = await client.conversations.replies({ channel, ts: threadTs })
+    return transformMessages(result.messages ?? [])
+  } catch (error) {
+    slackLogger.error({ err: error }, 'Failed to fetch thread history')
+    return []
+  }
+}
+{{/if}}
+
+async function hasBotParticipatedInThread(
+  client: WebClient,
+  channel: string,
+  threadTs: string
+): Promise<boolean> {
+  try {
+    const result = await client.conversations.replies({
+      channel,
+      ts: threadTs,
+      limit: 100,
+    })
+    return result.messages?.some((msg) => msg.user === botUserId) ?? false
+  } catch {
+    return false
+  }
+}
+
+export async function registerHandlers(app: SlackApp) {
+  // Get bot user ID (skip in local simulator mode)
+  if (process.env.SLACK_API_URL) {
+    botUserId = 'BOT_LOCAL'
+    slackLogger.info({ botUserId }, 'Local mode - using placeholder bot ID')
+
+    // Register with emulator
+    await registerWithEmulator()
+  } else {
+    const authResult = await app.client.auth.test()
+    botUserId = authResult.user_id || null
+    slackLogger.info({ botUserId }, 'Bot user ID initialized')
+  }
+
+  threadTracker.startCleanup()
+
+  const botName = settings.BOT_NAME
+
+  // Handle @mentions in channels
+  app.event('app_mention', async ({ event, say }) => {
+    slackLogger.info({ user: event.user, channel: event.channel }, 'Mention received')
+
+    if (isMessageBeingProcessed(event.channel, event.ts)) {
+      return
+    }
+    markMessageProcessing(event.channel, event.ts)
+
+    const text = event.text.replace(/<@[A-Z0-9]+>/g, '').trim()
+
+    if (!text) {
+      const threadTs = event.thread_ts || event.ts
+      await say({ text: 'Hi! How can I help you?', thread_ts: threadTs })
+      threadTracker.mark(event.channel, threadTs)
+      return
+    }
+
+    await handleResponse(
+      app,
+      { channel: event.channel, ts: event.ts, thread_ts: event.thread_ts, user: event.user! },
+      text,
+      botName,
+      say
+    )
+  })
+
+  // Handle direct messages and thread replies
+  app.event('message', async ({ event, say }) => {
+    if (!('channel_type' in event) || !('user' in event) || !('text' in event)) {
+      return
+    }
+
+    const messageEvent = event as GenericMessageEvent
+
+    if (messageEvent.subtype || !botUserId || messageEvent.user === botUserId) {
+      return
+    }
+
+    const text = messageEvent.text?.trim() ?? ''
+    if (!text) return
+
+    if (isMessageBeingProcessed(messageEvent.channel, messageEvent.ts)) {
+      return
+    }
+
+    // Handle DMs
+    if (messageEvent.channel_type === 'im') {
+      slackLogger.info({ user: messageEvent.user }, 'DM received')
+      markMessageProcessing(messageEvent.channel, messageEvent.ts)
+      await handleResponse(app, messageEvent, text, botName, say, 'im')
+      return
+    }
+
+    // Handle channel messages
+    if (messageEvent.channel_type === 'channel' || messageEvent.channel_type === 'group') {
+      // Skip @mentions (handled by app_mention)
+      if (botUserId && text.includes(`<@${botUserId}>`)) {
+        return
+      }
+
+      // Only respond in threads where bot is participating
+      const isThreadReply = Boolean(messageEvent.thread_ts)
+      if (!isThreadReply) return
+
+      let shouldRespond = threadTracker.isParticipating(
+        messageEvent.channel,
+        messageEvent.thread_ts!
+      )
+
+      if (!shouldRespond) {
+        shouldRespond = await hasBotParticipatedInThread(
+          app.client,
+          messageEvent.channel,
+          messageEvent.thread_ts!
+        )
+        if (shouldRespond) {
+          threadTracker.mark(messageEvent.channel, messageEvent.thread_ts!)
+        }
+      }
+
+      if (shouldRespond) {
+        markMessageProcessing(messageEvent.channel, messageEvent.ts)
+        await handleResponse(app, messageEvent, text, botName, say)
+      }
+    }
+  })
+
+  slackLogger.info('Handlers registered')
+}
+
+async function handleResponse(
+  app: SlackApp,
+  event: { channel: string; ts: string; thread_ts?: string; user: string },
+  text: string,
+  botName: string,
+  say: (msg: { text: string; thread_ts?: string }) => Promise<unknown>,
+  channelType: string = 'channel'
+) {
+  const isDM = channelType === 'im'
+  const { channel, ts, user, thread_ts } = event
+  const threadTs = thread_ts || ts
+
+  await addReaction(app.client, channel, ts, REACTION.thinking)
+
+  try {
+{{#if isAi}}
+    const messages = isDM ? [] : await getThreadHistory(app.client, channel, threadTs)
+
+    if (messages.length === 0 || messages[messages.length - 1]?.content !== text) {
+      messages.push({ role: 'user', content: text })
+    }
+
+    const response = await chatWithHistory(messages, {
+      channel,
+      thread_ts: isDM ? undefined : threadTs,
+      user,
+      botName,
+    })
+{{else}}
+    // TODO: Add your message handling logic here
+    const response = `You said: ${text}`
+{{/if}}
+
+    await say(isDM ? { text: response } : { text: response, thread_ts: threadTs })
+
+    if (!isDM) {
+      threadTracker.mark(channel, threadTs)
+    }
+
+    await removeReaction(app.client, channel, ts, REACTION.thinking)
+    await addReaction(app.client, channel, ts, REACTION.done)
+  } catch (error) {
+    slackLogger.error({ err: error }, 'Error handling message')
+    await removeReaction(app.client, channel, ts, REACTION.thinking)
+
+    const errorMsg = 'Sorry, I encountered an error processing your request.'
+    await say(isDM ? { text: errorMsg } : { text: errorMsg, thread_ts: threadTs })
+  }
+}
+
+/**
+ * Register app config with the Botarium emulator.
+ * This allows the emulator to discover and display the bot.
+ */
+async function registerWithEmulator(): Promise<void> {
+  const apiUrl = process.env.SLACK_API_URL
+  if (!apiUrl) return
+
+  const appConfig = {
+    app: { name: settings.BOT_NAME },
+    commands: [],
+    shortcuts: [],
+  }
+
+  try {
+    const response = await fetch(`${apiUrl}/api/config/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(appConfig),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    slackLogger.info('Registered with emulator')
+  } catch (error) {
+    slackLogger.warn({ err: error }, 'Failed to register with emulator')
+  }
+}
