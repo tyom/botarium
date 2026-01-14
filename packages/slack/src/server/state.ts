@@ -841,6 +841,10 @@ export class EmulatorState {
       }
     }
   }
+
+  close(): void {
+    this.persistence?.close()
+  }
 }
 
 // Singleton instance
@@ -854,6 +858,7 @@ export function getEmulatorState(config?: WorkspaceConfig): EmulatorState {
 }
 
 export function resetEmulatorState(config?: WorkspaceConfig): EmulatorState {
+  instance?.close()
   instance = new EmulatorState(config)
   return instance
 }
