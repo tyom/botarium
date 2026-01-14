@@ -78,10 +78,6 @@
     }
   }
 
-  function handleCancel() {
-    onCancel?.()
-  }
-
   function handleDialogClick(event: MouseEvent) {
     if (event.target === dialogEl) {
       dialogEl?.close() // Let onclose handler call onCancel once
@@ -123,7 +119,7 @@
         class="flex justify-between items-center px-5 py-4 border-b border-(--border-color) shrink-0"
       >
         <h2 class="m-0 text-lg font-bold text-(--text-primary)">Settings</h2>
-        <IconButton icon={X} size={18} label="Close" onclick={onCancel} />
+        <IconButton icon={X} size={18} label="Close" onclick={() => dialogEl?.close()} />
       </header>
 
       <!-- Scrollable content -->
@@ -184,7 +180,7 @@
           </div>
         {/if}
         {#if showCancel}
-          <Button type="button" variant="outline" onclick={handleCancel}>
+          <Button type="button" variant="outline" onclick={() => dialogEl?.close()}>
             Cancel
           </Button>
         {/if}
