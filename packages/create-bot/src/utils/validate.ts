@@ -1,6 +1,9 @@
 import path from 'path'
 import fs from 'fs'
 
+/** Maximum length for npm package names */
+const NPM_PACKAGE_NAME_MAX_LENGTH = 214
+
 /**
  * Validate bot name for npm package naming conventions.
  */
@@ -9,8 +12,8 @@ export function validateBotName(name: string): string | true {
     return 'Bot name is required'
   }
 
-  if (name.length > 214) {
-    return 'Name must be less than 214 characters'
+  if (name.length > NPM_PACKAGE_NAME_MAX_LENGTH) {
+    return `Name must be less than ${NPM_PACKAGE_NAME_MAX_LENGTH} characters`
   }
 
   if (!/^[a-z0-9]/.test(name)) {
@@ -19,10 +22,6 @@ export function validateBotName(name: string): string | true {
 
   if (!/^[a-z0-9._-]+$/.test(name)) {
     return 'Name can only contain lowercase letters, numbers, hyphens, dots, and underscores'
-  }
-
-  if (name.startsWith('.') || name.startsWith('_')) {
-    return 'Name cannot start with a dot or underscore'
   }
 
   return true
