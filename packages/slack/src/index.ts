@@ -13,11 +13,11 @@ export * from './server/types'
  * Create a Slack emulator instance
  */
 function createSlackEmulator(options: EmulatorOptions): Emulator {
-  let server: ReturnType<typeof startEmulatorServer> | null = null
+  let server: Awaited<ReturnType<typeof startEmulatorServer>> | null = null
 
   return {
     async start(): Promise<void> {
-      server = startEmulatorServer({
+      server = await startEmulatorServer({
         port: options.port,
         // dataDir will be used for persistence in future
       })

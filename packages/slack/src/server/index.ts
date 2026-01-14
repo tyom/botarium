@@ -40,9 +40,9 @@ interface EmulatorServer {
   broadcastLog: (log: LogEntry) => void
 }
 
-export function startEmulatorServer(
+export async function startEmulatorServer(
   options: EmulatorServerOptions = {}
-): EmulatorServer {
+): Promise<EmulatorServer> {
   const port = options.port ?? DEFAULT_EMULATOR_PORT
   const host = options.host ?? 'localhost'
   const wsUrl = `ws://${host}:${port}/ws/socket-mode`
@@ -50,9 +50,9 @@ export function startEmulatorServer(
   // Initialize state and servers
   const state = getEmulatorState(options.workspaceConfig)
 
-  // Enable persistence if dataDir is provided
+  // Enable persistence if dataDir is provided (await to ensure DB is ready before accepting requests)
   if (options.dataDir) {
-    state.enablePersistence(options.dataDir).catch((err) => {
+    await state.enablePersistence(options.dataDir).catch((err) => {
       emulatorLogger.error({ err }, 'Failed to enable persistence')
     })
   }
@@ -393,7 +393,7 @@ export function startEmulatorServer(
 
 // If run directly, start the server
 if (import.meta.main) {
-  startEmulatorServer({
+  await startEmulatorServer({
     port: getEmulatorPort(),
     dataDir: process.env.DATA_DIR,
   })
