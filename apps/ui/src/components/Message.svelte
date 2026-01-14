@@ -66,7 +66,8 @@
     }).replace(/<br><br>/g, '<br><br><span class="p-gap"></span>')
 
     // Wrap @mentions in highlight span AFTER markdown processing
-    const mentionRegex = new RegExp(`@${userName}`, 'g')
+    const escapedUserName = userName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const mentionRegex = new RegExp(`@${escapedUserName}`, 'g')
     html = html.replace(
       mentionRegex,
       `<span class="slack-mention">@${userName}</span>`
