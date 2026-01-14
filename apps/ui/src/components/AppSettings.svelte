@@ -27,6 +27,7 @@
   // Merge global settings (as defaults) with app-specific overrides
   let formData: Record<string, unknown> = $state({})
   let saving = $state(false)
+  let error = $state('')
   let dialogEl: HTMLDialogElement | undefined = $state()
 
   // Initialize form data with merged settings
@@ -46,10 +47,13 @@
 
   async function handleSubmit(event: Event) {
     event.preventDefault()
+    error = ''
     saving = true
     try {
       const snapshot = $state.snapshot(formData)
       await onSave(snapshot)
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'Failed to save settings'
     } finally {
       saving = false
     }
@@ -94,8 +98,15 @@
 
     <!-- Footer with buttons -->
     <footer
-      class="flex gap-3 justify-end px-5 py-4 border-t border-(--border-color) shrink-0"
+      class="flex gap-3 justify-end items-center px-5 py-4 border-t border-(--border-color) shrink-0"
     >
+      {#if error}
+        <div
+          class="flex-1 px-3 py-2 bg-(--log-error) text-white rounded-md text-[13px]"
+        >
+          {error}
+        </div>
+      {/if}
       <Button type="button" variant="outline" onclick={onCancel}>
         Cancel
       </Button>
