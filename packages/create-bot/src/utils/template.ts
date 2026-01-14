@@ -1,5 +1,8 @@
 import Handlebars from 'handlebars'
 
+export type AiProvider = 'openai' | 'anthropic' | 'google'
+export type DbAdapter = 'none' | 'sqlite' | 'postgres'
+
 export interface TemplateContext {
   // Bot configuration
   botName: string // e.g., "my-bot"
@@ -7,9 +10,8 @@ export interface TemplateContext {
   packageName: string // e.g., "my-bot"
 
   // Selections
-  useAi: boolean
-  aiProvider?: 'openai' | 'anthropic' | 'google'
-  dbAdapter: 'none' | 'sqlite' | 'postgres'
+  aiProvider?: AiProvider
+  dbAdapter: DbAdapter
 
   // Derived flags for conditionals
   isAi: boolean
@@ -37,29 +39,32 @@ export function processTemplate(
   return template(ctx)
 }
 
+export interface TemplateOptions {
+  botName: string
+  useAi: boolean
+  aiProvider?: AiProvider
+  dbAdapter: DbAdapter
+}
+
 /**
  * Create template context from user selections.
  */
-export function createTemplateContext(options: {
-  botName: string
-  useAi: boolean
-  aiProvider?: 'openai' | 'anthropic' | 'google'
-  dbAdapter: 'none' | 'sqlite' | 'postgres'
-}): TemplateContext {
+export function createTemplateContext(options: TemplateOptions): TemplateContext {
+  const { botName, useAi, aiProvider, dbAdapter } = options
+
   return {
-    botName: options.botName,
-    botNamePascal: toPascalCase(options.botName),
-    packageName: toPackageName(options.botName),
-    useAi: options.useAi,
-    aiProvider: options.aiProvider,
-    dbAdapter: options.dbAdapter,
-    isAi: options.useAi,
-    isOpenai: options.aiProvider === 'openai',
-    isAnthropic: options.aiProvider === 'anthropic',
-    isGoogle: options.aiProvider === 'google',
-    isDb: options.dbAdapter !== 'none',
-    isSqlite: options.dbAdapter === 'sqlite',
-    isPostgres: options.dbAdapter === 'postgres',
+    botName,
+    botNamePascal: toPascalCase(botName),
+    packageName: toPackageName(botName),
+    aiProvider,
+    dbAdapter,
+    isAi: useAi,
+    isOpenai: aiProvider === 'openai',
+    isAnthropic: aiProvider === 'anthropic',
+    isGoogle: aiProvider === 'google',
+    isDb: dbAdapter !== 'none',
+    isSqlite: dbAdapter === 'sqlite',
+    isPostgres: dbAdapter === 'postgres',
   }
 }
 

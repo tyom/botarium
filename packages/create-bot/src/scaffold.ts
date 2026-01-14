@@ -4,6 +4,8 @@ import {
   processTemplate,
   createTemplateContext,
   type TemplateContext,
+  type AiProvider,
+  type DbAdapter,
 } from './utils/template'
 import type { BotTemplate } from './prompts'
 
@@ -22,18 +24,20 @@ function getTemplateDir(template: BotTemplate): string {
   return path.join(TEMPLATES_DIR, templateMap[template])
 }
 
-/**
- * Scaffold a new bot from the template.
- */
-export async function scaffold(options: {
+export interface ScaffoldOptions {
   botName: string
   template: BotTemplate
   useAi: boolean
-  aiProvider?: 'openai' | 'anthropic' | 'google'
-  dbAdapter: 'none' | 'sqlite' | 'postgres'
+  aiProvider?: AiProvider
+  dbAdapter: DbAdapter
   targetDir?: string
   overwrite?: boolean
-}): Promise<string> {
+}
+
+/**
+ * Scaffold a new bot from the template.
+ */
+export async function scaffold(options: ScaffoldOptions): Promise<string> {
   const templateDir = getTemplateDir(options.template)
   const targetDir = path.resolve(options.targetDir || options.botName)
   const ctx = createTemplateContext({
