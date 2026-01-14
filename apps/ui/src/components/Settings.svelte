@@ -75,7 +75,7 @@
 
   function handleDialogClick(event: MouseEvent) {
     if (event.target === dialogEl) {
-      onCancel?.()
+      dialogEl?.close() // Let onclose handler call onCancel once
     }
   }
 
