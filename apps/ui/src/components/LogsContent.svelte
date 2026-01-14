@@ -61,7 +61,7 @@
     {#if filteredLogs.length === 0}
       <div class="p-3 text-slack-text-muted italic">No logs yet</div>
     {:else}
-      {#each filteredLogs as log, i (i)}
+      {#each filteredLogs as log, i (`${log.timestamp}-${i}`)}
         <div class="px-3 py-0.5 whitespace-pre-wrap break-all hover:bg-white/5">
           <span class="text-log-timestamp">[{log.timestamp}]</span>
           <span
