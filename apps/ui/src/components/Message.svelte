@@ -1,5 +1,6 @@
 <script lang="ts">
   import { toHTML } from 'slack-markdown'
+  import DOMPurify from 'dompurify'
   import {
     EllipsisVertical,
     Trash2,
@@ -71,7 +72,22 @@
       `<span class="slack-mention">@${userName}</span>`
     )
 
-    return html
+    // Sanitize HTML to prevent XSS attacks
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: [
+        'a',
+        'b',
+        'blockquote',
+        'br',
+        'code',
+        'em',
+        'i',
+        'pre',
+        'span',
+        'strong',
+      ],
+      ALLOWED_ATTR: ['href', 'target', 'class'],
+    })
   })
 
   function toggleMenu(e: MouseEvent) {
