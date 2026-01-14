@@ -1,7 +1,9 @@
 import pc from 'picocolors'
 import path from 'path'
-import { promptForSelections, type PartialSelections } from './prompts'
+import { promptForSelections, type PartialSelections, type BotTemplate } from './prompts'
 import { scaffold } from './scaffold'
+import { installDependenciesWithOutput } from './utils/install'
+import type { AiProvider, DbAdapter } from './utils/template'
 
 export interface CreateBotOptions extends PartialSelections {
   skipInstall?: boolean
@@ -43,25 +45,10 @@ export async function createBot(options: CreateBotOptions = {}): Promise<void> {
 
   // Install dependencies
   if (!options.skipInstall) {
-    console.log()
-    console.log(pc.cyan('Installing dependencies...'))
-
-    const proc = Bun.spawn(['bun', 'install'], {
-      cwd: targetDir,
-      stdout: 'pipe',
-      stderr: 'pipe',
-    })
-
-    const exitCode = await proc.exited
-
-    if (exitCode !== 0) {
-      const stderr = await new Response(proc.stderr).text()
-      console.error(pc.red('Failed to install dependencies'))
-      console.error(stderr)
+    const success = await installDependenciesWithOutput(targetDir)
+    if (!success) {
       process.exit(1)
     }
-
-    console.log(pc.green('Dependencies installed!'))
   }
 
   // Print next steps
@@ -78,10 +65,10 @@ export async function createBot(options: CreateBotOptions = {}): Promise<void> {
 function printNextSteps(options: {
   targetDir: string
   botName: string
-  template: string
+  template: BotTemplate
   useAi: boolean
-  aiProvider?: string
-  dbAdapter: string
+  aiProvider?: AiProvider
+  dbAdapter: DbAdapter
 }): void {
   const { targetDir, botName, template, useAi, aiProvider, dbAdapter } = options
   const relativePath = path.relative(process.cwd(), targetDir)
