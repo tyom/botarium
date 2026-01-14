@@ -10,12 +10,28 @@ export const AVAILABLE_TEMPLATES: { value: BotTemplate; title: string; descripti
   // { value: 'teams', title: 'Teams', description: 'Microsoft Teams bot' },
 ]
 
+export const AI_PROVIDERS = [
+  { value: 'openai', title: 'OpenAI' },
+  { value: 'anthropic', title: 'Anthropic' },
+  { value: 'google', title: 'Google' },
+] as const
+
+export type AiProvider = (typeof AI_PROVIDERS)[number]['value']
+
+export const DATABASE_OPTIONS = [
+  { value: 'none', title: 'None' },
+  { value: 'sqlite', title: 'SQLite', description: 'Recommended for getting started' },
+  { value: 'postgres', title: 'PostgreSQL' },
+] as const
+
+export type DatabaseOption = (typeof DATABASE_OPTIONS)[number]['value']
+
 export interface UserSelections {
   name: string
   template: BotTemplate
   useAi: boolean
-  provider?: 'openai' | 'anthropic' | 'google'
-  database: 'none' | 'sqlite' | 'postgres'
+  provider?: AiProvider
+  database: DatabaseOption
   overwrite?: boolean
 }
 
@@ -27,29 +43,19 @@ export interface PartialSelections {
   database?: string
 }
 
-/**
- * Prompt for missing selections interactively.
- */
-export async function promptForSelections(
-  partial: PartialSelections
-): Promise<UserSelections | null> {
+function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {
   const questions: prompts.PromptObject[] = []
 
-  // Bot name
   if (!partial.name) {
     questions.push({
       type: 'text',
       name: 'name',
       message: 'Bot name:',
       initial: 'my-bot',
-      validate: (value) => {
-        const result = validateBotName(value)
-        return result === true ? true : result
-      },
+      validate: validateBotName,
     })
   }
 
-  // Template type
   if (!partial.template) {
     questions.push({
       type: 'select',
@@ -64,7 +70,6 @@ export async function promptForSelections(
     })
   }
 
-  // Use AI?
   if (partial.useAi === undefined) {
     questions.push({
       type: 'toggle',
@@ -76,90 +81,96 @@ export async function promptForSelections(
     })
   }
 
-  // AI provider (only if useAi is true)
   if (!partial.provider) {
     questions.push({
-      type: (prev, values) => (values.useAi ?? partial.useAi) ? 'select' : null,
+      type: (_prev, values) => (values.useAi ?? partial.useAi) ? 'select' : null,
       name: 'provider',
       message: 'AI provider:',
-      choices: [
-        { title: 'OpenAI', value: 'openai' },
-        { title: 'Anthropic', value: 'anthropic' },
-        { title: 'Google', value: 'google' },
-      ],
+      choices: AI_PROVIDERS.map((p) => ({ title: p.title, value: p.value })),
       initial: 0,
     })
   }
 
-  // Database adapter
   if (!partial.database) {
     questions.push({
       type: 'select',
       name: 'database',
       message: 'Database:',
-      choices: [
-        { title: 'None', value: 'none' },
-        {
-          title: 'SQLite',
-          value: 'sqlite',
-          description: 'Recommended for getting started',
-        },
-        { title: 'PostgreSQL', value: 'postgres' },
-      ],
+      choices: DATABASE_OPTIONS.map((d) => ({
+        title: d.title,
+        value: d.value,
+        description: 'description' in d ? d.description : undefined,
+      })),
       initial: 0,
     })
   }
 
-  // Run prompts
-  const answers = await prompts(questions, {
-    onCancel: () => {
-      return false
-    },
-  })
+  return questions
+}
 
-  // Check if user cancelled
-  if (questions.length > 0 && Object.keys(answers).length === 0) {
-    return null
-  }
-
+function mergeAnswers(partial: PartialSelections, answers: prompts.Answers<string>): UserSelections | null {
   const useAi = partial.useAi ?? answers.useAi ?? false
 
   const selections: UserSelections = {
     name: partial.name || answers.name,
-    template: (partial.template || answers.template) as UserSelections['template'],
+    template: (partial.template || answers.template) as BotTemplate,
     useAi,
-    provider: useAi ? (partial.provider || answers.provider) as UserSelections['provider'] : undefined,
-    database: (partial.database || answers.database) as UserSelections['database'],
+    provider: useAi ? (partial.provider || answers.provider) as AiProvider : undefined,
+    database: (partial.database || answers.database) as DatabaseOption,
   }
 
-  // Validate selections
   if (!selections.name || !selections.template || !selections.database) {
     return null
   }
 
-  // Provider is required if useAi is true
   if (selections.useAi && !selections.provider) {
     return null
   }
 
-  // Validate template is supported
   const validTemplates = AVAILABLE_TEMPLATES.map((t) => t.value)
   if (!validTemplates.includes(selections.template)) {
     console.error(`Invalid template: ${selections.template}. Available: ${validTemplates.join(', ')}`)
     return null
   }
 
-  // Check target directory
+  return selections
+}
+
+async function promptForOverwrite(dirName: string): Promise<boolean> {
+  const { overwrite } = await prompts({
+    type: 'confirm',
+    name: 'overwrite',
+    message: `Directory "${dirName}" is not empty. Overwrite?`,
+    initial: false,
+  })
+  return overwrite === true
+}
+
+/**
+ * Prompt for missing selections interactively.
+ */
+export async function promptForSelections(
+  partial: PartialSelections
+): Promise<UserSelections | null> {
+  const questions = buildQuestions(partial)
+
+  const answers = await prompts(questions, {
+    onCancel: () => false,
+  })
+
+  if (questions.length > 0 && Object.keys(answers).length === 0) {
+    return null
+  }
+
+  const selections = mergeAnswers(partial, answers)
+  if (!selections) {
+    return null
+  }
+
   const targetCheck = checkTargetDirectory(selections.name)
   if (targetCheck.exists && !targetCheck.isEmpty) {
-    const { overwrite } = await prompts({
-      type: 'confirm',
-      name: 'overwrite',
-      message: `Directory "${selections.name}" is not empty. Overwrite?`,
-      initial: false,
-    })
-
-    if (!overwrite) {
+    const shouldOverwrite = await promptForOverwrite(selections.name)
+    if (!shouldOverwrite) {
       return null
     }
     selections.overwrite = true
