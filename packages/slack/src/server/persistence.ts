@@ -244,9 +244,17 @@ export class EmulatorPersistence {
   async saveFile(file: SlackFile, data: Buffer): Promise<void> {
     if (!this.db) return
 
+    // Validate file ID first to prevent orphaned database records
+    const sanitizedId = this.sanitizeFileId(file.id)
+    if (!sanitizedId) return
+
     const now = new Date().toISOString()
 
-    // Save metadata to SQLite
+    // Save binary data to disk
+    const filePath = join(this.uploadsDir, sanitizedId)
+    await writeFile(filePath, data)
+
+    // Save metadata to SQLite only after successful file write
     this.db.run(
       `INSERT INTO simulator_files (id, name, title, mimetype, size, channel, user, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -263,12 +271,6 @@ export class EmulatorPersistence {
       ]
     )
 
-    // Save binary data to disk
-    const sanitizedId = this.sanitizeFileId(file.id)
-    if (!sanitizedId) return
-
-    const filePath = join(this.uploadsDir, sanitizedId)
-    await writeFile(filePath, data)
     persistenceLogger.info(`Saved file ${file.id} (${file.name})`)
   }
 
