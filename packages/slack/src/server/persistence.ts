@@ -9,13 +9,19 @@ import { mkdir, writeFile, readFile, unlink } from 'fs/promises'
 import type { SlackMessage, SlackFile } from './types'
 import { persistenceLogger } from '../lib/logger'
 
+export interface ReactionRecord {
+  name: string
+  users: string[]
+  count: number
+}
+
 export interface MessageRecord {
   ts: string
   channel: string
   user: string
   text: string
   threadTs?: string
-  reactions?: string[]
+  reactions?: ReactionRecord[]
   fileId?: string
 }
 
@@ -120,7 +126,11 @@ export class EmulatorPersistence {
     if (!this.db) return
 
     const now = new Date().toISOString()
-    const reactions = message.reactions?.map((r) => r.name)
+    const reactions = message.reactions?.map((r) => ({
+      name: r.name,
+      users: r.users,
+      count: r.count,
+    }))
     const reactionsJson = reactions ? JSON.stringify(reactions) : null
     const fileId = message.file?.id ?? null
 
@@ -147,8 +157,12 @@ export class EmulatorPersistence {
   ): Promise<void> {
     if (!this.db) return
 
-    const reactionNames = reactions.map((r) => r.name)
-    const reactionsJson = JSON.stringify(reactionNames)
+    const reactionRecords = reactions.map((r) => ({
+      name: r.name,
+      users: r.users,
+      count: r.count,
+    }))
+    const reactionsJson = JSON.stringify(reactionRecords)
 
     this.db.run(`UPDATE simulator_messages SET reactions = ? WHERE ts = ?`, [
       reactionsJson,

@@ -86,10 +86,10 @@ export class EmulatorState {
         text: record.text,
         ts: record.ts,
         thread_ts: record.threadTs,
-        reactions: record.reactions?.map((name) => ({
-          name,
-          users: [],
-          count: 1,
+        reactions: record.reactions?.map((reaction) => ({
+          name: reaction.name,
+          users: reaction.users ?? [],
+          count: reaction.count ?? reaction.users?.length ?? 0,
         })),
       }
       // Attach file if this message has one
