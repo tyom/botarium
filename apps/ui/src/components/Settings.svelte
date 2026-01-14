@@ -217,7 +217,7 @@
 
         <div class="flex gap-3 justify-end mt-6">
           {#if showCancel}
-            <Button type="button" variant="outline" onclick={handleCancel}>
+            <Button type="button" variant="outline" onclick={onCancel}>
               Cancel
             </Button>
           {/if}
