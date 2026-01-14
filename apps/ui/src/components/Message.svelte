@@ -229,10 +229,10 @@
         {/if}
         {#if message.reactions.size > 0}
           <div class="flex gap-1 mt-1 flex-wrap">
-            {#each Array.from(message.reactions) as reaction}
+            {#each Array.from(message.reactions.entries()) as [reaction, count]}
               <span
                 class="inline-flex items-center gap-1 bg-slack-reaction border border-slack-reaction-border rounded-xl px-2 py-0.5 text-xs text-slack-text-secondary"
-                >{getEmoji(reaction)} 1</span
+                >{getEmoji(reaction)} {count}</span
               >
             {/each}
           </div>

@@ -19,7 +19,7 @@ export interface SimulatorMessage {
   text: string
   thread_ts?: string
   channel: string
-  reactions: Set<string>
+  reactions: Map<string, number>
   file?: SlackFile
 }
 

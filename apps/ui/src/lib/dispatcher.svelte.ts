@@ -42,7 +42,7 @@ interface StoredMessage {
   user: string
   text: string
   threadTs?: string
-  reactions?: string[]
+  reactions?: Array<{ name: string; count: number }>
   file?: {
     id: string
     name: string

@@ -70,7 +70,7 @@ export function addMessage(
 ): SimulatorMessage {
   const fullMessage: SimulatorMessage = {
     ...message,
-    reactions: new SvelteSet(),
+    reactions: new SvelteMap(),
   }
 
   const channel = message.channel
@@ -91,11 +91,10 @@ export function addReactionToMessage(
   const channelMsgs = simulatorState.messages.get(channel)
   const msg = channelMsgs?.get(ts)
   if (msg && channelMsgs) {
-    // Create new message object with new SvelteSet to trigger Svelte reactivity
-    const newMsg = {
-      ...msg,
-      reactions: new SvelteSet([...msg.reactions, reaction]),
-    }
+    // Create new message object with new SvelteMap to trigger Svelte reactivity
+    const newReactions = new SvelteMap(msg.reactions)
+    newReactions.set(reaction, (newReactions.get(reaction) ?? 0) + 1)
+    const newMsg = { ...msg, reactions: newReactions }
     channelMsgs.set(ts, newMsg)
   }
 }
@@ -109,9 +108,14 @@ export function removeReactionFromMessage(
   const channelMsgs = simulatorState.messages.get(channel)
   const msg = channelMsgs?.get(ts)
   if (msg && channelMsgs) {
-    // Create new message object with new SvelteSet to trigger Svelte reactivity
-    const newReactions = new SvelteSet(msg.reactions)
-    newReactions.delete(reaction)
+    // Create new message object with new SvelteMap to trigger Svelte reactivity
+    const newReactions = new SvelteMap(msg.reactions)
+    const currentCount = newReactions.get(reaction) ?? 0
+    if (currentCount <= 1) {
+      newReactions.delete(reaction)
+    } else {
+      newReactions.set(reaction, currentCount - 1)
+    }
     const newMsg = { ...msg, reactions: newReactions }
     channelMsgs.set(ts, newMsg)
   }
@@ -242,7 +246,7 @@ export function restoreMessages(
     user: string
     text: string
     threadTs?: string
-    reactions?: string[]
+    reactions?: Array<{ name: string; count: number }>
     file?: {
       id: string
       name: string
@@ -271,7 +275,7 @@ export function restoreMessages(
       text: msg.text,
       thread_ts: msg.threadTs,
       channel,
-      reactions: new SvelteSet(msg.reactions || []),
+      reactions: new SvelteMap(msg.reactions?.map((r) => [r.name, r.count]) ?? []),
       file: msg.file
         ? {
             id: msg.file.id,
