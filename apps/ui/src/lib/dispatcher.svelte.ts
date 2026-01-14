@@ -290,8 +290,8 @@ function handleSSEEvent(event: {
   switch (event.type) {
     case 'connected':
       sseLogger.info('Emulator connection confirmed')
-      // Refresh bot list on SSE reconnect (emulator may have restarted)
-      loadConnectedBots()
+      // Refresh bot list on SSE reconnect with retry (bot may still be registering)
+      loadConnectedBotsWithRetry()
       loadAppConfig()
       loadCommands()
       break
@@ -491,12 +491,6 @@ export async function sendMessage(
     channel,
   })
 
-  // Only add thinking reaction if bot will respond
-  const botWillRespond = willBotRespond(text, threadTs)
-  if (botWillRespond) {
-    addReaction(channel, emulatorTs, 'thinking_face')
-  }
-
   // Response comes via SSE (handleSSEEvent adds bot's message)
   return null
 }
@@ -567,6 +561,24 @@ export async function loadConnectedBots(): Promise<ConnectedBotInfo[]> {
     dispatcherLogger.error('Failed to load connected bots:', error)
     return []
   }
+}
+
+/**
+ * Load connected bots with retry - useful when bot may still be registering
+ */
+async function loadConnectedBotsWithRetry(
+  maxRetries = 5,
+  delayMs = 1000
+): Promise<ConnectedBotInfo[]> {
+  for (let i = 0; i < maxRetries; i++) {
+    const bots = await loadConnectedBots()
+    if (bots.length > 0) return bots
+    if (i < maxRetries - 1) {
+      dispatcherLogger.debug(`No bots found, retrying in ${delayMs}ms...`)
+      await new Promise((r) => setTimeout(r, delayMs))
+    }
+  }
+  return []
 }
 
 /**

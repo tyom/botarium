@@ -20,6 +20,7 @@ interface SocketConnection {
   connectionId: string
   appToken: string
   connectedAt: Date
+  lastPong: Date // Track last pong response for heartbeat
 }
 
 interface PendingAck {
@@ -29,13 +30,109 @@ interface PendingAck {
   viewId?: string // Track view ID for view_submission acks
 }
 
+// Heartbeat configuration
+const HEARTBEAT_INTERVAL_MS = 30_000 // Send ping every 30 seconds
+const HEARTBEAT_TIMEOUT_MS = 10_000 // Mark as dead if no pong within 10 seconds
+
 export class SocketModeServer {
   private connections = new Map<string, SocketConnection>()
   private pendingAcks = new Map<string, PendingAck>()
   private state: EmulatorState
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null
+  // Track connection IDs that have been claimed for registration but not yet confirmed
+  private claimedConnectionIds = new Set<string>()
 
   constructor(state: EmulatorState) {
     this.state = state
+  }
+
+  /**
+   * Start periodic heartbeat to detect dead connections.
+   * Should be called after the server starts.
+   */
+  startHeartbeat(): void {
+    if (this.heartbeatInterval) return // Already running
+
+    socketModeLogger.info('Starting heartbeat monitor')
+    this.heartbeatInterval = setInterval(() => {
+      this.checkHeartbeats()
+    }, HEARTBEAT_INTERVAL_MS)
+  }
+
+  /**
+   * Stop the heartbeat monitor.
+   * Should be called before the server stops.
+   */
+  stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval)
+      this.heartbeatInterval = null
+      socketModeLogger.info('Stopped heartbeat monitor')
+    }
+  }
+
+  /**
+   * Check all connections for heartbeat timeouts and send pings.
+   */
+  private checkHeartbeats(): void {
+    const now = new Date()
+    const deadConnections: string[] = []
+
+    for (const [connectionId, conn] of this.connections) {
+      const timeSinceLastPong = now.getTime() - conn.lastPong.getTime()
+
+      if (timeSinceLastPong > HEARTBEAT_INTERVAL_MS + HEARTBEAT_TIMEOUT_MS) {
+        // Connection hasn't responded to heartbeat within timeout
+        socketModeLogger.warn(
+          `Connection ${connectionId} missed heartbeat (${Math.round(timeSinceLastPong / 1000)}s since last pong)`
+        )
+        deadConnections.push(connectionId)
+      } else {
+        // Send ping to check if connection is still alive
+        try {
+          conn.ws.ping()
+        } catch (err) {
+          socketModeLogger.warn(
+            { err, connectionId },
+            'Failed to send ping, marking as dead'
+          )
+          deadConnections.push(connectionId)
+        }
+      }
+    }
+
+    // Clean up dead connections
+    for (const connectionId of deadConnections) {
+      const conn = this.connections.get(connectionId)
+      if (conn) {
+        this.connections.delete(connectionId)
+        const bot = this.state.unregisterBot(connectionId)
+        if (bot) {
+          socketModeLogger.info(
+            `Bot disconnected via heartbeat timeout: ${bot.appConfig.app.name} (${bot.id})`
+          )
+        }
+        try {
+          conn.ws.close(1001, 'Heartbeat timeout')
+        } catch {
+          // Ignore close errors on dead connections
+        }
+      }
+    }
+
+    // Also check for orphaned bots (bots marked connected but no active socket)
+    this.markOrphanedBotsDisconnected()
+  }
+
+  /**
+   * Handle pong response from WebSocket ping.
+   */
+  handlePong(ws: ServerWebSocket<{ connectionId: string }>): void {
+    const connectionId = ws.data.connectionId
+    const conn = this.connections.get(connectionId)
+    if (conn) {
+      conn.lastPong = new Date()
+    }
   }
 
   // ==========================================================================
@@ -46,13 +143,27 @@ export class SocketModeServer {
     const connectionId = ws.data.connectionId
     socketModeLogger.info(`Connection opened: ${connectionId}`)
 
-    // Store connection
+    const now = new Date()
+    // Store connection with lastPong initialized to now
     this.connections.set(connectionId, {
       ws,
       connectionId,
       appToken: '', // Will be set from URL params
-      connectedAt: new Date(),
+      connectedAt: now,
+      lastPong: now, // Initialize lastPong for heartbeat tracking
     })
+
+    // Try to auto-reconnect a disconnected bot (handles hot-reload case)
+    const reconnected = this.state.tryReconnectBot(connectionId)
+    if (reconnected) {
+      socketModeLogger.info(
+        `Auto-reconnected bot: ${reconnected.appConfig.app.name} (${reconnected.id})`
+      )
+    } else {
+      // Emit bot_connecting event to notify frontend that a WebSocket is connected
+      // but waiting for config registration
+      this.state.emitEvent({ type: 'bot_connecting', connectionId })
+    }
 
     // Send hello message
     const hello: SocketModeHello = {
@@ -454,8 +565,12 @@ export class SocketModeServer {
   }
 
   /**
-   * Find the oldest WebSocket connection that doesn't have a bot associated yet.
+   * Find and claim the oldest WebSocket connection that doesn't have a bot associated yet.
+   * The connection is atomically claimed to prevent race conditions with concurrent registrations.
    * Used when registering a bot via HTTP to link it to its WebSocket connection.
+   *
+   * After successful registration, call confirmConnectionClaim() to release the claim.
+   * If registration fails, call releaseConnectionClaim() to allow others to use it.
    */
   getUnassociatedConnectionId(): string | undefined {
     // Sort connections by connectedAt (oldest first)
@@ -463,14 +578,44 @@ export class SocketModeServer {
       (a, b) => a.connectedAt.getTime() - b.connectedAt.getTime()
     )
 
-    // Find the first connection without an associated bot
+    // Find the first connection that:
+    // 1. Has no associated bot
+    // 2. Is not already claimed by another concurrent registration
     for (const conn of sorted) {
       const bot = this.state.getBotByConnectionId(conn.connectionId)
-      if (!bot) {
+      if (!bot && !this.claimedConnectionIds.has(conn.connectionId)) {
+        // Atomically claim this connection
+        this.claimedConnectionIds.add(conn.connectionId)
+        socketModeLogger.debug(
+          `Claimed connection for registration: ${conn.connectionId}`
+        )
         return conn.connectionId
       }
     }
 
     return undefined
+  }
+
+  /**
+   * Confirm that a claimed connection has been successfully registered.
+   * This releases the claim since the connection now has an associated bot.
+   */
+  confirmConnectionClaim(connectionId: string): void {
+    this.claimedConnectionIds.delete(connectionId)
+    socketModeLogger.debug(
+      `Confirmed connection registration: ${connectionId}`
+    )
+  }
+
+  /**
+   * Release a claimed connection if registration fails.
+   * This allows other concurrent registrations to use the connection.
+   */
+  releaseConnectionClaim(connectionId: string): void {
+    if (this.claimedConnectionIds.delete(connectionId)) {
+      socketModeLogger.debug(
+        `Released connection claim (registration failed): ${connectionId}`
+      )
+    }
   }
 }

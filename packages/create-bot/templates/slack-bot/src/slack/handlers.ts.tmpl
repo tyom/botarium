@@ -118,9 +118,8 @@ export async function registerHandlers(app: SlackApp) {
   if (process.env.SLACK_API_URL) {
     botUserId = 'BOT_LOCAL'
     slackLogger.info({ botUserId }, 'Local mode - using placeholder bot ID')
-
-    // Register with emulator
-    await registerWithEmulator()
+    // Note: registerWithEmulator() is called from index.ts AFTER app.start()
+    // to ensure WebSocket is connected before HTTP registration
   } else {
     const authResult = await app.client.auth.test()
     botUserId = authResult.user_id || null
@@ -236,8 +235,16 @@ async function handleResponse(
 
   await addReaction(app.client, channel, ts, REACTION.thinking)
 
-  try {
+  // Test response for ping
+  if (text.toLowerCase() === 'ping') {
+    await say(isDM ? { text: 'pong' } : { text: 'pong', thread_ts: threadTs })
+    await removeReaction(app.client, channel, ts, REACTION.thinking)
+    await addReaction(app.client, channel, ts, REACTION.done)
+    return
+  }
+
 {{#if isAi}}
+  try {
     const messages = isDM ? [] : await getThreadHistory(app.client, channel, threadTs)
 
     if (messages.length === 0 || messages[messages.length - 1]?.content !== text) {
@@ -250,10 +257,6 @@ async function handleResponse(
       user,
       botName,
     })
-{{else}}
-    // TODO: Add your message handling logic here
-    const response = `You said: ${text}`
-{{/if}}
 
     await say(isDM ? { text: response } : { text: response, thread_ts: threadTs })
 
@@ -270,14 +273,20 @@ async function handleResponse(
     const errorMsg = 'Sorry, I encountered an error processing your request.'
     await say(isDM ? { text: errorMsg } : { text: errorMsg, thread_ts: threadTs })
   }
+{{else}}
+  // TODO: Add your message handling logic here
+  // For now, ignore messages that aren't handled above
+  await removeReaction(app.client, channel, ts, REACTION.thinking)
+{{/if}}
 }
 
 /**
  * Register app config with the Botarium emulator.
  * This allows the emulator to discover and display the bot.
+ * Must be called AFTER app.start() to ensure WebSocket is connected.
  * Retries if the emulator isn't ready yet.
  */
-async function registerWithEmulator(
+export async function registerWithEmulator(
   maxRetries = 30,
   retryDelayMs = 2000
 ): Promise<void> {

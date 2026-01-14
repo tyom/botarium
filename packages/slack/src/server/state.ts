@@ -574,12 +574,20 @@ export class EmulatorState {
       }
     }
 
-    // Check for existing disconnected bot with the same app name
-    const existingBot = Array.from(this.connectedBots.values()).find(
-      (bot) =>
-        bot.status === 'disconnected' &&
-        bot.appConfig.app.name === appConfig.app.name
-    )
+    // Check for existing disconnected bot with the same app_id (preferred) or name (fallback)
+    // Using app_id is more reliable since names may not be unique
+    const newAppId = appConfig.app?.id
+    const existingBot = Array.from(this.connectedBots.values()).find((bot) => {
+      if (bot.status !== 'disconnected') return false
+
+      // Prefer matching by app_id if both have one
+      if (newAppId && bot.appConfig.app?.id) {
+        return bot.appConfig.app.id === newAppId
+      }
+
+      // Fall back to name matching for backward compatibility
+      return bot.appConfig.app.name === appConfig.app.name
+    })
 
     let bot: ConnectedBot
     let botId: string
@@ -695,6 +703,37 @@ export class EmulatorState {
       )
       this.emitEvent({ type: 'bot_disconnected', botId, bot })
     }
+  }
+
+  /**
+   * Try to auto-reconnect a disconnected bot when a new WebSocket connects.
+   * This handles hot-reload case where bot reconnects while simulator is running.
+   * Returns the reconnected bot if successful, undefined otherwise.
+   */
+  tryReconnectBot(connectionId: string): ConnectedBot | undefined {
+    // Find disconnected bots in memory
+    const disconnectedBots = Array.from(this.connectedBots.values()).filter(
+      (bot) => bot.status === 'disconnected'
+    )
+
+    // If there's exactly one disconnected bot, reconnect it
+    if (disconnectedBots.length === 1) {
+      const bot = disconnectedBots[0]
+      if (bot) {
+        bot.connectionId = connectionId
+        bot.status = 'connected'
+        bot.connectedAt = new Date()
+        this.connectionToBotId.set(connectionId, bot.id)
+
+        stateLogger.info(
+          `Bot auto-reconnected: ${bot.appConfig.app.name} (${bot.id}) via connection ${connectionId}`
+        )
+        this.emitEvent({ type: 'bot_connected', bot })
+        return bot
+      }
+    }
+
+    return undefined
   }
 
   /**

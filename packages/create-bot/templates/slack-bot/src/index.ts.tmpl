@@ -1,5 +1,5 @@
 import { createSlackApp } from './slack/app'
-import { registerHandlers } from './slack/handlers'
+import { registerHandlers, registerWithEmulator } from './slack/handlers'
 import { settings, isSimulatorMode } from './settings'
 import { startConfigServer } from './config/http-server'
 import { appLogger } from './utils/logger'
@@ -19,6 +19,19 @@ async function main() {
   const app = createSlackApp()
   await registerHandlers(app)
   await app.start()
+
+  // Register with emulator AFTER WebSocket is connected
+  if (isSimulatorMode) {
+    await registerWithEmulator()
+
+    // Re-register on reconnection (e.g., after simulator restart)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const receiver = (app as any).receiver as { client?: { on?: Function } }
+    receiver?.client?.on?.('connected', () => {
+      appLogger.info('WebSocket reconnected, re-registering with emulator...')
+      registerWithEmulator()
+    })
+  }
 
   // Graceful shutdown handler
   const shutdown = async () => {

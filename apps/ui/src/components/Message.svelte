@@ -27,6 +27,9 @@
   const EMOJI_MAP: Record<string, string> = {
     thinking_face: '🤔',
     white_check_mark: '✅',
+    clock1: '🕐',
+    clock2: '🕑',
+    clock3: '🕒',
   }
 
   let {
