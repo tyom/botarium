@@ -33,6 +33,15 @@
   let deleteConfirmText = $state('')
   let deleting = $state(false)
   let deleteSuccess = $state(false)
+  let deleteError = $state('')
+  let deleteSuccessTimeout: ReturnType<typeof setTimeout> | null = null
+
+  // Clean up timeout on unmount
+  $effect(() => {
+    return () => {
+      if (deleteSuccessTimeout) clearTimeout(deleteSuccessTimeout)
+    }
+  })
 
   // Sync dialog open state with prop
   $effect(() => {
@@ -86,12 +95,15 @@
   async function handleDeleteAllData() {
     if (deleteConfirmText !== 'DELETE') return
     deleting = true
+    deleteError = ''
     try {
       await clearAllMessages()
       clearMessages()
       deleteConfirmText = ''
       deleteSuccess = true
-      setTimeout(() => (deleteSuccess = false), 2000)
+      deleteSuccessTimeout = setTimeout(() => (deleteSuccess = false), 2000)
+    } catch (e) {
+      deleteError = e instanceof Error ? e.message : 'Failed to delete data'
     } finally {
       deleting = false
     }
@@ -148,6 +160,13 @@
                   {/if}
                 </Button>
               </div>
+              {#if deleteError}
+                <div
+                  class="mt-2 px-3 py-2 bg-(--log-error) text-white rounded-md text-[13px]"
+                >
+                  {deleteError}
+                </div>
+              {/if}
             </div>
           {/snippet}
         </DynamicSettings>
