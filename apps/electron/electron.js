@@ -610,6 +610,14 @@ async function startBackend(settings) {
   const emulatorReady = await waitForHealth(`${EMULATOR_URL}/health`)
   if (!emulatorReady) {
     emulatorProcLogger.error('Failed to start')
+    if (emulatorProcess) {
+      try {
+        emulatorProcess.kill('SIGTERM')
+      } catch {
+        // Process might already be dead
+      }
+      emulatorProcess = null
+    }
     return
   }
   emulatorProcLogger.info('Ready')
