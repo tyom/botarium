@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import { X } from '@lucide/svelte'
   import { Button } from '$lib/components/ui/button'
   import IconButton from './IconButton.svelte'
@@ -30,9 +31,11 @@
   let error = $state('')
   let dialogEl: HTMLDialogElement | undefined = $state()
 
-  // Initialize form data with merged settings
+  // Initialize form data with merged settings only when modal opens
   $effect.pre(() => {
-    formData = { ...globalSettings, ...appSettings }
+    if (open) {
+      formData = untrack(() => ({ ...globalSettings, ...appSettings }))
+    }
   })
 
   // Sync dialog open state with prop
