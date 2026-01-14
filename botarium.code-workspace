@@ -1,0 +1,124 @@
+{
+  "folders": [
+    {
+      "path": "."
+    },
+    {
+      "path": "apps/ui",
+      "name": "UI"
+    },
+    {
+      "path": "apps/electron",
+      "name": "Electron"
+    },
+    {
+      "path": "packages/core",
+      "name": "Core"
+    },
+    {
+      "path": "packages/slack",
+      "name": "Slack"
+    },
+    {
+      "path": "packages/logger",
+      "name": "Logger"
+    }
+  ],
+  "settings": {},
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Dev Web",
+        "detail": "Web UI + Emulator (2 tabs)",
+        "dependsOn": ["Emulator", "Web UI"],
+        "dependsOrder": "parallel",
+        "icon": {
+          "id": "browser",
+          "color": "terminal.ansiGreen"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Dev Web (Shared DB)",
+        "detail": "Web UI + Emulator using Electron's database (2 tabs)",
+        "dependsOn": ["Emulator Shared", "Web UI"],
+        "dependsOrder": "parallel",
+        "icon": {
+          "id": "database",
+          "color": "terminal.ansiCyan"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Dev Electron",
+        "detail": "Electron app with embedded emulator",
+        "command": "bun run --filter @botarium/electron dev:electron",
+        "icon": {
+          "id": "device-desktop",
+          "color": "terminal.ansiMagenta"
+        },
+        "type": "shell",
+        "problemMatcher": ["$tsc"],
+        "group": "build"
+      },
+      {
+        "label": "Typecheck",
+        "detail": "Type check all packages",
+        "command": "bun run typecheck",
+        "icon": {
+          "id": "check",
+          "color": "terminal.ansiBlue"
+        },
+        "type": "shell",
+        "problemMatcher": ["$tsc"],
+        "group": "build"
+      },
+      {
+        "label": "Package Electron",
+        "detail": "Build Electron app for release (DMG/portable/AppImage)",
+        "command": "bun run --filter @botarium/electron package",
+        "icon": {
+          "id": "package",
+          "color": "terminal.ansiYellow"
+        },
+        "type": "shell",
+        "problemMatcher": [],
+        "group": "build"
+      },
+      {
+        "label": "Emulator",
+        "hide": true,
+        "command": "bun run --filter @botarium/slack emulator",
+        "type": "shell",
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "group": "dev-web"
+        }
+      },
+      {
+        "label": "Emulator Shared",
+        "hide": true,
+        "command": "bun run --filter @botarium/slack emulator:shared",
+        "type": "shell",
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "group": "dev-web-shared"
+        }
+      },
+      {
+        "label": "Web UI",
+        "hide": true,
+        "command": "bun run --filter @botarium/ui dev",
+        "type": "shell",
+        "isBackground": true,
+        "problemMatcher": [],
+        "presentation": {
+          "group": "dev-web"
+        }
+      }
+    ]
+  }
+}

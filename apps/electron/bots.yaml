@@ -1,0 +1,15 @@
+# Bots to bundle with the Electron app
+# List bots here to compile and embed them in the packaged application
+#
+# Each bot needs:
+#   - name: Unique identifier for the bot (used in dist/bots/{name})
+#   - source: Path to the bot's source directory (relative or absolute)
+#   - entry: (optional) Entry point file, defaults to src/index.ts
+#
+# Example:
+# bots:
+#   - name: my-bot
+#     source: /path/to/my-bot
+#     # entry: src/index.ts  # default
+
+bots: []
