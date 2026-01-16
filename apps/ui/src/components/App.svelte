@@ -209,6 +209,14 @@
 
 {#if !backendState.settingsLoaded && isElectron}
   <LoadingSpinner delay={1000} />
+{:else if backendState.isInitialSetup}
+  <!-- Initial setup: show settings inline -->
+  <Settings
+    settings={backendState.effectiveSettings as Record<string, unknown>}
+    onSave={backendState.saveSettings}
+    showCancel={false}
+    isModal={false}
+  />
 {:else if backendState.shouldShowApp}
   {#if backendState.backendError}
     <div
@@ -270,15 +278,17 @@
   </div>
 {/if}
 
-<!-- Settings modal (always mounted, controlled via open prop) -->
-<Settings
-  settings={backendState.effectiveSettings as Record<string, unknown>}
-  onSave={backendState.saveSettings}
-  onCancel={backendState.closeSettings}
-  showCancel={true}
-  isModal={true}
-  open={backendState.showSettings}
-/>
+<!-- Settings modal (only for editing existing settings, not initial setup) -->
+{#if !backendState.isInitialSetup}
+  <Settings
+    settings={backendState.effectiveSettings as Record<string, unknown>}
+    onSave={backendState.saveSettings}
+    onCancel={backendState.closeSettings}
+    showCancel={true}
+    isModal={true}
+    open={backendState.showSettings}
+  />
+{/if}
 
 <!-- App Settings modal -->
 {#if backendState.showAppSettings}

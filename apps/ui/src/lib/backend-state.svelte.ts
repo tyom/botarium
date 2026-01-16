@@ -167,7 +167,7 @@ function createBackendState() {
     // Always set up listeners to catch backend:ready event
     setupBackendListeners(onReady)
 
-    if (!settings || !getApiKey(settings)) {
+    if (!settings) {
       showSettings = true
     } else {
       // Check if backend is already running
@@ -298,9 +298,10 @@ function createBackendState() {
       return !!settings && !!getApiKey(settings)
     },
     get shouldShowApp() {
-      return (
-        !isElectron || (settingsLoaded && !!settings && !!getApiKey(settings))
-      )
+      return !isElectron || (settingsLoaded && !!settings)
+    },
+    get isInitialSetup() {
+      return settingsLoaded && !settings
     },
     get isInputDisabled() {
       return isElectron && !backendReady

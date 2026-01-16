@@ -57,15 +57,6 @@
     event.preventDefault()
     error = ''
 
-    // Validate API key for selected provider
-    const provider = formData.ai_provider as string
-    const keyField = `${provider}_api_key`
-    const apiKey = formData[keyField] as string
-    if (!apiKey?.trim()) {
-      error = 'API key is required'
-      return
-    }
-
     saving = true
     try {
       // Create a plain object for IPC (Svelte 5 $state creates proxies that can't be cloned)
