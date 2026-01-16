@@ -53,10 +53,8 @@ export abstract class BaseAdapter implements MemoryRepository {
 
     if (query.trim()) {
       const rows = await this.queryTextSearch(query, category, channelId)
-      if (rows.length > 0) {
-        const memories = rows.map((row) => this.rowToMemory(row))
-        return this.filterByTags(memories, tags)
-      }
+      const memories = rows.map((row) => this.rowToMemory(row))
+      return this.filterByTags(memories, tags)
     }
 
     const rows = await this.queryAll(category, channelId)
