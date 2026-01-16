@@ -67,7 +67,7 @@ function migrateSettings(
     githubOrg: 'github_default_org',
     tavilyApiKey: 'tavily_api_key',
     simulatedUserName: 'simulated_user_name',
-    appLogLevel: 'app_log_level',
+    appLogLevel: 'log_level',
   }
 
   for (const [oldKey, newKey] of Object.entries(keyMap)) {
