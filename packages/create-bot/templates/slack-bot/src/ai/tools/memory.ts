@@ -48,6 +48,20 @@ async function storeMemoryExecute(
   input: StoreMemoryInput
 ): Promise<ToolResult<{ message: string }>> {
   const { category, key, content, tags, channelId, userId } = input
+
+  if (category === 'user' || category === 'preference') {
+    if (!userId) {
+      return failure('userId required to store user/preference memories')
+    }
+    const isOwnMemory =
+      category === 'user'
+        ? key === userId
+        : key.startsWith(`${userId}:`) || key === userId
+    if (!isOwnMemory) {
+      return failure('You can only store your own user/preference memories')
+    }
+  }
+
   const source = channelId && userId ? { channelId, userId } : undefined
   await memoryStore.store({ category, key, content, tags, source })
   return success({ message: `Memory stored: ${category}/${key}` })
