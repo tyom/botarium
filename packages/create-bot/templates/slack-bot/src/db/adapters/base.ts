@@ -91,13 +91,21 @@ export abstract class BaseAdapter implements MemoryRepository {
   private parseTags(tags: MemoryRow['tags']): string[] | undefined {
     if (!tags) return undefined
     if (Array.isArray(tags)) return tags
-    return JSON.parse(tags)
+    try {
+      return JSON.parse(tags)
+    } catch {
+      return undefined
+    }
   }
 
   private parseSource(source: MemoryRow['source']): Memory['source'] {
     if (!source) return undefined
     if (typeof source === 'object') return source
-    return JSON.parse(source)
+    try {
+      return JSON.parse(source)
+    } catch {
+      return undefined
+    }
   }
 
   private parseTimestamp(timestamp: string | Date): string {
