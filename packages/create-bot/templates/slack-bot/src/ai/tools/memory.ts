@@ -1,7 +1,7 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import { memoryStore } from '../../memory/store'
-import { saveUserPreferences, normalizeResponseStyle } from '../../preferences'
+import { saveUserPreferences, normalizeResponseStyle, normalizeTimezone } from '../../preferences'
 import { type ToolResult, success, failure, withToolLogging } from '../../utils/tools'
 
 const categorySchema = z
@@ -118,6 +118,14 @@ async function setUserPreferenceExecute(
     if (!normalized) {
       return failure(
         `Invalid response style "${value}". Use: concise, detailed, or balanced`
+      )
+    }
+    normalizedValue = normalized
+  } else if (preference === 'timezone') {
+    const normalized = normalizeTimezone(value)
+    if (!normalized) {
+      return failure(
+        `Invalid timezone "${value}". Use a valid IANA timezone like "America/New_York" or "UTC".`
       )
     }
     normalizedValue = normalized

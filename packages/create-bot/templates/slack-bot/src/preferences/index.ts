@@ -104,3 +104,12 @@ export function normalizeResponseStyle(
 ): UserPreferences['responseStyle'] | null {
   return RESPONSE_STYLE_ALIASES[value.toLowerCase().trim()] ?? null
 }
+
+export function normalizeTimezone(value: string): string | null {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: value })
+    return value
+  } catch {
+    return null
+  }
+}
