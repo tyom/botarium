@@ -29,7 +29,9 @@ async function main() {
     const receiver = (app as any).receiver as { client?: { on?: Function } }
     receiver?.client?.on?.('connected', () => {
       appLogger.info('WebSocket reconnected, re-registering with emulator...')
-      registerWithEmulator()
+      registerWithEmulator().catch((err) => {
+        appLogger.error({ err }, 'Failed to re-register with emulator')
+      })
     })
   }
 
