@@ -56,7 +56,9 @@ export class SQLiteAdapter extends BaseAdapter {
     )
   }
 
-  async store(memory: Omit<Memory, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+  async store(
+    memory: Omit<Memory, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<void> {
     const now = new Date().toISOString()
     const tags = memory.tags ? JSON.stringify(memory.tags) : null
     const source = memory.source ? JSON.stringify(memory.source) : null
@@ -94,7 +96,9 @@ export class SQLiteAdapter extends BaseAdapter {
     const results = await this.db
       .select()
       .from(memoriesSqlite)
-      .where(and(eq(memoriesSqlite.category, category), eq(memoriesSqlite.key, key)))
+      .where(
+        and(eq(memoriesSqlite.category, category), eq(memoriesSqlite.key, key))
+      )
       .limit(1)
 
     return results as MemoryRow[]
@@ -137,7 +141,10 @@ export class SQLiteAdapter extends BaseAdapter {
     return results as MemoryRow[]
   }
 
-  protected async queryAll(category?: string, channelId?: string): Promise<MemoryRow[]> {
+  protected async queryAll(
+    category?: string,
+    channelId?: string
+  ): Promise<MemoryRow[]> {
     const conditions = []
 
     if (category) {
@@ -156,16 +163,24 @@ export class SQLiteAdapter extends BaseAdapter {
 
     const results =
       conditions.length > 0
-        ? await this.db.select().from(memoriesSqlite).where(and(...conditions))
+        ? await this.db
+            .select()
+            .from(memoriesSqlite)
+            .where(and(...conditions))
         : await this.db.select().from(memoriesSqlite)
 
     return results as MemoryRow[]
   }
 
-  protected async executeDelete(category: string, key: string): Promise<boolean> {
+  protected async executeDelete(
+    category: string,
+    key: string
+  ): Promise<boolean> {
     const result = await this.db
       .delete(memoriesSqlite)
-      .where(and(eq(memoriesSqlite.category, category), eq(memoriesSqlite.key, key)))
+      .where(
+        and(eq(memoriesSqlite.category, category), eq(memoriesSqlite.key, key))
+      )
 
     return (result as unknown as { changes: number }).changes > 0
   }

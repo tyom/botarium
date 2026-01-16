@@ -256,8 +256,8 @@
             >
               {#if replyCount > 0}
                 {replyCount}
-                {replyCount === 1 ? 'reply' : 'replies'}{#if hasDraft} and 1
-                  draft{/if}
+                {replyCount === 1 ? 'reply' : 'replies'}{#if hasDraft}
+                  and 1 draft{/if}
               {:else}
                 1 draft
               {/if}

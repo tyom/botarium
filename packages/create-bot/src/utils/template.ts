@@ -31,10 +31,7 @@ export interface TemplateContext {
  * - {{#if condition}}...{{/if}} - Conditional blocks
  * - {{~#if condition}}...{{~/if}} - Conditional with whitespace trimming
  */
-export function processTemplate(
-  content: string,
-  ctx: TemplateContext
-): string {
+export function processTemplate(content: string, ctx: TemplateContext): string {
   const template = Handlebars.compile(content, { noEscape: true })
   return template(ctx)
 }
@@ -49,7 +46,9 @@ export interface TemplateOptions {
 /**
  * Create template context from user selections.
  */
-export function createTemplateContext(options: TemplateOptions): TemplateContext {
+export function createTemplateContext(
+  options: TemplateOptions
+): TemplateContext {
   const { botName, useAi, aiProvider, dbAdapter } = options
 
   return {

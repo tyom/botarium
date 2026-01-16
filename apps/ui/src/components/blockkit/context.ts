@@ -24,10 +24,7 @@ export function renderMrkdwn(textObj: SlackViewTextObject | undefined): string {
   if (!textObj) return ''
   let text = textObj.text
   // Escape HTML entities first to prevent XSS
-  text = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   // Parse mrkdwn bold (*text*) if type is mrkdwn
   if (textObj.type === 'mrkdwn') {
     text = text.replace(/\*([^*]+)\*/g, '<strong>$1</strong>')

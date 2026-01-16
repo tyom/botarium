@@ -272,7 +272,7 @@
 
 <!-- Settings modal (always mounted, controlled via open prop) -->
 <Settings
-  settings={backendState.effectiveSettings}
+  settings={backendState.effectiveSettings as Record<string, unknown>}
   onSave={backendState.saveSettings}
   onCancel={backendState.closeSettings}
   showCancel={true}
@@ -285,9 +285,18 @@
   <AppSettings
     appId={backendState.showAppSettings.appId}
     appName={backendState.showAppSettings.appName}
-    globalSettings={backendState.effectiveSettings as unknown as Record<string, unknown>}
-    appSettings={backendState.getAppSettings(backendState.showAppSettings.appId)}
-    onSave={(settings) => backendState.saveAppSettings(backendState.showAppSettings!.appId, settings)}
+    globalSettings={backendState.effectiveSettings as unknown as Record<
+      string,
+      unknown
+    >}
+    appSettings={backendState.getAppSettings(
+      backendState.showAppSettings.appId
+    )}
+    onSave={(settings) =>
+      backendState.saveAppSettings(
+        backendState.showAppSettings!.appId,
+        settings
+      )}
     onCancel={backendState.closeAppSettings}
     open={true}
   />

@@ -22,7 +22,8 @@ export class ThreadTracker {
 
   constructor(config: ThreadTrackerConfig = {}) {
     this.ttlMs = config.ttlMs ?? DEFAULT_TTL_MS
-    this.cleanupIntervalMs = config.cleanupIntervalMs ?? DEFAULT_CLEANUP_INTERVAL_MS
+    this.cleanupIntervalMs =
+      config.cleanupIntervalMs ?? DEFAULT_CLEANUP_INTERVAL_MS
   }
 
   private getKey(channel: string, threadTs: string): string {
@@ -65,7 +66,10 @@ export class ThreadTracker {
 
   startCleanup(): void {
     if (!this.cleanupTimer) {
-      this.cleanupTimer = setInterval(() => this.cleanup(), this.cleanupIntervalMs)
+      this.cleanupTimer = setInterval(
+        () => this.cleanup(),
+        this.cleanupIntervalMs
+      )
     }
   }
 

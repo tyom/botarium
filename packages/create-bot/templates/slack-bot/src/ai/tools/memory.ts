@@ -1,12 +1,23 @@
 import { tool } from 'ai'
 import { z } from 'zod'
 import { memoryStore } from '../../memory/store'
-import { saveUserPreferences, normalizeResponseStyle, normalizeTimezone } from '../../preferences'
-import { type ToolResult, success, failure, withToolLogging } from '../../utils/tools'
+import {
+  saveUserPreferences,
+  normalizeResponseStyle,
+  normalizeTimezone,
+} from '../../preferences'
+import {
+  type ToolResult,
+  success,
+  failure,
+  withToolLogging,
+} from '../../utils/tools'
 
 const categorySchema = z
   .enum(['user', 'project', 'fact', 'preference'])
-  .describe('Category: user, project, fact (schedules/times/events), or preference')
+  .describe(
+    'Category: user, project, fact (schedules/times/events), or preference'
+  )
 
 interface StoreMemoryInput {
   category: 'user' | 'project' | 'fact' | 'preference'
@@ -184,8 +195,14 @@ export const memoryTools = {
       category: categorySchema,
       key: z.string().describe('Unique identifier for this memory'),
       content: z.string().describe('The information to remember'),
-      tags: z.array(z.string()).optional().describe('Optional tags for easier retrieval'),
-      channelId: z.string().optional().describe('Channel where this was learned'),
+      tags: z
+        .array(z.string())
+        .optional()
+        .describe('Optional tags for easier retrieval'),
+      channelId: z
+        .string()
+        .optional()
+        .describe('Channel where this was learned'),
       userId: z.string().optional().describe('User who provided the info'),
     }),
     execute: withToolLogging(
@@ -205,7 +222,8 @@ export const memoryTools = {
     }),
     execute: withToolLogging(
       'retrieveMemory',
-      (input: RetrieveMemoryInput) => `Retrieving ${input.category}/${input.key}`,
+      (input: RetrieveMemoryInput) =>
+        `Retrieving ${input.category}/${input.key}`,
       retrieveMemoryExecute
     ),
   }),
@@ -215,7 +233,10 @@ export const memoryTools = {
     inputSchema: z.object({
       query: z.string().describe('Text to search for in memories'),
       category: categorySchema.optional().describe('Optional category filter'),
-      tags: z.array(z.string()).optional().describe('Optional tags to filter by'),
+      tags: z
+        .array(z.string())
+        .optional()
+        .describe('Optional tags to filter by'),
       channelId: z.string().optional().describe('Channel to search in'),
       userId: z.string().optional().describe('Current user ID'),
     }),

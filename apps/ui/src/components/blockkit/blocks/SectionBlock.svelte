@@ -35,7 +35,10 @@
   {#if block.accessory}
     {#if block.accessory.type === 'button'}
       <div class="shrink-0">
-        <Button element={block.accessory as SlackButtonElement} onClick={onAction} />
+        <Button
+          element={block.accessory as SlackButtonElement}
+          onClick={onAction}
+        />
       </div>
     {:else if block.accessory.type === 'image'}
       <ImageElement

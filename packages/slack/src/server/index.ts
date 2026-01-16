@@ -229,7 +229,10 @@ export async function startEmulatorServer(
             user: msg.user,
             text: msg.text,
             threadTs: msg.thread_ts,
-            reactions: msg.reactions?.map((r) => ({ name: r.name, count: r.count })),
+            reactions: msg.reactions?.map((r) => ({
+              name: r.name,
+              count: r.count,
+            })),
             file: msg.file,
           }))
           return Response.json(response, {

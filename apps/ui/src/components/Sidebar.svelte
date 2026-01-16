@@ -62,7 +62,8 @@
 
   <nav class="flex-1 overflow-y-auto p-2">
     {#each sections as section}
-      {@const hasBotsForApps = section.type !== 'dm' || simulatorState.connectedBots.size > 0}
+      {@const hasBotsForApps =
+        section.type !== 'dm' || simulatorState.connectedBots.size > 0}
       {#if hasBotsForApps}
         <div
           class="pt-4 px-5 pb-1 text-sm font-semibold text-(--sidebar-muted) uppercase tracking-wide"
@@ -72,7 +73,10 @@
       {/if}
       {#each CHANNELS.filter((c) => c.type === section.type && (c.type !== 'dm' || simulatorState.connectedBots.size > 0)) as channel}
         {@const isActive = simulatorState.currentChannel === channel.id}
-        {@const bot = channel.type === 'dm' ? Array.from(simulatorState.connectedBots.values())[0] : null}
+        {@const bot =
+          channel.type === 'dm'
+            ? Array.from(simulatorState.connectedBots.values())[0]
+            : null}
         <div
           class="flex items-center relative hover:bg-(--sidebar-hover) rounded-lg group"
           class:!bg-(--sidebar-active)={isActive}

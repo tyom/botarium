@@ -67,7 +67,9 @@ export class MemoryStore {
     const repo = await getRepository()
     const deleted = await repo.delete(category, key)
 
-    memoryLogger.debug(`${deleted ? 'Deleted' : 'Not found for deletion'}: ${keyStr}`)
+    memoryLogger.debug(
+      `${deleted ? 'Deleted' : 'Not found for deletion'}: ${keyStr}`
+    )
     return deleted
   }
 

@@ -119,7 +119,12 @@
         class="flex justify-between items-center px-5 py-4 border-b border-(--border-color) shrink-0"
       >
         <h2 class="m-0 text-lg font-bold text-(--text-primary)">Settings</h2>
-        <IconButton icon={X} size={18} label="Close" onclick={() => dialogEl?.close()} />
+        <IconButton
+          icon={X}
+          size={18}
+          label="Close"
+          onclick={() => dialogEl?.close()}
+        />
       </header>
 
       <!-- Scrollable content -->
@@ -132,7 +137,9 @@
           {#snippet advancedContent()}
             <!-- Delete All Data section -->
             <div class="mb-4 mt-4">
-              <Label class="mb-1.5 text-(--text-secondary)">Delete All Data</Label>
+              <Label class="mb-1.5 text-(--text-secondary)"
+                >Delete All Data</Label
+              >
               <div class="flex gap-2">
                 <Input
                   type="text"
@@ -180,7 +187,11 @@
           </div>
         {/if}
         {#if showCancel}
-          <Button type="button" variant="outline" onclick={() => dialogEl?.close()}>
+          <Button
+            type="button"
+            variant="outline"
+            onclick={() => dialogEl?.close()}
+          >
             Cancel
           </Button>
         {/if}

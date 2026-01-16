@@ -52,7 +52,9 @@
       {
         "from": "dist/bots",
         "to": "bots",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "bots.yaml",

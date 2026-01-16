@@ -110,9 +110,7 @@
           {error}
         </div>
       {/if}
-      <Button type="button" variant="outline" onclick={onCancel}>
-        Cancel
-      </Button>
+      <Button type="button" variant="outline" onclick={onCancel}>Cancel</Button>
       <Button type="submit" disabled={saving}>
         {saving ? 'Saving...' : 'Save'}
       </Button>

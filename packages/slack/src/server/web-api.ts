@@ -1131,7 +1131,8 @@ export class SlackWebAPI {
         {
           ok: false,
           error: 'no_websocket_connection',
-          message: 'WebSocket connection required before registration. Please retry.',
+          message:
+            'WebSocket connection required before registration. Please retry.',
         },
         { status: 503, headers: corsHeaders() }
       )

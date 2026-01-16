@@ -1,6 +1,10 @@
 import pc from 'picocolors'
 import path from 'path'
-import { promptForSelections, type PartialSelections, type BotTemplate } from './prompts'
+import {
+  promptForSelections,
+  type PartialSelections,
+  type BotTemplate,
+} from './prompts'
 import { scaffold } from './scaffold'
 import { installDependenciesWithOutput } from './utils/install'
 import type { AiProvider, DbAdapter } from './utils/template'
@@ -75,7 +79,9 @@ function printNextSteps(options: {
   const relativePath = path.relative(process.cwd(), targetDir)
 
   console.log()
-  console.log(pc.bold(pc.green(`Success! Created ${botName} at ${relativePath}`)))
+  console.log(
+    pc.bold(pc.green(`Success! Created ${botName} at ${relativePath}`))
+  )
   console.log()
   console.log('Next steps:')
   console.log()

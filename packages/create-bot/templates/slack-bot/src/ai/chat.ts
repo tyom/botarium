@@ -12,7 +12,10 @@ export interface ChatContext {
 /**
  * Process a message using the general agent.
  */
-export async function chat(message: string, context: ChatContext): Promise<string> {
+export async function chat(
+  message: string,
+  context: ChatContext
+): Promise<string> {
   chatLogger.info(
     { user: context.user, message: truncate(message, 100) },
     'Processing message'

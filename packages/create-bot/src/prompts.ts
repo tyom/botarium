@@ -3,7 +3,11 @@ import { validateBotName, checkTargetDirectory } from './utils/validate'
 
 export type BotTemplate = 'slack'
 
-export const AVAILABLE_TEMPLATES: { value: BotTemplate; title: string; description: string }[] = [
+export const AVAILABLE_TEMPLATES: {
+  value: BotTemplate
+  title: string
+  description: string
+}[] = [
   { value: 'slack', title: 'Slack', description: 'Slack bot using Bolt SDK' },
   // Future templates:
   // { value: 'discord', title: 'Discord', description: 'Discord bot using discord.js' },
@@ -20,7 +24,11 @@ export type AiProvider = (typeof AI_PROVIDERS)[number]['value']
 
 export const DATABASE_OPTIONS = [
   { value: 'none', title: 'None' },
-  { value: 'sqlite', title: 'SQLite', description: 'Recommended for getting started' },
+  {
+    value: 'sqlite',
+    title: 'SQLite',
+    description: 'Recommended for getting started',
+  },
   { value: 'postgres', title: 'PostgreSQL' },
 ] as const
 
@@ -83,7 +91,8 @@ function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {
 
   if (!partial.provider) {
     questions.push({
-      type: (_prev, values) => (values.useAi ?? partial.useAi) ? 'select' : null,
+      type: (_prev, values) =>
+        (values.useAi ?? partial.useAi) ? 'select' : null,
       name: 'provider',
       message: 'AI provider:',
       choices: AI_PROVIDERS.map((p) => ({ title: p.title, value: p.value })),
@@ -108,14 +117,19 @@ function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {
   return questions
 }
 
-function mergeAnswers(partial: PartialSelections, answers: prompts.Answers<string>): UserSelections | null {
+function mergeAnswers(
+  partial: PartialSelections,
+  answers: prompts.Answers<string>
+): UserSelections | null {
   const useAi = partial.useAi ?? answers.useAi ?? false
 
   const selections: UserSelections = {
     name: partial.name || answers.name,
     template: (partial.template || answers.template) as BotTemplate,
     useAi,
-    provider: useAi ? (partial.provider || answers.provider) as AiProvider : undefined,
+    provider: useAi
+      ? ((partial.provider || answers.provider) as AiProvider)
+      : undefined,
     database: (partial.database || answers.database) as DatabaseOption,
   }
 
@@ -129,20 +143,26 @@ function mergeAnswers(partial: PartialSelections, answers: prompts.Answers<strin
 
   const validTemplates = AVAILABLE_TEMPLATES.map((t) => t.value)
   if (!validTemplates.includes(selections.template)) {
-    console.error(`Invalid template: ${selections.template}. Available: ${validTemplates.join(', ')}`)
+    console.error(
+      `Invalid template: ${selections.template}. Available: ${validTemplates.join(', ')}`
+    )
     return null
   }
 
   const validDatabases = DATABASE_OPTIONS.map((d) => d.value)
   if (!validDatabases.includes(selections.database)) {
-    console.error(`Invalid database: ${selections.database}. Available: ${validDatabases.join(', ')}`)
+    console.error(
+      `Invalid database: ${selections.database}. Available: ${validDatabases.join(', ')}`
+    )
     return null
   }
 
   if (selections.provider) {
     const validProviders = AI_PROVIDERS.map((p) => p.value)
     if (!validProviders.includes(selections.provider)) {
-      console.error(`Invalid provider: ${selections.provider}. Available: ${validProviders.join(', ')}`)
+      console.error(
+        `Invalid provider: ${selections.provider}. Available: ${validProviders.join(', ')}`
+      )
       return null
     }
   }

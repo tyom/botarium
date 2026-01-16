@@ -117,7 +117,10 @@ function shouldSkipDirectory(dirName: string, ctx: TemplateContext): boolean {
 
   // Skip DB-related directories when no database selected
   // memory and preferences depend on db
-  if (!ctx.isDb && (dirName === 'db' || dirName === 'memory' || dirName === 'preferences')) {
+  if (
+    !ctx.isDb &&
+    (dirName === 'db' || dirName === 'memory' || dirName === 'preferences')
+  ) {
     return true
   }
 

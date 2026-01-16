@@ -99,7 +99,9 @@ async function main() {
     }
   }
 
-  console.log(`\nCompiled ${successCount}/${bots.length} bot(s) to ${OUTPUT_DIR}`)
+  console.log(
+    `\nCompiled ${successCount}/${bots.length} bot(s) to ${OUTPUT_DIR}`
+  )
 
   if (successCount === 0 && bots.length > 0) {
     process.exit(1)

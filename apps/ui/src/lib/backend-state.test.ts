@@ -24,7 +24,10 @@ describe('app settings storage structure', () => {
       app_settings: {},
     }
 
-    const appSettings = settings.app_settings as Record<string, Record<string, unknown>>
+    const appSettings = settings.app_settings as Record<
+      string,
+      Record<string, unknown>
+    >
     const result = appSettings['unknown-bot'] ?? {}
 
     expect(result).toEqual({})

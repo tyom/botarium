@@ -72,7 +72,10 @@ export class EmulatorPersistence {
 
     // Single database file for all apps - app_id column handles scoping
     const dbPath = resolve(join(this.dataDir, 'simulator.sqlite'))
-    persistenceLogger.info({ dbPath, appId: this.appId }, 'Initializing database')
+    persistenceLogger.info(
+      { dbPath, appId: this.appId },
+      'Initializing database'
+    )
     this.db = new Database(dbPath, { create: true, strict: true })
 
     // Enable WAL mode for better concurrent access
@@ -316,7 +319,8 @@ export class EmulatorPersistence {
     const now = new Date().toISOString()
     const channel = file.channels?.[0] ?? null
     // Files in DM channels are scoped to app_id, channel files are global (NULL)
-    const appIdValue = channel && this.isDirectMessage(channel) ? this.appId : null
+    const appIdValue =
+      channel && this.isDirectMessage(channel) ? this.appId : null
 
     // Save binary data to disk
     const filePath = join(this.uploadsDir, sanitizedId)

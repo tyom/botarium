@@ -558,7 +558,10 @@ export class EmulatorState {
    * If a disconnected bot with the same app name exists, reuse it.
    * Returns the bot ID.
    */
-  async registerBot(connectionId: string, appConfig: SlackAppConfig): Promise<string> {
+  async registerBot(
+    connectionId: string,
+    appConfig: SlackAppConfig
+  ): Promise<string> {
     // Switch app_id for filtering DM messages
     const appId = appConfig.app?.id
     if (appId && this.persistence) {

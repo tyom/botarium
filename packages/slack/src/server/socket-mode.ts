@@ -604,9 +604,7 @@ export class SocketModeServer {
    */
   confirmConnectionClaim(connectionId: string): void {
     this.claimedConnectionIds.delete(connectionId)
-    socketModeLogger.debug(
-      `Confirmed connection registration: ${connectionId}`
-    )
+    socketModeLogger.debug(`Confirmed connection registration: ${connectionId}`)
   }
 
   /**

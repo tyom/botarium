@@ -7,14 +7,19 @@ export interface MemoryRow {
   key: string
   content: string
   tags: string | string[] | null
-  source: string | { channelId: string; userId: string; threadTs?: string } | null
+  source:
+    | string
+    | { channelId: string; userId: string; threadTs?: string }
+    | null
   createdAt: string | Date
   updatedAt: string | Date
 }
 
 export abstract class BaseAdapter implements MemoryRepository {
   abstract initialize(): Promise<void>
-  abstract store(memory: Omit<Memory, 'id' | 'createdAt' | 'updatedAt'>): Promise<void>
+  abstract store(
+    memory: Omit<Memory, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<void>
   abstract close(): Promise<void>
 
   protected abstract queryByCategoryAndKey(
@@ -33,7 +38,10 @@ export abstract class BaseAdapter implements MemoryRepository {
     channelId?: string
   ): Promise<MemoryRow[]>
 
-  protected abstract executeDelete(category: string, key: string): Promise<boolean>
+  protected abstract executeDelete(
+    category: string,
+    key: string
+  ): Promise<boolean>
 
   async retrieve(category: string, key: string): Promise<Memory | null> {
     const rows = await this.queryByCategoryAndKey(category, key)

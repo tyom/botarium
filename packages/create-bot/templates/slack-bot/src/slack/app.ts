@@ -8,10 +8,13 @@ const SIMULATOR_BOT_TOKEN = 'xoxb-simulator-token'
 const SIMULATOR_APP_TOKEN = 'xapp-simulator-token'
 
 export function createSlackApp() {
-  const logLevel = settings.LOG_LEVEL === 'debug' ? LogLevel.DEBUG : LogLevel.INFO
+  const logLevel =
+    settings.LOG_LEVEL === 'debug' ? LogLevel.DEBUG : LogLevel.INFO
 
   if (isLocalMode) {
-    console.log(`[Slack] Connecting to emulator at ${process.env.SLACK_API_URL}`)
+    console.log(
+      `[Slack] Connecting to emulator at ${process.env.SLACK_API_URL}`
+    )
     return new App({
       token: SIMULATOR_BOT_TOKEN,
       appToken: SIMULATOR_APP_TOKEN,

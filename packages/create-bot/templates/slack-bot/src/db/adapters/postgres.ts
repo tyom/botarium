@@ -12,9 +12,12 @@ export class PostgresAdapter extends BaseAdapter {
 
   constructor(connectionString?: string) {
     super()
-    const url = connectionString || (settings as { DATABASE_URL?: string }).DATABASE_URL
+    const url =
+      connectionString || (settings as { DATABASE_URL?: string }).DATABASE_URL
     if (!url) {
-      throw new Error('DATABASE_URL environment variable is required for Postgres')
+      throw new Error(
+        'DATABASE_URL environment variable is required for Postgres'
+      )
     }
     this.client = postgres(url)
     this.db = drizzle(this.client)
@@ -46,7 +49,9 @@ export class PostgresAdapter extends BaseAdapter {
     `
   }
 
-  async store(memory: Omit<Memory, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+  async store(
+    memory: Omit<Memory, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<void> {
     await this.db
       .insert(memoriesPostgres)
       .values({
@@ -79,7 +84,10 @@ export class PostgresAdapter extends BaseAdapter {
       .select()
       .from(memoriesPostgres)
       .where(
-        and(eq(memoriesPostgres.category, category), eq(memoriesPostgres.key, key))
+        and(
+          eq(memoriesPostgres.category, category),
+          eq(memoriesPostgres.key, key)
+        )
       )
       .limit(1)
 
@@ -123,7 +131,10 @@ export class PostgresAdapter extends BaseAdapter {
     return results as MemoryRow[]
   }
 
-  protected async queryAll(category?: string, channelId?: string): Promise<MemoryRow[]> {
+  protected async queryAll(
+    category?: string,
+    channelId?: string
+  ): Promise<MemoryRow[]> {
     const conditions = []
 
     if (category) {
@@ -142,17 +153,26 @@ export class PostgresAdapter extends BaseAdapter {
 
     const results =
       conditions.length > 0
-        ? await this.db.select().from(memoriesPostgres).where(and(...conditions))
+        ? await this.db
+            .select()
+            .from(memoriesPostgres)
+            .where(and(...conditions))
         : await this.db.select().from(memoriesPostgres)
 
     return results as MemoryRow[]
   }
 
-  protected async executeDelete(category: string, key: string): Promise<boolean> {
+  protected async executeDelete(
+    category: string,
+    key: string
+  ): Promise<boolean> {
     const result = await this.db
       .delete(memoriesPostgres)
       .where(
-        and(eq(memoriesPostgres.category, category), eq(memoriesPostgres.key, key))
+        and(
+          eq(memoriesPostgres.category, category),
+          eq(memoriesPostgres.key, key)
+        )
       )
 
     return (result as unknown as { rowCount: number }).rowCount > 0
@@ -162,7 +182,12 @@ export class PostgresAdapter extends BaseAdapter {
     const { query, category, tags, channelId } = params
 
     if (query.trim()) {
-      const rows = await this.queryTextSearchWithTags(query, category, channelId, tags)
+      const rows = await this.queryTextSearchWithTags(
+        query,
+        category,
+        channelId,
+        tags
+      )
       if (rows.length > 0) {
         return rows.map((row) => this.rowToMemory(row))
       }
@@ -241,7 +266,10 @@ export class PostgresAdapter extends BaseAdapter {
 
     const results =
       conditions.length > 0
-        ? await this.db.select().from(memoriesPostgres).where(and(...conditions))
+        ? await this.db
+            .select()
+            .from(memoriesPostgres)
+            .where(and(...conditions))
         : await this.db.select().from(memoriesPostgres)
 
     return results as MemoryRow[]

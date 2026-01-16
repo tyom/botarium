@@ -1,5 +1,8 @@
 <script lang="ts">
-  import type { SlackContextBlock, SlackViewTextObject } from '../../../lib/types'
+  import type {
+    SlackContextBlock,
+    SlackViewTextObject,
+  } from '../../../lib/types'
   import { renderMrkdwn } from '../context'
   import ImageElement from '../elements/ImageElement.svelte'
 

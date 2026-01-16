@@ -1,28 +1,28 @@
 {
   "folders": [
     {
-      "path": "."
+      "path": ".",
     },
     {
       "path": "apps/ui",
-      "name": "UI"
+      "name": "UI",
     },
     {
       "path": "apps/electron",
-      "name": "Electron"
+      "name": "Electron",
     },
     {
       "path": "packages/core",
-      "name": "Core"
+      "name": "Core",
     },
     {
       "path": "packages/slack",
-      "name": "Slack"
+      "name": "Slack",
     },
     {
       "path": "packages/logger",
-      "name": "Logger"
-    }
+      "name": "Logger",
+    },
   ],
   "settings": {},
   "tasks": {
@@ -35,9 +35,9 @@
         "dependsOrder": "parallel",
         "icon": {
           "id": "browser",
-          "color": "terminal.ansiGreen"
+          "color": "terminal.ansiGreen",
         },
-        "problemMatcher": []
+        "problemMatcher": [],
       },
       {
         "label": "Dev Web (Shared DB)",
@@ -46,9 +46,9 @@
         "dependsOrder": "parallel",
         "icon": {
           "id": "database",
-          "color": "terminal.ansiCyan"
+          "color": "terminal.ansiCyan",
         },
-        "problemMatcher": []
+        "problemMatcher": [],
       },
       {
         "label": "Dev Electron",
@@ -56,11 +56,11 @@
         "command": "bun run --filter @botarium/electron dev:electron",
         "icon": {
           "id": "device-desktop",
-          "color": "terminal.ansiMagenta"
+          "color": "terminal.ansiMagenta",
         },
         "type": "shell",
         "problemMatcher": ["$tsc"],
-        "group": "build"
+        "group": "build",
       },
       {
         "label": "Typecheck",
@@ -68,11 +68,11 @@
         "command": "bun run typecheck",
         "icon": {
           "id": "check",
-          "color": "terminal.ansiBlue"
+          "color": "terminal.ansiBlue",
         },
         "type": "shell",
         "problemMatcher": ["$tsc"],
-        "group": "build"
+        "group": "build",
       },
       {
         "label": "Package Electron",
@@ -80,11 +80,11 @@
         "command": "bun run --filter @botarium/electron package",
         "icon": {
           "id": "package",
-          "color": "terminal.ansiYellow"
+          "color": "terminal.ansiYellow",
         },
         "type": "shell",
         "problemMatcher": [],
-        "group": "build"
+        "group": "build",
       },
       {
         "label": "Emulator",
@@ -94,8 +94,8 @@
         "isBackground": true,
         "problemMatcher": [],
         "presentation": {
-          "group": "dev-web"
-        }
+          "group": "dev-web",
+        },
       },
       {
         "label": "Emulator Shared",
@@ -105,8 +105,8 @@
         "isBackground": true,
         "problemMatcher": [],
         "presentation": {
-          "group": "dev-web-shared"
-        }
+          "group": "dev-web-shared",
+        },
       },
       {
         "label": "Web UI",
@@ -116,9 +116,9 @@
         "isBackground": true,
         "problemMatcher": [],
         "presentation": {
-          "group": "dev-web"
-        }
-      }
-    ]
-  }
+          "group": "dev-web",
+        },
+      },
+    ],
+  },
 }

@@ -15,7 +15,9 @@
 
   let { element, value, onChange, compact = false }: Props = $props()
 
-  const selectedValue = $derived(value?.value ?? element.initial_option?.value ?? '')
+  const selectedValue = $derived(
+    value?.value ?? element.initial_option?.value ?? ''
+  )
 </script>
 
 <select

@@ -22,7 +22,10 @@ async function withLock<T>(userId: string, fn: () => Promise<T>): Promise<T> {
   const currentChain = lockChains.get(userId) ?? Promise.resolve()
 
   const run = currentChain.catch(() => undefined).then(fn)
-  const chain: Promise<void> = run.then(() => {}, () => {})
+  const chain: Promise<void> = run.then(
+    () => {},
+    () => {}
+  )
   lockChains.set(userId, chain)
   try {
     return await run
@@ -33,7 +36,9 @@ async function withLock<T>(userId: string, fn: () => Promise<T>): Promise<T> {
   }
 }
 
-export async function getUserPreferences(userId: string): Promise<UserPreferences> {
+export async function getUserPreferences(
+  userId: string
+): Promise<UserPreferences> {
   preferencesLogger.debug({ userId }, 'Loading preferences')
 
   const defaults = { ...DEFAULT_PREFERENCES }
@@ -47,7 +52,10 @@ export async function getUserPreferences(userId: string): Promise<UserPreference
       preferencesLogger.debug({ prefs: savedPrefs }, 'Loaded saved preferences')
       return { ...defaults, ...savedPrefs }
     } catch (error) {
-      preferencesLogger.error({ err: error }, 'Failed to parse stored preferences')
+      preferencesLogger.error(
+        { err: error },
+        'Failed to parse stored preferences'
+      )
     }
   }
 
@@ -88,17 +96,18 @@ export async function saveUserPreferences(
   })
 }
 
-const RESPONSE_STYLE_ALIASES: Record<string, UserPreferences['responseStyle']> = {
-  concise: 'concise',
-  brief: 'concise',
-  short: 'concise',
-  detailed: 'detailed',
-  verbose: 'detailed',
-  long: 'detailed',
-  balanced: 'balanced',
-  normal: 'balanced',
-  default: 'balanced',
-}
+const RESPONSE_STYLE_ALIASES: Record<string, UserPreferences['responseStyle']> =
+  {
+    concise: 'concise',
+    brief: 'concise',
+    short: 'concise',
+    detailed: 'detailed',
+    verbose: 'detailed',
+    long: 'detailed',
+    balanced: 'balanced',
+    normal: 'balanced',
+    default: 'balanced',
+  }
 
 export function normalizeResponseStyle(
   value: string

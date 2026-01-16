@@ -16,11 +16,16 @@
       return selectedOptions.some((o) => o.value === option.value)
     }
     // Fall back to initial options
-    return element.initial_options?.some((o) => o.value === option.value) ?? false
+    return (
+      element.initial_options?.some((o) => o.value === option.value) ?? false
+    )
   }
 
   function handleToggle(option: SlackOption, checked: boolean) {
-    const current = selectedOptions !== undefined ? selectedOptions : (element.initial_options ?? [])
+    const current =
+      selectedOptions !== undefined
+        ? selectedOptions
+        : (element.initial_options ?? [])
 
     let newSelected: SlackOption[]
     if (checked) {

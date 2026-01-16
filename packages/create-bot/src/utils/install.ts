@@ -8,7 +8,9 @@ export interface InstallResult {
 /**
  * Install dependencies in the target directory using bun.
  */
-export async function installDependencies(targetDir: string): Promise<InstallResult> {
+export async function installDependencies(
+  targetDir: string
+): Promise<InstallResult> {
   const proc = Bun.spawn(['bun', 'install'], {
     cwd: targetDir,
     stdout: 'pipe',
@@ -28,7 +30,9 @@ export async function installDependencies(targetDir: string): Promise<InstallRes
 /**
  * Install dependencies and print status messages.
  */
-export async function installDependenciesWithOutput(targetDir: string): Promise<boolean> {
+export async function installDependenciesWithOutput(
+  targetDir: string
+): Promise<boolean> {
   console.log()
   console.log(pc.cyan('Installing dependencies...'))
 
