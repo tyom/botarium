@@ -76,7 +76,7 @@ function transformMessages(messages: SlackMessage[]): ChatMessage[] {
     )
     .map((msg) => ({
       role: (msg.user === botUserId ? 'assistant' : 'user') as ChatMessage['role'],
-      content: msg.text.replace(/<@[A-Z0-9]+>/g, '').trim(),
+      content: msg.text.replace(/<@[A-Z0-9]+(\|[^>]*)?>/g, '').trim(),
     }))
     .filter((msg) => msg.content)
 }
@@ -140,7 +140,7 @@ export async function registerHandlers(app: SlackApp) {
     markMessageProcessing(event.channel, event.ts)
 
     const text = event.text
-      .replace(/<@[A-Z0-9]+>/g, '')
+      .replace(/<@[A-Z0-9]+(\|[^>]*)?>/g, '')
       .replace(new RegExp(slackConfig.app.name, 'gi'), '')
       .replace(new RegExp(slackConfig.app.id, 'gi'), '')
       .trim()
