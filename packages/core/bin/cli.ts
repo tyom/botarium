@@ -9,9 +9,22 @@
  *   npx botarium package          Package bot into distributable app
  */
 
-const args = process.argv.slice(2)
+import { parseArgs } from 'util'
 
-if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
+const { values, positionals } = parseArgs({
+  args: process.argv.slice(2),
+  options: {
+    template: { type: 'string', short: 't' },
+    provider: { type: 'string' },
+    database: { type: 'string' },
+    platform: { type: 'string' },
+    port: { type: 'string' },
+    help: { type: 'boolean', short: 'h' },
+  },
+  allowPositionals: true,
+})
+
+if (positionals.length === 0 || values.help) {
   console.log(`
 Botarium - Bot Development Simulator
 
@@ -22,6 +35,8 @@ Usage:
 
 Options:
   -t, --template <type>  Bot template: slack (required for create)
+  --provider <name>      AI provider: openai, anthropic, google
+  --database <type>      Database adapter: none, sqlite, postgres
   --platform <name>      Platform plugin to use (e.g., slack)
   --port <number>        Port to run emulator on (default: platform-specific)
   --help, -h             Show this help message
@@ -37,12 +52,17 @@ Examples:
 }
 
 // Handle create subcommand
-if (args[0] === 'create') {
+if (positionals[0] === 'create') {
   const { createBot } = await import('create-botarium')
-  await createBot({ name: args[1] })
+  await createBot({
+    name: positionals[1],
+    template: values.template,
+    provider: values.provider,
+    database: values.database,
+  })
   process.exit(0)
 }
 
 // TODO: Implement other CLI commands
 console.log('Botarium CLI - coming soon')
-console.log('Args:', args)
+console.log('Command:', positionals[0])
