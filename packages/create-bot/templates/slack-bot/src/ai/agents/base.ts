@@ -91,16 +91,30 @@ export function buildBaseGuidelines(
     : 'This is a new conversation.'
 
   const now = new Date()
-  const currentDateTime = now.toLocaleString('en-US', {
-    timeZone: preferences.timezone,
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  })
+  let currentDateTime: string
+  try {
+    currentDateTime = now.toLocaleString('en-GB', {
+      timeZone: preferences.timezone,
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    })
+  } catch {
+    currentDateTime = now.toLocaleString('en-GB', {
+      timeZone: 'UTC',
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZoneName: 'short',
+    })
+  }
 
   const platformContext = `You are chatting in Slack. The current user is <@${context.user}>.
 Channel: ${context.channel}`
