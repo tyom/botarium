@@ -18,6 +18,9 @@
     "scaffold",
     "cli"
   ],
+  "engines": {
+    "bun": ">=1.0.0"
+  },
   "bin": {
     "create-botarium": "./bin/cli.ts"
   },
