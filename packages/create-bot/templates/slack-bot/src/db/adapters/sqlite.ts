@@ -9,24 +9,21 @@ import { settings } from '../../settings'
 import { BaseAdapter, type MemoryRow } from './base'
 
 export class SQLiteAdapter extends BaseAdapter {
-  private db: ReturnType<typeof drizzle>
-  private sqlite: Database
+  private db!: ReturnType<typeof drizzle>
+  private sqlite!: Database
   private isMemoryDb: boolean
+  private dbPath: string
 
   constructor(dbPath?: string) {
     super()
     this.isMemoryDb = dbPath === ':memory:'
 
-    let path: string
     if (this.isMemoryDb) {
-      path = ':memory:'
+      this.dbPath = ':memory:'
     } else {
       const dataDir = process.env.DATA_DIR || settings.DATA_DIR
-      path = dbPath || resolve(join(dataDir, 'bot.sqlite'))
+      this.dbPath = dbPath || resolve(join(dataDir, 'bot.sqlite'))
     }
-
-    this.sqlite = new Database(path, { create: true, strict: true })
-    this.db = drizzle(this.sqlite)
   }
 
   async initialize(): Promise<void> {
@@ -34,6 +31,9 @@ export class SQLiteAdapter extends BaseAdapter {
       const dataDir = process.env.DATA_DIR || settings.DATA_DIR
       await mkdir(dataDir, { recursive: true })
     }
+
+    this.sqlite = new Database(this.dbPath, { create: true, strict: true })
+    this.db = drizzle(this.sqlite)
 
     this.sqlite.run('PRAGMA journal_mode = WAL')
 
