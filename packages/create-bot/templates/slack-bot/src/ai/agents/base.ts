@@ -21,23 +21,23 @@ export function createAgent(config: AgentConfig) {
     context: ChatContext,
     history: Array<{ role: 'user' | 'assistant'; content: string }> = []
   ): Promise<string> {
-    const preferences = await getUserPreferences(context.user)
-    const systemPrompt = config.systemPromptBuilder(context, preferences)
-
-    const messages = [...history, { role: 'user' as const, content: message }]
-    const useTools = config.tools && Object.keys(config.tools).length > 0
-
-    chatLogger.info(
-      {
-        agent: config.name,
-        user: context.user,
-        message: truncate(message, 100),
-        tools: useTools ? Object.keys(config.tools!).length : 0,
-      },
-      `[${config.name}] Processing message`
-    )
-
     try {
+      const preferences = await getUserPreferences(context.user)
+      const systemPrompt = config.systemPromptBuilder(context, preferences)
+
+      const messages = [...history, { role: 'user' as const, content: message }]
+      const useTools = config.tools && Object.keys(config.tools).length > 0
+
+      chatLogger.info(
+        {
+          agent: config.name,
+          user: context.user,
+          message: truncate(message, 100),
+          tools: useTools ? Object.keys(config.tools!).length : 0,
+        },
+        `[${config.name}] Processing message`
+      )
+
       const result = await generateText({
         model: getModel(),
         system: systemPrompt,
