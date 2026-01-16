@@ -23,6 +23,7 @@ export const DEFAULT_SIMULATOR_SETTINGS: SimulatorSettings = {
 }
 
 // Schema for UI generation (matches bot config schema format)
+// All simulator settings are global scope (not app-specific)
 export const SIMULATOR_SETTINGS_SCHEMA = {
   settings: {
     simulated_user_name: {
@@ -30,6 +31,7 @@ export const SIMULATOR_SETTINGS_SCHEMA = {
       label: 'Your Name',
       description: 'Display name for your messages in the simulator',
       group: 'general',
+      scope: 'global' as const,
       placeholder: 'e.g., John',
     },
     emulator_port: {
@@ -37,6 +39,7 @@ export const SIMULATOR_SETTINGS_SCHEMA = {
       label: 'Emulator Port',
       description: 'Port for the Slack emulator server',
       group: 'advanced',
+      scope: 'global' as const,
       min: 1024,
       max: 65535,
     },
@@ -45,6 +48,7 @@ export const SIMULATOR_SETTINGS_SCHEMA = {
       label: 'Data Directory',
       description: 'Directory for storing simulator data',
       group: 'advanced',
+      scope: 'global' as const,
       placeholder: './data',
     },
     log_level: {
@@ -52,6 +56,7 @@ export const SIMULATOR_SETTINGS_SCHEMA = {
       label: 'Log Level',
       description: 'Minimum log level to display',
       group: 'advanced',
+      scope: 'global' as const,
       options: [
         { value: 'debug', label: 'Debug' },
         { value: 'info', label: 'Info' },

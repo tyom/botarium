@@ -12,6 +12,7 @@
     type SettingSchema,
     type GroupDefinition,
   } from '../lib/config-client'
+  import { SIMULATOR_SETTINGS_SCHEMA } from '../lib/simulator-settings'
 
   import type { Snippet } from 'svelte'
 
@@ -48,21 +49,64 @@
   })
 
   onMount(async () => {
-    config = await fetchBotConfig()
-    if (config) {
-      // Merge config defaults with initial values
-      for (const [key, _] of Object.entries(config.schema.settings)) {
-        if (formData[key] === undefined && config.values[key] !== undefined) {
-          formData[key] = config.values[key]
-        }
+    const botConfig = await fetchBotConfig()
+
+    // Always include simulator settings, merged with bot config if available
+    const simulatorSettings = SIMULATOR_SETTINGS_SCHEMA.settings as Record<
+      string,
+      SettingSchema
+    >
+    const simulatorGroups = SIMULATOR_SETTINGS_SCHEMA.groups as GroupDefinition[]
+
+    if (botConfig) {
+      // Merge bot config with simulator settings
+      // Simulator settings come first (lower order), bot settings second
+      const mergedSettings = {
+        ...simulatorSettings,
+        ...botConfig.schema.settings,
       }
-      // Initialize collapsed state from group definitions
-      for (const group of config.schema.groups) {
-        if (group.collapsed) {
-          collapsedGroups[group.id] = true
-        }
+
+      // Merge groups, avoiding duplicates (bot groups take precedence)
+      const botGroupIds = new Set(botConfig.schema.groups.map((g) => g.id))
+      const uniqueSimulatorGroups = simulatorGroups.filter(
+        (g) => !botGroupIds.has(g.id)
+      )
+      const mergedGroups = [...uniqueSimulatorGroups, ...botConfig.schema.groups]
+
+      config = {
+        schema: {
+          settings: mergedSettings,
+          groups: mergedGroups,
+          model_tiers: botConfig.schema.model_tiers,
+        },
+        values: botConfig.values,
+      }
+    } else {
+      // No bot config - use simulator settings only
+      config = {
+        schema: {
+          settings: simulatorSettings,
+          groups: simulatorGroups,
+          model_tiers: {},
+        },
+        values: {},
       }
     }
+
+    // Merge config defaults with initial values
+    for (const [key, _] of Object.entries(config.schema.settings)) {
+      if (formData[key] === undefined && config.values[key] !== undefined) {
+        formData[key] = config.values[key]
+      }
+    }
+
+    // Initialize collapsed state from group definitions
+    for (const group of config.schema.groups) {
+      if (group.collapsed) {
+        collapsedGroups[group.id] = true
+      }
+    }
+
     loading = false
   })
 
