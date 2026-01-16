@@ -173,7 +173,7 @@ export async function promptForSelections(
 
   const targetCheck = checkTargetDirectory(selections.name)
   if (targetCheck.exists && !targetCheck.isEmpty) {
-    const shouldOverwrite = await promptForOverwrite(selections.name)
+    const shouldOverwrite = await promptForOverwrite(targetCheck.path)
     if (!shouldOverwrite) {
       return null
     }
