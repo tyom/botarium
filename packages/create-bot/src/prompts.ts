@@ -133,6 +133,20 @@ function mergeAnswers(partial: PartialSelections, answers: prompts.Answers<strin
     return null
   }
 
+  const validDatabases = DATABASE_OPTIONS.map((d) => d.value)
+  if (!validDatabases.includes(selections.database)) {
+    console.error(`Invalid database: ${selections.database}. Available: ${validDatabases.join(', ')}`)
+    return null
+  }
+
+  if (selections.provider) {
+    const validProviders = AI_PROVIDERS.map((p) => p.value)
+    if (!validProviders.includes(selections.provider)) {
+      console.error(`Invalid provider: ${selections.provider}. Available: ${validProviders.join(', ')}`)
+      return null
+    }
+  }
+
   return selections
 }
 
