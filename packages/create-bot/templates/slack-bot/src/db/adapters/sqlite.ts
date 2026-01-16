@@ -1,7 +1,7 @@
 import { Database } from 'bun:sqlite'
 import { drizzle } from 'drizzle-orm/bun-sqlite'
 import { eq, and, like, or, sql } from 'drizzle-orm'
-import { join, resolve } from 'path'
+import { join, resolve, dirname } from 'path'
 import { mkdir } from 'fs/promises'
 import type { Memory } from '../types'
 import { memoriesSqlite } from '../schema'
@@ -28,8 +28,8 @@ export class SQLiteAdapter extends BaseAdapter {
 
   async initialize(): Promise<void> {
     if (!this.isMemoryDb) {
-      const dataDir = process.env.DATA_DIR || settings.DATA_DIR
-      await mkdir(dataDir, { recursive: true })
+      const dbDir = dirname(this.dbPath)
+      await mkdir(dbDir, { recursive: true })
     }
 
     this.sqlite = new Database(this.dbPath, { create: true, strict: true })
