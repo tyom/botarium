@@ -106,6 +106,7 @@ export class SocketModeServer {
       const conn = this.connections.get(connectionId)
       if (conn) {
         this.connections.delete(connectionId)
+        this.claimedConnectionIds.delete(connectionId)
         const bot = this.state.unregisterBot(connectionId)
         if (bot) {
           socketModeLogger.info(
@@ -246,6 +247,7 @@ export class SocketModeServer {
     const connectionId = ws.data.connectionId
     socketModeLogger.info(`Connection closed: ${connectionId}`)
     this.connections.delete(connectionId)
+    this.claimedConnectionIds.delete(connectionId)
 
     // Mark the bot as disconnected
     const bot = this.state.unregisterBot(connectionId)
