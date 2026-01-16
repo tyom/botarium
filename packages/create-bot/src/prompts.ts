@@ -154,11 +154,15 @@ export async function promptForSelections(
 ): Promise<UserSelections | null> {
   const questions = buildQuestions(partial)
 
+  let cancelled = false
   const answers = await prompts(questions, {
-    onCancel: () => false,
+    onCancel: () => {
+      cancelled = true
+      return false
+    },
   })
 
-  if (questions.length > 0 && Object.keys(answers).length === 0) {
+  if (cancelled) {
     return null
   }
 
