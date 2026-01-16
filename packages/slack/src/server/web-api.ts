@@ -1081,6 +1081,40 @@ export class SlackWebAPI {
       thread_ts
     )
 
+    // Check if the message contains a mention of any connected bot
+    // If so, dispatch an app_mention event (like real Slack does)
+    const isIM = this.state.isDirectMessage(channel)
+    if (!isIM) {
+      const lowerText = text.toLowerCase()
+      const connectedBots = this.state.getBots()
+
+      for (const bot of connectedBots) {
+        if (bot.status !== 'connected') continue
+
+        const botName = bot.appConfig.app?.name?.toLowerCase()
+        const botId = bot.appConfig.app?.id?.toLowerCase()
+
+        // Check for @mention or plain mention of either bot name or bot ID
+        const isMentioned =
+          (botName &&
+            (lowerText.includes(`@${botName}`) ||
+              lowerText.includes(botName))) ||
+          (botId &&
+            (lowerText.includes(`@${botId}`) || lowerText.includes(botId)))
+
+        if (isMentioned) {
+          await this.socketMode.dispatchAppMentionEvent(
+            channel,
+            user,
+            text,
+            ts,
+            thread_ts
+          )
+          break // Only dispatch once even if multiple bots are mentioned
+        }
+      }
+    }
+
     const response: SimulatorUserMessageResponse = { ok: true, ts }
     return Response.json(response, { headers: corsHeaders() })
   }
