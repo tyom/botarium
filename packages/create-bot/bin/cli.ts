@@ -1,11 +1,21 @@
 #!/usr/bin/env bun
 
+import { parseArgs } from 'util'
 import { createBot } from '../src'
 
-const args = process.argv.slice(2)
+const { values, positionals } = parseArgs({
+  args: process.argv.slice(2),
+  options: {
+    template: { type: 'string', short: 't' },
+    provider: { type: 'string' },
+    database: { type: 'string' },
+    'skip-install': { type: 'boolean' },
+    help: { type: 'boolean', short: 'h' },
+  },
+  allowPositionals: true,
+})
 
-// Handle --help
-if (args.includes('--help') || args.includes('-h')) {
+if (values.help) {
   console.log(`
 Usage: bunx create-botarium [name] [options]
 
@@ -26,29 +36,10 @@ Examples:
   process.exit(0)
 }
 
-// Parse arguments
-function getArgValue(flag: string, altFlag?: string): string | undefined {
-  for (const f of [flag, altFlag].filter(Boolean) as string[]) {
-    const index = args.indexOf(f)
-    if (index > -1 && index + 1 < args.length) {
-      const value = args[index + 1]
-      if (value && !value.startsWith('-')) {
-        return value
-      }
-    }
-  }
-  return undefined
-}
-
-// Get bot name (first non-flag argument)
-const name = args.find((arg) => !arg.startsWith('-'))
-
-const options = {
-  name,
-  template: getArgValue('--template', '-t'),
-  provider: getArgValue('--provider'),
-  database: getArgValue('--database'),
-  skipInstall: args.includes('--skip-install'),
-}
-
-createBot(options)
+createBot({
+  name: positionals[0],
+  template: values.template,
+  provider: values.provider,
+  database: values.database,
+  skipInstall: values['skip-install'],
+})
