@@ -14,7 +14,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   timezone: 'UTC',
 }
 
-const PREFERENCE_KEY_PREFIX = 'user_'
+const PREFERENCE_KEY_SUFFIX = ':preferences'
 
 const lockChains = new Map<string, Promise<void>>()
 
@@ -37,7 +37,7 @@ export async function getUserPreferences(userId: string): Promise<UserPreference
 
   const defaults = { ...DEFAULT_PREFERENCES }
 
-  const key = `${PREFERENCE_KEY_PREFIX}${userId}`
+  const key = `${userId}${PREFERENCE_KEY_SUFFIX}`
   const stored = await memoryStore.retrieve('preference', key)
 
   if (stored) {
@@ -61,7 +61,7 @@ export async function saveUserPreferences(
   preferencesLogger.debug({ userId, prefs }, 'Saving preferences')
 
   await withLock(userId, async () => {
-    const key = `${PREFERENCE_KEY_PREFIX}${userId}`
+    const key = `${userId}${PREFERENCE_KEY_SUFFIX}`
 
     const stored = await memoryStore.retrieve('preference', key)
     let existingPrefs: Partial<UserPreferences> = {}
