@@ -21,6 +21,7 @@ export async function createBot(options: CreateBotOptions = {}): Promise<void> {
   const selections = await promptForSelections({
     name: options.name,
     template: options.template,
+    useAi: options.useAi,
     provider: options.provider,
     database: options.database,
   })

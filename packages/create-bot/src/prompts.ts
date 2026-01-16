@@ -75,7 +75,7 @@ function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {
       type: 'toggle',
       name: 'useAi',
       message: 'Use AI?',
-      initial: true,
+      initial: false,
       active: 'yes',
       inactive: 'no',
     })
