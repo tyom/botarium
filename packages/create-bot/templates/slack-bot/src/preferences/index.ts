@@ -21,15 +21,16 @@ const lockChains = new Map<string, Promise<void>>()
 async function withLock<T>(userId: string, fn: () => Promise<T>): Promise<T> {
   const currentChain = lockChains.get(userId) ?? Promise.resolve()
 
-  let result: T
-  const newChain = currentChain.then(async () => {
-    result = await fn()
-  })
-
-  lockChains.set(userId, newChain)
-
-  await newChain
-  return result!
+  const run = currentChain.catch(() => undefined).then(fn)
+  const chain: Promise<void> = run.then(() => {}, () => {})
+  lockChains.set(userId, chain)
+  try {
+    return await run
+  } finally {
+    if (lockChains.get(userId) === chain) {
+      lockChains.delete(userId)
+    }
+  }
 }
 
 export async function getUserPreferences(userId: string): Promise<UserPreferences> {
