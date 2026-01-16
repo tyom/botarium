@@ -62,7 +62,7 @@ export function createAgent(config: AgentConfig) {
     } catch (error) {
       const errorMsg = getErrorMessage(error)
       chatLogger.error({ agent: config.name, error: errorMsg }, `[${config.name}] Error`)
-      return `Sorry, I encountered an error: ${errorMsg}`
+      return `Sorry, I encountered an error processing your request. Please try again.`
     }
   }
 }
