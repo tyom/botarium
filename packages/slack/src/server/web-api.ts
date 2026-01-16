@@ -1081,6 +1081,40 @@ export class SlackWebAPI {
       thread_ts
     )
 
+    // Check if the message contains a mention of any connected bot
+    // If so, dispatch an app_mention event (like real Slack does)
+    const isIM = this.state.isDirectMessage(channel)
+    if (!isIM) {
+      const lowerText = text.toLowerCase()
+      const connectedBots = this.state.getBots()
+
+      for (const bot of connectedBots) {
+        if (bot.status !== 'connected') continue
+
+        const botName = bot.appConfig.app?.name?.toLowerCase()
+        const botId = bot.appConfig.app?.id?.toLowerCase()
+
+        // Check for @mention or plain mention of either bot name or bot ID
+        const isMentioned =
+          (botName &&
+            (lowerText.includes(`@${botName}`) ||
+              lowerText.includes(botName))) ||
+          (botId &&
+            (lowerText.includes(`@${botId}`) || lowerText.includes(botId)))
+
+        if (isMentioned) {
+          await this.socketMode.dispatchAppMentionEvent(
+            channel,
+            user,
+            text,
+            ts,
+            thread_ts
+          )
+          break // Only dispatch once even if multiple bots are mentioned
+        }
+      }
+    }
+
     const response: SimulatorUserMessageResponse = { ok: true, ts }
     return Response.json(response, { headers: corsHeaders() })
   }
@@ -1110,7 +1144,7 @@ export class SlackWebAPI {
     return Response.json({ ok: true, commands }, { headers: corsHeaders() })
   }
 
-  handleConfigRegister(config: SlackAppConfig): Response {
+  async handleConfigRegister(config: SlackAppConfig): Promise<Response> {
     if (!config || !config.app) {
       return Response.json(
         { ok: false, error: 'invalid_config' },
@@ -1121,26 +1155,46 @@ export class SlackWebAPI {
     // Try to find a WebSocket connection to associate with this bot
     const connectionId = this.socketMode.getUnassociatedConnectionId()
 
-    // Register the bot (with or without connection - bot clearly works if it's registering)
-    const botId = this.state.registerBot(
-      connectionId ?? `config-${crypto.randomUUID()}`,
-      config
-    )
-
-    if (connectionId) {
-      webApiLogger.info(
-        `Registered bot: ${config.app.name} (${botId}) via connection ${connectionId}`
+    // Require WebSocket connection before registration
+    // This prevents bots from being marked as "connected" without an active socket
+    if (!connectionId) {
+      webApiLogger.warn(
+        `Bot ${config.app.name} attempted to register without WebSocket connection`
       )
-    } else {
-      webApiLogger.info(
-        `Registered bot: ${config.app.name} (${botId}) without WebSocket association`
+      return Response.json(
+        {
+          ok: false,
+          error: 'no_websocket_connection',
+          message:
+            'WebSocket connection required before registration. Please retry.',
+        },
+        { status: 503, headers: corsHeaders() }
       )
     }
 
-    return Response.json(
-      { ok: true, bot_id: botId },
-      { headers: corsHeaders() }
-    )
+    try {
+      const botId = await this.state.registerBot(connectionId, config)
+
+      // Confirm the connection claim after successful registration
+      this.socketMode.confirmConnectionClaim(connectionId)
+
+      webApiLogger.info(
+        `Registered bot: ${config.app.name} (${botId}) via connection ${connectionId}`
+      )
+
+      return Response.json(
+        { ok: true, bot_id: botId },
+        { headers: corsHeaders() }
+      )
+    } catch (err) {
+      // Release the connection claim if registration fails
+      this.socketMode.releaseConnectionClaim(connectionId)
+      webApiLogger.error({ err }, `Failed to register bot: ${config.app.name}`)
+      return Response.json(
+        { ok: false, error: 'registration_failed' },
+        { status: 500, headers: corsHeaders() }
+      )
+    }
   }
 
   getSimulatorConfig(): Response {

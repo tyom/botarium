@@ -40,6 +40,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "create-botarium": "workspace:*",
     "pino": "^10.1.0"
   },
   "devDependencies": {

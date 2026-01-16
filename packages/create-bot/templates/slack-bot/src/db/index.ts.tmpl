@@ -1,0 +1,60 @@
+import type { MemoryRepository } from './repository'
+import { settings } from '../settings'
+import { dbLogger } from '../utils/logger'
+
+export type { Memory, MemorySource, SearchParams } from './types'
+export type { MemoryRepository } from './repository'
+
+class RepositoryManager {
+  private repository: MemoryRepository | null = null
+  private initializingPromise: Promise<MemoryRepository> | null = null
+
+  async createRepository(): Promise<MemoryRepository> {
+{{~#if isSqlite}}
+    const { SQLiteAdapter } = await import('./adapters/sqlite')
+    dbLogger.info('Using SQLite adapter')
+    return new SQLiteAdapter()
+{{~/if}}
+{{~#if isPostgres}}
+    const { PostgresAdapter } = await import('./adapters/postgres')
+    dbLogger.info('Using Postgres adapter')
+    return new PostgresAdapter()
+{{~/if}}
+  }
+
+  async get(): Promise<MemoryRepository> {
+    if (this.repository) {
+      return this.repository
+    }
+
+    if (this.initializingPromise) {
+      return this.initializingPromise
+    }
+
+    this.initializingPromise = (async () => {
+      const repo = await this.createRepository()
+      await repo.initialize()
+      this.repository = repo
+      this.initializingPromise = null
+      return repo
+    })()
+
+    return this.initializingPromise
+  }
+
+  async close(): Promise<void> {
+    if (this.initializingPromise) {
+      await this.initializingPromise
+    }
+
+    if (this.repository) {
+      await this.repository.close()
+      this.repository = null
+    }
+  }
+}
+
+const manager = new RepositoryManager()
+
+export const getRepository = () => manager.get()
+export const closeRepository = () => manager.close()

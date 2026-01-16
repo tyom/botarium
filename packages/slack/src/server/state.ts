@@ -146,6 +146,92 @@ export class EmulatorState {
     }
   }
 
+  /**
+   * Clear only DM messages from memory (keep channel messages)
+   * Used when switching between bots with different app_ids
+   */
+  private clearDmMessagesFromMemory(): void {
+    for (const [channelId, _] of this.messages.entries()) {
+      if (this.isDirectMessage(channelId) || channelId.startsWith('D_')) {
+        this.messages.set(channelId, [])
+      }
+    }
+    // Also clear DM files from memory
+    for (const [fileId, file] of this.files.entries()) {
+      const channel = file.channels?.[0]
+      if (channel && channel.startsWith('D_')) {
+        this.files.delete(fileId)
+        this.fileData.delete(fileId)
+      }
+    }
+  }
+
+  /**
+   * Load only DM messages from persistence for the current app
+   * Used when switching between bots with different app_ids
+   */
+  private async loadPersistedDmMessages(): Promise<void> {
+    if (!this.persistence) return
+
+    const records = await this.persistence.loadAllMessages()
+    for (const record of records) {
+      // Only load DM messages (channel messages are already in memory)
+      if (!record.channel.startsWith('D_')) continue
+
+      const message: SlackMessage = {
+        type: 'message',
+        channel: record.channel,
+        user: record.user,
+        text: record.text,
+        ts: record.ts,
+        thread_ts: record.threadTs,
+        reactions: record.reactions?.map((reaction) => ({
+          name: reaction.name,
+          users: reaction.users ?? [],
+          count: reaction.count ?? reaction.users?.length ?? 0,
+        })),
+      }
+      if (record.fileId) {
+        const file = this.files.get(record.fileId)
+        if (file) {
+          message.file = file
+        }
+      }
+      this.loadMessageToMemory(message)
+    }
+  }
+
+  /**
+   * Load only DM files from persistence for the current app
+   * Used when switching between bots with different app_ids
+   */
+  private async loadPersistedDmFiles(): Promise<void> {
+    if (!this.persistence) return
+
+    const baseUrl = getEmulatorUrl()
+    const records = await this.persistence.loadAllFiles()
+    for (const record of records) {
+      // Only load DM files (channel files are already in memory)
+      if (!record.channel || !record.channel.startsWith('D_')) continue
+
+      const fileUrl = `${baseUrl}/api/simulator/files/${record.id}`
+      const file: SlackFile = {
+        id: record.id,
+        name: record.name,
+        title: record.title || record.name,
+        mimetype: record.mimetype,
+        size: record.size,
+        filetype: record.mimetype.split('/')[1] || 'binary',
+        url_private: fileUrl,
+        url_private_download: fileUrl,
+        channels: record.channel ? [record.channel] : [],
+        user: record.user,
+        isExpanded: record.is_expanded,
+      }
+      this.files.set(file.id, file)
+    }
+  }
+
   private initializeWorkspace(): void {
     // Add bot user
     const botUser: SlackUser = {
@@ -472,13 +558,39 @@ export class EmulatorState {
    * If a disconnected bot with the same app name exists, reuse it.
    * Returns the bot ID.
    */
-  registerBot(connectionId: string, appConfig: SlackAppConfig): string {
-    // Check for existing disconnected bot with the same app name
-    const existingBot = Array.from(this.connectedBots.values()).find(
-      (bot) =>
-        bot.status === 'disconnected' &&
-        bot.appConfig.app.name === appConfig.app.name
-    )
+  async registerBot(
+    connectionId: string,
+    appConfig: SlackAppConfig
+  ): Promise<string> {
+    // Switch app_id for filtering DM messages
+    const appId = appConfig.app?.id
+    if (appId && this.persistence) {
+      const currentAppId = this.persistence.getAppId()
+      if (currentAppId !== appId) {
+        stateLogger.info({ appId, currentAppId }, 'Switching to bot app_id')
+        this.persistence.setAppId(appId)
+        // Clear only DM messages from memory (keep channel messages)
+        this.clearDmMessagesFromMemory()
+        // Reload DM messages and files for the new app
+        await this.loadPersistedDmFiles()
+        await this.loadPersistedDmMessages()
+      }
+    }
+
+    // Check for existing disconnected bot with the same app_id (preferred) or name (fallback)
+    // Using app_id is more reliable since names may not be unique
+    const newAppId = appConfig.app?.id
+    const existingBot = Array.from(this.connectedBots.values()).find((bot) => {
+      if (bot.status !== 'disconnected') return false
+
+      // Prefer matching by app_id if both have one
+      if (newAppId && bot.appConfig.app?.id) {
+        return bot.appConfig.app.id === newAppId
+      }
+
+      // Fall back to name matching for backward compatibility
+      return bot.appConfig.app.name === appConfig.app.name
+    })
 
     let bot: ConnectedBot
     let botId: string
@@ -594,6 +706,37 @@ export class EmulatorState {
       )
       this.emitEvent({ type: 'bot_disconnected', botId, bot })
     }
+  }
+
+  /**
+   * Try to auto-reconnect a disconnected bot when a new WebSocket connects.
+   * This handles hot-reload case where bot reconnects while simulator is running.
+   * Returns the reconnected bot if successful, undefined otherwise.
+   */
+  tryReconnectBot(connectionId: string): ConnectedBot | undefined {
+    // Find disconnected bots in memory
+    const disconnectedBots = Array.from(this.connectedBots.values()).filter(
+      (bot) => bot.status === 'disconnected'
+    )
+
+    // If there's exactly one disconnected bot, reconnect it
+    if (disconnectedBots.length === 1) {
+      const bot = disconnectedBots[0]
+      if (bot) {
+        bot.connectionId = connectionId
+        bot.status = 'connected'
+        bot.connectedAt = new Date()
+        this.connectionToBotId.set(connectionId, bot.id)
+
+        stateLogger.info(
+          `Bot auto-reconnected: ${bot.appConfig.app.name} (${bot.id}) via connection ${connectionId}`
+        )
+        this.emitEvent({ type: 'bot_connected', bot })
+        return bot
+      }
+    }
+
+    return undefined
   }
 
   /**

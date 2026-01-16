@@ -21,7 +21,8 @@
       {#if !hasBots}
         No bots
       {:else if connectedCount > 0}
-        {connectedCount} connected{#if disconnectedCount > 0}, {disconnectedCount} offline{/if}
+        {connectedCount} connected{#if disconnectedCount > 0}, {disconnectedCount}
+          offline{/if}
       {:else}
         {disconnectedCount} offline
       {/if}

@@ -275,7 +275,9 @@ export function restoreMessages(
       text: msg.text,
       thread_ts: msg.threadTs,
       channel,
-      reactions: new SvelteMap(msg.reactions?.map((r) => [r.name, r.count]) ?? []),
+      reactions: new SvelteMap(
+        msg.reactions?.map((r) => [r.name, r.count]) ?? []
+      ),
       file: msg.file
         ? {
             id: msg.file.id,

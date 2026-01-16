@@ -1,0 +1,60 @@
+import { createSlackApp } from './slack/app'
+import { registerHandlers, registerWithEmulator } from './slack/handlers'
+import { settings, isSimulatorMode } from './settings'
+import { startConfigServer } from './config/http-server'
+import { appLogger } from './utils/logger'
+
+async function main() {
+  appLogger.info(
+    { simulatorMode: isSimulatorMode },
+    'Starting {{botNamePascal}} Assistant...'
+  )
+
+  // Start config server for simulator (exposes /config endpoint)
+  if (isSimulatorMode) {
+    const configPort = settings.PORT + 1
+    startConfigServer(configPort)
+  }
+
+  const app = createSlackApp()
+  await registerHandlers(app)
+  await app.start()
+
+  // Register with emulator AFTER WebSocket is connected
+  if (isSimulatorMode) {
+    await registerWithEmulator()
+
+    // Re-register on reconnection (e.g., after simulator restart)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const receiver = (app as any).receiver as { client?: { on?: Function } }
+    receiver?.client?.on?.('connected', () => {
+      appLogger.info('WebSocket reconnected, re-registering with emulator...')
+      registerWithEmulator().catch((err) => {
+        appLogger.error({ err }, 'Failed to re-register with emulator')
+      })
+    })
+  }
+
+  // Graceful shutdown handler
+  const shutdown = async () => {
+    appLogger.info('Shutting down...')
+    await app.stop()
+    appLogger.info('Shutdown complete')
+    process.exit(0)
+  }
+
+  process.on('SIGTERM', shutdown)
+  process.on('SIGINT', shutdown)
+
+  appLogger.info(
+{{~#if isAi}}
+    { provider: settings.AI_PROVIDER },
+{{~/if}}
+    `${settings.BOT_NAME} is running!`
+  )
+}
+
+main().catch((error) => {
+  appLogger.fatal({ err: error }, 'Fatal error')
+  process.exit(1)
+})

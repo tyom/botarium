@@ -20,8 +20,16 @@
     values: FormValues
     fileValues: FileValues
     onInputChange?: (blockId: string, actionId: string, value: string) => void
-    onFileChange?: (blockId: string, actionId: string, files: UploadedFile[]) => void
-    onCheckboxChange?: (blockId: string, actionId: string, selectedOptions: SlackOption[]) => void
+    onFileChange?: (
+      blockId: string,
+      actionId: string,
+      files: UploadedFile[]
+    ) => void
+    onCheckboxChange?: (
+      blockId: string,
+      actionId: string,
+      selectedOptions: SlackOption[]
+    ) => void
   }
 
   let {

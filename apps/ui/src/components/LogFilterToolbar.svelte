@@ -62,7 +62,9 @@
 
   // Initialize log level from settings on mount
   $effect(() => {
-    const settingsLevel = backendState.effectiveSettings.app_log_level as LogLevel | undefined
+    const settingsLevel = backendState.effectiveSettings.log_level as
+      | LogLevel
+      | undefined
     if (settingsLevel) {
       initLogLevel(settingsLevel)
     }
@@ -143,7 +145,7 @@
     if (!value) return
     const newLevel = value as LogLevel
     setLogLevel(newLevel)
-    await backendState.updateSetting('app_log_level', newLevel)
+    await backendState.updateSetting('log_level', newLevel)
   }
 </script>
 

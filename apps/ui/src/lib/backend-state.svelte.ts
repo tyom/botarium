@@ -14,8 +14,7 @@ import { initializeDispatcher } from './dispatcher.svelte'
 const SETTINGS_STORAGE_KEY = 'botarium-settings'
 
 function syncUserSettingsToState(s: Record<string, unknown>) {
-  simulatorState.simulatedUserName =
-    (s.simulated_user_name as string) || 'You'
+  simulatorState.simulatedUserName = (s.simulated_user_name as string) || 'You'
 }
 
 /**
@@ -67,7 +66,7 @@ function migrateSettings(
     githubOrg: 'github_default_org',
     tavilyApiKey: 'tavily_api_key',
     simulatedUserName: 'simulated_user_name',
-    appLogLevel: 'app_log_level',
+    appLogLevel: 'log_level',
   }
 
   for (const [oldKey, newKey] of Object.entries(keyMap)) {
@@ -133,7 +132,11 @@ function createBackendState() {
         DEFAULT_SETTINGS.simulated_user_name
 
       settings = migratedSettings
-        ? { ...DEFAULT_SETTINGS, ...migratedSettings, simulated_user_name: simulatedUserName }
+        ? {
+            ...DEFAULT_SETTINGS,
+            ...migratedSettings,
+            simulated_user_name: simulatedUserName,
+          }
         : { ...DEFAULT_SETTINGS, simulated_user_name: simulatedUserName }
 
       settingsLoaded = true
@@ -164,7 +167,7 @@ function createBackendState() {
     // Always set up listeners to catch backend:ready event
     setupBackendListeners(onReady)
 
-    if (!settings || !getApiKey(settings)) {
+    if (!settings) {
       showSettings = true
     } else {
       // Check if backend is already running
@@ -295,7 +298,10 @@ function createBackendState() {
       return !!settings && !!getApiKey(settings)
     },
     get shouldShowApp() {
-      return !isElectron || (settingsLoaded && !!settings && !!getApiKey(settings))
+      return !isElectron || (settingsLoaded && !!settings)
+    },
+    get isInitialSetup() {
+      return settingsLoaded && !settings
     },
     get isInputDisabled() {
       return isElectron && !backendReady

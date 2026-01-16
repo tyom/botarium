@@ -12,6 +12,7 @@
     type SettingSchema,
     type GroupDefinition,
   } from '../lib/config-client'
+  import { SIMULATOR_SETTINGS_SCHEMA } from '../lib/simulator-settings'
 
   import type { Snippet } from 'svelte'
 
@@ -48,21 +49,68 @@
   })
 
   onMount(async () => {
-    config = await fetchBotConfig()
-    if (config) {
-      // Merge config defaults with initial values
-      for (const [key, _] of Object.entries(config.schema.settings)) {
-        if (formData[key] === undefined && config.values[key] !== undefined) {
-          formData[key] = config.values[key]
-        }
+    const botConfig = await fetchBotConfig()
+
+    // Always include simulator settings, merged with bot config if available
+    const simulatorSettings = SIMULATOR_SETTINGS_SCHEMA.settings as Record<
+      string,
+      SettingSchema
+    >
+    const simulatorGroups =
+      SIMULATOR_SETTINGS_SCHEMA.groups as GroupDefinition[]
+
+    if (botConfig) {
+      // Merge bot config with simulator settings
+      // Simulator settings come first (lower order), bot settings second
+      const mergedSettings = {
+        ...simulatorSettings,
+        ...botConfig.schema.settings,
       }
-      // Initialize collapsed state from group definitions
-      for (const group of config.schema.groups) {
-        if (group.collapsed) {
-          collapsedGroups[group.id] = true
-        }
+
+      // Merge groups, avoiding duplicates (bot groups take precedence)
+      const botGroupIds = new Set(botConfig.schema.groups.map((g) => g.id))
+      const uniqueSimulatorGroups = simulatorGroups.filter(
+        (g) => !botGroupIds.has(g.id)
+      )
+      const mergedGroups = [
+        ...uniqueSimulatorGroups,
+        ...botConfig.schema.groups,
+      ]
+
+      config = {
+        schema: {
+          settings: mergedSettings,
+          groups: mergedGroups,
+          model_tiers: botConfig.schema.model_tiers,
+        },
+        values: botConfig.values,
+      }
+    } else {
+      // No bot config - use simulator settings only
+      config = {
+        schema: {
+          settings: simulatorSettings,
+          groups: simulatorGroups,
+          model_tiers: {},
+        },
+        values: {},
       }
     }
+
+    // Merge config defaults with initial values
+    for (const [key, _] of Object.entries(config.schema.settings)) {
+      if (formData[key] === undefined && config.values[key] !== undefined) {
+        formData[key] = config.values[key]
+      }
+    }
+
+    // Initialize collapsed state from group definitions
+    for (const group of config.schema.groups) {
+      if (group.collapsed) {
+        collapsedGroups[group.id] = true
+      }
+    }
+
     loading = false
   })
 
@@ -85,8 +133,7 @@
         key.endsWith('_api_key') ||
         schema.group === 'advanced'
       const fieldScope = schema.scope ?? (isGlobalField ? 'global' : 'app')
-      const matchesScope =
-        filterScope === 'all' || fieldScope === filterScope
+      const matchesScope = filterScope === 'all' || fieldScope === filterScope
       return matchesGroup && matchesScope
     })
   }
@@ -138,14 +185,16 @@
 </script>
 
 {#if loading}
-  <div class="p-8 text-center text-(--text-muted)">Loading configuration...</div>
+  <div class="p-8 text-center text-(--text-muted)">
+    Loading configuration...
+  </div>
 {:else if !config}
   <div class="p-8 text-center text-(--text-muted)">
     <p class="mb-4">Could not load bot configuration.</p>
     <p class="text-sm">Make sure the bot is running in simulator mode.</p>
   </div>
 {:else}
-  {@const groupsWithVisibleFields = getSortedGroups().filter(g => {
+  {@const groupsWithVisibleFields = getSortedGroups().filter((g) => {
     const fields = getFieldsForGroup(g.id)
     return fields.some(([_, schema]) => shouldShowField(schema))
   })}
@@ -235,7 +284,8 @@
         type={showSecrets[key] ? 'text' : 'password'}
         value={(formData[key] as string) ?? ''}
         oninput={(e) => (formData[key] = e.currentTarget.value)}
-        placeholder={schema.placeholder ?? `Enter ${schema.label.toLowerCase()}`}
+        placeholder={schema.placeholder ??
+          `Enter ${schema.label.toLowerCase()}`}
         autocomplete="off"
         class="h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) placeholder:text-(--text-muted)"
       />

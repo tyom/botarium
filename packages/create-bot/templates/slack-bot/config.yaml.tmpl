@@ -1,0 +1,175 @@
+# {{botNamePascal}} Bot Configuration
+# This is the single source of truth for bot settings and Slack app config.
+# The schema metadata enables dynamic UI generation in the simulator.
+
+# App identifier for message isolation in simulator
+app_id: {{packageName}}
+
+# Slack app configuration
+slack:
+  commands:
+    - command: /{{packageName}}
+      description: Interact with {{botNamePascal}}
+      usage_hint: '[command]'
+  shortcuts: []
+  actions:
+    command_select: {{packageName}}_command_select
+  modals: {}
+
+# Settings with schema metadata for UI generation
+settings:
+  # Bot Configuration
+  bot_name:
+    value: {{botNamePascal}}
+    schema:
+      type: string
+      label: Bot Name
+      description: Display name for the bot in conversations
+      group: bot
+      required: true
+
+  bot_personality:
+    value: |
+      Helpful AI assistant that responds concisely and helpfully.
+    schema:
+      type: text
+      label: Bot Personality
+      description: System prompt describing how the bot should behave
+      group: bot
+
+  dm_history_limit:
+    value: 0
+    schema:
+      type: number
+      label: DM History Limit
+      description: Number of previous DM messages to include (0 = none)
+      group: bot
+      min: 0
+      max: 50
+{{#if isAi}}
+
+  # AI Provider
+  ai_provider:
+    value: {{aiProvider}}
+    schema:
+      type: select
+      label: AI Provider
+      group: ai
+      required: true
+      options:
+{{#if isOpenai}}
+        - value: openai
+          label: OpenAI
+{{/if}}
+{{#if isAnthropic}}
+        - value: anthropic
+          label: Anthropic
+{{/if}}
+{{#if isGoogle}}
+        - value: google
+          label: Google
+{{/if}}
+
+  # API Keys (secrets from env vars)
+{{#if isOpenai}}
+  openai_api_key:
+    env: OPENAI_API_KEY
+    schema:
+      type: secret
+      label: API Key
+      group: ai
+      condition:
+        field: ai_provider
+        equals: openai
+      required_when:
+        field: ai_provider
+        equals: openai
+{{/if}}
+{{#if isAnthropic}}
+  anthropic_api_key:
+    env: ANTHROPIC_API_KEY
+    schema:
+      type: secret
+      label: API Key
+      group: ai
+      condition:
+        field: ai_provider
+        equals: anthropic
+      required_when:
+        field: ai_provider
+        equals: anthropic
+{{/if}}
+{{#if isGoogle}}
+  google_api_key:
+    env: GOOGLE_API_KEY
+    schema:
+      type: secret
+      label: API Key
+      group: ai
+      condition:
+        field: ai_provider
+        equals: google
+      required_when:
+        field: ai_provider
+        equals: google
+{{/if}}
+
+  # Model Configuration
+  model_fast:
+    schema:
+      type: model_select
+      label: Fast Model
+      description: Used for classification and quick tasks
+      group: models
+      tier: fast
+      provider_field: ai_provider
+
+  model_default:
+    schema:
+      type: model_select
+      label: Default Model
+      description: Used for standard conversations
+      group: models
+      tier: default
+      provider_field: ai_provider
+{{/if}}
+
+# Group definitions with display order
+groups:
+{{#if isAi}}
+  - id: ai
+    label: AI Provider
+    order: 1
+  - id: models
+    label: Model Configuration
+    order: 2
+{{/if}}
+  - id: bot
+    label: Bot Configuration
+    order: {{#if isAi}}3{{else}}1{{/if}}
+{{#if isAi}}
+
+# Model tiers per provider (single source of truth)
+model_tiers:
+{{#if isOpenai}}
+  openai:
+    fast:
+      - gpt-4o-mini
+    default:
+      - gpt-4o
+{{/if}}
+{{#if isAnthropic}}
+  anthropic:
+    fast:
+      - claude-3-5-haiku-latest
+    default:
+      - claude-sonnet-4-5
+{{/if}}
+{{#if isGoogle}}
+  google:
+    fast:
+      - gemini-2.0-flash
+    default:
+      - gemini-2.5-pro
+{{/if}}
+{{/if}}

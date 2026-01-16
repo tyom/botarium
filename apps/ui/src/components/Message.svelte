@@ -27,6 +27,9 @@
   const EMOJI_MAP: Record<string, string> = {
     thinking_face: '🤔',
     white_check_mark: '✅',
+    clock1: '🕐',
+    clock2: '🕑',
+    clock3: '🕒',
   }
 
   let {
@@ -253,8 +256,8 @@
             >
               {#if replyCount > 0}
                 {replyCount}
-                {replyCount === 1 ? 'reply' : 'replies'}{#if hasDraft} and 1
-                  draft{/if}
+                {replyCount === 1 ? 'reply' : 'replies'}{#if hasDraft}
+                  and 1 draft{/if}
               {:else}
                 1 draft
               {/if}

@@ -229,7 +229,10 @@ export async function startEmulatorServer(
             user: msg.user,
             text: msg.text,
             threadTs: msg.thread_ts,
-            reactions: msg.reactions?.map((r) => ({ name: r.name, count: r.count })),
+            reactions: msg.reactions?.map((r) => ({
+              name: r.name,
+              count: r.count,
+            })),
             file: msg.file,
           }))
           return Response.json(response, {
@@ -279,7 +282,7 @@ export async function startEmulatorServer(
 
       // App config registration (called by bot at startup)
       if (path === '/api/config/register' && req.method === 'POST') {
-        return webApi.handleConfigRegister(await req.json())
+        return await webApi.handleConfigRegister(await req.json())
       }
 
       // Get available commands (called by frontend)
@@ -351,9 +354,24 @@ export async function startEmulatorServer(
         )
       }
 
-      // Slack Web API endpoints
+      // Slack Web API endpoints (with /api/ prefix)
       if (path.startsWith('/api/')) {
         return webApi.handleRequest(req, path)
+      }
+
+      // Slack Web API endpoints (without /api/ prefix - Bolt SDK calls these directly)
+      // Routes like /apps.connections.open, /auth.test, /chat.postMessage, etc.
+      if (
+        path.startsWith('/apps.') ||
+        path.startsWith('/auth.') ||
+        path.startsWith('/chat.') ||
+        path.startsWith('/conversations.') ||
+        path.startsWith('/files.') ||
+        path.startsWith('/reactions.') ||
+        path.startsWith('/users.') ||
+        path.startsWith('/views.')
+      ) {
+        return webApi.handleRequest(req, `/api${path}`)
       }
 
       return new Response('Not Found', {
@@ -372,8 +390,14 @@ export async function startEmulatorServer(
       close(ws) {
         socketMode.handleClose(ws)
       },
+      pong(ws) {
+        socketMode.handlePong(ws)
+      },
     },
   })
+
+  // Start heartbeat monitor for connection health
+  socketMode.startHeartbeat()
 
   emulatorLogger.info(`Server started on http://${host}:${port}`)
   emulatorLogger.info(`Socket Mode WebSocket: ${wsUrl}`)
@@ -385,6 +409,7 @@ export async function startEmulatorServer(
     server,
     broadcastLog,
     stop: () => {
+      socketMode.stopHeartbeat()
       server.stop()
       emulatorLogger.info('Server stopped')
     },

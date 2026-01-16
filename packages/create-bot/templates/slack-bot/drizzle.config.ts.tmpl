@@ -1,0 +1,18 @@
+import { defineConfig } from 'drizzle-kit'
+
+export default defineConfig({
+  schema: './src/db/schema.ts',
+  out: './drizzle',
+{{~#if isSqlite}}
+  dialect: 'sqlite',
+  dbCredentials: {
+    url: `${process.env.DATA_DIR || './data'}/bot.sqlite`,
+  },
+{{~/if}}
+{{~#if isPostgres}}
+  dialect: 'postgresql',
+  dbCredentials: {
+    url: process.env.DATABASE_URL!,
+  },
+{{~/if}}
+})

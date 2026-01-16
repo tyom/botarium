@@ -209,12 +209,11 @@
 
 {#if !backendState.settingsLoaded && isElectron}
   <LoadingSpinner delay={1000} />
-{:else if backendState.showSettings && !backendState.hasApiKey}
-  <!-- Initial setup: full-screen settings (no modal) -->
+{:else if backendState.isInitialSetup}
+  <!-- Initial setup: show settings inline -->
   <Settings
-    settings={backendState.effectiveSettings}
+    settings={backendState.effectiveSettings as Record<string, unknown>}
     onSave={backendState.saveSettings}
-    onCancel={backendState.closeSettings}
     showCancel={false}
     isModal={false}
   />
@@ -279,24 +278,35 @@
   </div>
 {/if}
 
-<!-- Settings modal (always mounted, controlled via open prop) -->
-<Settings
-  settings={backendState.effectiveSettings}
-  onSave={backendState.saveSettings}
-  onCancel={backendState.closeSettings}
-  showCancel={true}
-  isModal={true}
-  open={backendState.showSettings && backendState.hasApiKey}
-/>
+<!-- Settings modal (only for editing existing settings, not initial setup) -->
+{#if !backendState.isInitialSetup}
+  <Settings
+    settings={backendState.effectiveSettings as Record<string, unknown>}
+    onSave={backendState.saveSettings}
+    onCancel={backendState.closeSettings}
+    showCancel={true}
+    isModal={true}
+    open={backendState.showSettings}
+  />
+{/if}
 
 <!-- App Settings modal -->
 {#if backendState.showAppSettings}
   <AppSettings
     appId={backendState.showAppSettings.appId}
     appName={backendState.showAppSettings.appName}
-    globalSettings={backendState.effectiveSettings}
-    appSettings={backendState.getAppSettings(backendState.showAppSettings.appId)}
-    onSave={(settings) => backendState.saveAppSettings(backendState.showAppSettings!.appId, settings)}
+    globalSettings={backendState.effectiveSettings as unknown as Record<
+      string,
+      unknown
+    >}
+    appSettings={backendState.getAppSettings(
+      backendState.showAppSettings.appId
+    )}
+    onSave={(settings) =>
+      backendState.saveAppSettings(
+        backendState.showAppSettings!.appId,
+        settings
+      )}
     onCancel={backendState.closeAppSettings}
     open={true}
   />

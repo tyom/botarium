@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "cli": "bun run packages/core/bin/cli.ts",
     "dev": "bun run --filter botarium dev",
     "dev:electron": "bun run --filter @botarium/desktop dev:electron",
     "build": "bun run --filter '*' build",
