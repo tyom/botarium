@@ -110,6 +110,11 @@ export class EmulatorPersistence {
     } catch {
       // Column already exists, ignore
     }
+    // Backfill legacy DM rows so they remain visible after upgrade
+    this.db.run(
+      `UPDATE simulator_messages SET app_id = ? WHERE app_id IS NULL AND channel LIKE 'D_%'`,
+      [this.appId]
+    )
 
     // Create files table with app_id for scoping
     this.db.run(`
@@ -148,6 +153,11 @@ export class EmulatorPersistence {
     } catch {
       // Column already exists, ignore
     }
+    // Backfill legacy DM files so they remain visible after upgrade
+    this.db.run(
+      `UPDATE simulator_files SET app_id = ? WHERE app_id IS NULL AND channel LIKE 'D_%'`,
+      [this.appId]
+    )
 
     // Create indexes
     this.db.run(
