@@ -152,7 +152,7 @@ export class EmulatorState {
    */
   private clearDmMessagesFromMemory(): void {
     for (const [channelId, _] of this.messages.entries()) {
-      if (this.isDirectMessage(channelId)) {
+      if (this.isDirectMessage(channelId) || channelId.startsWith('D_')) {
         this.messages.set(channelId, [])
       }
     }
