@@ -122,9 +122,9 @@ export class SQLiteAdapter extends BaseAdapter {
     if (channelId) {
       conditions.push(
         or(
-          like(memoriesSqlite.source, `%"channelId":"${channelId}"%`),
+          sql`json_extract(${memoriesSqlite.source}, '$.channelId') = ${channelId}`,
           sql`${memoriesSqlite.source} IS NULL`,
-          like(memoriesSqlite.tags, `%"global"%`)
+          sql`EXISTS(SELECT 1 FROM json_each(${memoriesSqlite.tags}) WHERE value = 'global')`
         )
       )
     }
@@ -147,9 +147,9 @@ export class SQLiteAdapter extends BaseAdapter {
     if (channelId) {
       conditions.push(
         or(
-          like(memoriesSqlite.source, `%"channelId":"${channelId}"%`),
+          sql`json_extract(${memoriesSqlite.source}, '$.channelId') = ${channelId}`,
           sql`${memoriesSqlite.source} IS NULL`,
-          like(memoriesSqlite.tags, `%"global"%`)
+          sql`EXISTS(SELECT 1 FROM json_each(${memoriesSqlite.tags}) WHERE value = 'global')`
         )
       )
     }
