@@ -94,6 +94,10 @@ export class PostgresAdapter extends BaseAdapter {
     return results as MemoryRow[]
   }
 
+  private escapeLikePattern(query: string): string {
+    return query.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
+  }
+
   protected async queryTextSearch(
     query: string,
     category?: string,
@@ -101,7 +105,7 @@ export class PostgresAdapter extends BaseAdapter {
   ): Promise<MemoryRow[]> {
     const conditions = []
 
-    const queryPattern = `%${query}%`
+    const queryPattern = `%${this.escapeLikePattern(query)}%`
     conditions.push(
       or(
         ilike(memoriesPostgres.key, queryPattern),
@@ -205,7 +209,7 @@ export class PostgresAdapter extends BaseAdapter {
   ): Promise<MemoryRow[]> {
     const conditions = []
 
-    const queryPattern = `%${query}%`
+    const queryPattern = `%${this.escapeLikePattern(query)}%`
     conditions.push(
       or(
         ilike(memoriesPostgres.key, queryPattern),

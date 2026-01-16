@@ -104,6 +104,10 @@ export class SQLiteAdapter extends BaseAdapter {
     return results as MemoryRow[]
   }
 
+  private escapeLikePattern(query: string): string {
+    return query.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_')
+  }
+
   protected async queryTextSearch(
     query: string,
     category?: string,
@@ -111,11 +115,11 @@ export class SQLiteAdapter extends BaseAdapter {
   ): Promise<MemoryRow[]> {
     const conditions = []
 
-    const queryLower = `%${query.toLowerCase()}%`
+    const queryLower = `%${this.escapeLikePattern(query.toLowerCase())}%`
     conditions.push(
       or(
-        like(sql`lower(${memoriesSqlite.key})`, queryLower),
-        like(sql`lower(${memoriesSqlite.content})`, queryLower)
+        sql`lower(${memoriesSqlite.key}) LIKE ${queryLower} ESCAPE '\\'`,
+        sql`lower(${memoriesSqlite.content}) LIKE ${queryLower} ESCAPE '\\'`
       )
     )
 
