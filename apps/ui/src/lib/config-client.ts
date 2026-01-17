@@ -72,21 +72,26 @@ export interface BotConfig {
 /**
  * Fetch bot configuration from the /config endpoint
  * In Electron, uses IPC to avoid CSP issues with renderer fetch
+ * @param botId - The bot identifier to fetch config for (required in Electron)
  */
-export async function fetchBotConfig(): Promise<BotConfig | null> {
+export async function fetchBotConfig(botId?: string): Promise<BotConfig | null> {
   // In Electron, use IPC to fetch through main process (avoids CSP issues)
   if (isElectron) {
+    if (!botId) {
+      console.warn('fetchBotConfig: botId is required in Electron mode')
+      return null
+    }
     try {
       const api = getElectronAPI()
       if (api) {
-        return (await api.fetchBotConfig()) as BotConfig | null
+        return (await api.fetchBotConfig(botId)) as BotConfig | null
       }
     } catch {
       return null
     }
   }
 
-  // In web mode, fetch directly
+  // In web mode, fetch directly (no botId needed as there's only one bot)
   try {
     const response = await fetch(`${CONFIG_API_URL}/config`)
     if (!response.ok) {

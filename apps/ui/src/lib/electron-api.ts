@@ -27,7 +27,7 @@ export interface ElectronAPI {
   notifyLogsPanelState: (visible: boolean) => void
 
   // Bot config (proxied through main process to avoid CSP issues)
-  fetchBotConfig: () => Promise<unknown | null>
+  fetchBotConfig: (botId: string) => Promise<unknown | null>
 }
 
 /**

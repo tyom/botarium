@@ -45,6 +45,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   // Fetch bot config (proxied through main process to avoid CSP issues)
-  fetchBotConfig: (): Promise<unknown | null> =>
-    ipcRenderer.invoke('bot:fetchConfig'),
+  fetchBotConfig: (botId: string): Promise<unknown | null> =>
+    ipcRenderer.invoke('bot:fetchConfig', botId),
 })

@@ -28,6 +28,7 @@ settings:
       description: Display name for the bot in conversations
       group: bot
       required: true
+{{#if isAi}}
 
   bot_personality:
     value: |
@@ -37,7 +38,6 @@ settings:
       label: Bot Personality
       description: System prompt describing how the bot should behave
       group: bot
-{{#if isAi}}
 
   # AI Provider
   ai_provider:

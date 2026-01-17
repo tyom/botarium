@@ -315,6 +315,10 @@ export class EmulatorState {
   }
 
   isDirectMessage(channelId: string): boolean {
+    // Dynamic DM channels follow pattern D_{botId}
+    if (channelId.startsWith('D_')) {
+      return true
+    }
     const channel = this.channels.get(channelId)
     return channel?.is_im ?? false
   }
@@ -608,7 +612,8 @@ export class EmulatorState {
       )
     } else {
       // Create new bot entry
-      botId = crypto.randomUUID()
+      // Use the app.id from config if available, otherwise generate a UUID
+      botId = newBotId || crypto.randomUUID()
       bot = {
         id: botId,
         connectionId,

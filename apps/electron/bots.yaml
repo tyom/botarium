@@ -12,7 +12,7 @@
 #     source: /path/to/my-bot
 
 bots:
-  # - name: bud
-  #   source: ../../bud
-  - name: ai-bot
-    source: ../../ai-bot
+  - name: simple
+    source: ../../simple
+  - name: my-bot
+    source: ../../my-bot

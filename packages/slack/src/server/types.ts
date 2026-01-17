@@ -438,12 +438,5 @@ export const DEFAULT_WORKSPACE_CONFIG: WorkspaceConfig = {
       is_im: false,
       is_member: true,
     },
-    {
-      id: 'D_USER',
-      name: 'direct_message',
-      is_channel: false,
-      is_im: true,
-      is_member: true,
-    },
   ],
 }

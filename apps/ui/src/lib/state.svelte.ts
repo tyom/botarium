@@ -184,7 +184,18 @@ export function parseHash(hash: string): {
   const channelId = parts[0]
   const threadTs = parts[1] || null
 
-  if (!channelId || !CHANNELS.some((c) => c.id === channelId)) {
+  if (!channelId) {
+    return { channelId: null, threadTs: null }
+  }
+
+  // DM channels are valid if they match the pattern D_{botId}
+  // (actual bot existence is validated at runtime when navigating)
+  if (channelId.startsWith('D_')) {
+    return { channelId, threadTs }
+  }
+
+  // Regular channels must exist in CHANNELS array
+  if (!CHANNELS.some((c) => c.id === channelId)) {
     return { channelId: null, threadTs: null }
   }
 

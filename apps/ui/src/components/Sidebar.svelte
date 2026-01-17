@@ -30,13 +30,6 @@
       handleSelect(channel)
     }
   }
-
-  let isBotDisconnected = $derived(
-    simulatorState.connectedBots.size > 0 &&
-      Array.from(simulatorState.connectedBots.values()).every(
-        (bot) => bot.status === 'disconnected'
-      )
-  )
 </script>
 
 <aside
@@ -71,59 +64,83 @@
           {section.label}
         </div>
       {/if}
-      {#each CHANNELS.filter((c) => c.type === section.type && (c.type !== 'dm' || simulatorState.connectedBots.size > 0)) as channel}
-        {@const isActive = simulatorState.currentChannel === channel.id}
-        {@const bot =
-          channel.type === 'dm'
-            ? Array.from(simulatorState.connectedBots.values())[0]
-            : null}
-        <div
-          class="flex items-center relative hover:bg-(--sidebar-hover) rounded-lg group"
-          class:!bg-(--sidebar-active)={isActive}
-        >
-          <button
-            class="flex items-center gap-2 flex-1 px-5 py-1.5 bg-transparent border-none text-[15px] text-left cursor-pointer"
-            class:text-(--sidebar-active-text)={isActive}
-            class:text-(--sidebar-text)={!isActive}
-            onclick={() => handleSelect(channel)}
-            onkeydown={(e) => handleKeyDown(e, channel)}
+      {#if section.type === 'channel'}
+        {#each CHANNELS.filter((c) => c.type === 'channel') as channel}
+          {@const isActive = simulatorState.currentChannel === channel.id}
+          <div
+            class="flex items-center relative hover:bg-(--sidebar-hover) rounded-lg group"
+            class:!bg-(--sidebar-active)={isActive}
           >
-            {#if channel.type === 'channel'}
+            <button
+              class="flex items-center gap-2 flex-1 px-5 py-1.5 bg-transparent border-none text-[15px] text-left cursor-pointer"
+              class:text-(--sidebar-active-text)={isActive}
+              class:text-(--sidebar-text)={!isActive}
+              onclick={() => handleSelect(channel)}
+              onkeydown={(e) => handleKeyDown(e, channel)}
+            >
               <span
                 class="font-medium"
                 class:text-(--sidebar-active-text)={isActive}
                 class:text-(--sidebar-muted)={!isActive}>#</span
               >
-            {:else}
+              <span
+                class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
+              >
+                {channel.name}
+              </span>
+            </button>
+          </div>
+        {/each}
+      {:else}
+        {#each Array.from(simulatorState.connectedBots.values()) as bot}
+          {@const channelId = `D_${bot.id}`}
+          {@const isActive = simulatorState.currentChannel === channelId}
+          {@const isDisconnected = bot.status === 'disconnected'}
+          <div
+            class="flex items-center relative hover:bg-(--sidebar-hover) rounded-lg group"
+            class:!bg-(--sidebar-active)={isActive}
+          >
+            <button
+              class="flex items-center gap-2 flex-1 px-5 py-1.5 bg-transparent border-none text-[15px] text-left cursor-pointer"
+              class:text-(--sidebar-active-text)={isActive}
+              class:text-(--sidebar-text)={!isActive}
+              onclick={() => switchChannel(channelId)}
+              onkeydown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  switchChannel(channelId)
+                }
+              }}
+            >
               <span
                 class="size-5 rounded bg-(--bot-avatar-bg) text-white flex items-center justify-center"
               >
                 <Sparkles size={12} />
               </span>
+              <span
+                class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
+              >
+                {bot.name}
+              </span>
+              {#if isDisconnected}
+                <span class="size-2 rounded-full bg-red-500 shrink-0"></span>
+              {/if}
+            </button>
+            {#if !isDisconnected && onOpenAppSettings}
+              <IconButton
+                icon={Settings}
+                size={14}
+                label="{bot.name} settings"
+                class="opacity-0 group-hover:opacity-100 transition-opacity mr-2"
+                onclick={(e) => {
+                  e.stopPropagation()
+                  onOpenAppSettings(bot.id, bot.name)
+                }}
+              />
             {/if}
-            <span
-              class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
-            >
-              {channel.type === 'dm' ? simulatorState.botName : channel.name}
-            </span>
-            {#if channel.type === 'dm' && isBotDisconnected}
-              <span class="size-2 rounded-full bg-red-500 shrink-0"></span>
-            {/if}
-          </button>
-          {#if channel.type === 'dm' && bot && bot.status !== 'disconnected' && onOpenAppSettings}
-            <IconButton
-              icon={Settings}
-              size={14}
-              label="{bot.name} settings"
-              class="opacity-0 group-hover:opacity-100 transition-opacity mr-2"
-              onclick={(e) => {
-                e.stopPropagation()
-                onOpenAppSettings(bot.id, bot.name)
-              }}
-            />
-          {/if}
-        </div>
-      {/each}
+          </div>
+        {/each}
+      {/if}
     {/each}
   </nav>
 

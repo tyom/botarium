@@ -16,6 +16,7 @@ import {
 import { omit } from 'es-toolkit'
 import path from 'path'
 import fs from 'fs'
+import net from 'net'
 import { spawn } from 'child_process'
 import { fileURLToPath } from 'url'
 import {
@@ -45,7 +46,7 @@ app.commandLine.appendSwitch('disable-features', 'AutofillServerCommunication')
 
 let mainWindow = null
 let emulatorProcess = null
-let botProcesses = new Map() // Map<botName, process>
+let botProcesses = new Map() // Map<botName, { process, configPort }>
 let logsPanelChecked = false
 
 // Paths - adjust based on whether running from root (dev) or dist folder (bundled)
@@ -182,6 +183,23 @@ function decryptSensitiveFields(settings) {
     }
   }
   return decrypted
+}
+
+/**
+ * Find an available port by letting the OS assign one
+ * Returns a Promise that resolves to an available port number
+ */
+function findAvailablePort() {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer()
+    server.unref()
+    server.on('error', reject)
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address()
+      const port = address.port
+      server.close(() => resolve(port))
+    })
+  })
 }
 
 // Get emulator configuration for dev vs production
@@ -571,8 +589,11 @@ function spawnProcess(config, env, label, forwardLogs = false) {
 }
 
 // Start a single bot process
-function startBotProcess(botConfig, settingsEnv, botName) {
-  const proc = spawnProcess(botConfig, settingsEnv, `Bot:${botName}`, true)
+function startBotProcess(botConfig, settingsEnv, botName, botPort) {
+  // Config server runs on PORT + 1
+  const configPort = botPort + 1
+  const botEnv = { ...settingsEnv, PORT: String(botPort) }
+  const proc = spawnProcess(botConfig, botEnv, `Bot:${botName}`, true)
 
   proc.on('error', (err) => {
     botProcLogger.error({ err, bot: botName }, 'Failed to start bot')
@@ -598,7 +619,7 @@ function startBotProcess(botConfig, settingsEnv, botName) {
     }
   })
 
-  botProcesses.set(botName, proc)
+  botProcesses.set(botName, { process: proc, configPort })
   return proc
 }
 
@@ -664,11 +685,13 @@ async function startBackend(settings) {
   if (botConfigs.length > 0) {
     botProcLogger.info(`Starting ${botConfigs.length} bot(s) from bots.yaml`)
     for (const config of botConfigs) {
+      // Find an available port for this bot
+      const botPort = await findAvailablePort()
       botProcLogger.info(
-        { bot: config.name, type: config.type },
+        { bot: config.name, type: config.type, port: botPort },
         `Starting bot: ${config.name}`
       )
-      startBotProcess(config, settingsEnv, config.name)
+      startBotProcess(config, settingsEnv, config.name, botPort)
     }
   } else {
     botProcLogger.info(
@@ -733,7 +756,7 @@ async function stopBackend() {
   const promises = []
 
   // Stop all bot processes
-  for (const [botName, proc] of botProcesses) {
+  for (const [botName, { process: proc }] of botProcesses) {
     promises.push(stopProcess(proc, `Bot:${botName}`))
   }
   botProcesses.clear()
@@ -826,6 +849,9 @@ function setupIpcHandlers() {
       emulatorRunning: emulatorProcess !== null,
       botCount: botProcesses.size,
       botNames: Array.from(botProcesses.keys()),
+      botPorts: Object.fromEntries(
+        Array.from(botProcesses.entries()).map(([name, { configPort }]) => [name, configPort])
+      ),
     }
   })
 
@@ -836,22 +862,29 @@ function setupIpcHandlers() {
 
   // Fetch bot config (proxied to avoid renderer CSP issues)
   // Includes retry logic since bot config server may not be immediately available
-  ipcMain.handle('bot:fetchConfig', async () => {
-    const CONFIG_PORT = 3001
+  ipcMain.handle('bot:fetchConfig', async (_event, botId) => {
+    // Look up the config port for this bot
+    const botInfo = botProcesses.get(botId)
+    if (!botInfo) {
+      electronLogger.warn({ botId }, 'Bot not found in process list')
+      return null
+    }
+
+    const configPort = botInfo.configPort
     const MAX_RETRIES = 10
     const RETRY_DELAY = 300
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        const response = await fetch(`http://127.0.0.1:${CONFIG_PORT}/config`)
+        const response = await fetch(`http://127.0.0.1:${configPort}/config`)
         if (response.ok) {
           const data = await response.json()
-          electronLogger.debug({ attempt }, 'Bot config fetched successfully')
+          electronLogger.debug({ botId, configPort, attempt }, 'Bot config fetched successfully')
           return data
         }
-        electronLogger.debug({ status: response.status, attempt }, 'Config server returned error')
+        electronLogger.debug({ status: response.status, attempt, botId }, 'Config server returned error')
       } catch (error) {
-        electronLogger.debug({ error: error.message, attempt }, 'Config server not ready')
+        electronLogger.debug({ error: error.message, attempt, botId }, 'Config server not ready')
       }
 
       if (attempt < MAX_RETRIES) {
@@ -859,7 +892,7 @@ function setupIpcHandlers() {
       }
     }
 
-    electronLogger.warn('Bot config not available after retries')
+    electronLogger.warn({ botId }, 'Bot config not available after retries')
     return null
   })
 }
