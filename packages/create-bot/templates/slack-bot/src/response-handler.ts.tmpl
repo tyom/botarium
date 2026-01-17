@@ -1,0 +1,76 @@
+/**
+ * Response Handler
+ *
+ * This is the main file to customize bot responses.
+ */
+{{#if isAi}}
+import { streamText } from 'ai'
+import { getModel, settings } from './settings'
+{{/if}}
+
+export interface ThreadContext {
+  channelId: string
+  threadTs: string
+  userId: string
+  teamId: string
+  history: Array<{ role: 'user' | 'assistant'; content: string }>
+}
+
+export interface SuggestedPrompt {
+  title: string
+  message: string
+}
+
+export interface ResponseHandler {
+  generateResponse(
+    message: string,
+    context: ThreadContext
+  ): AsyncIterable<string>
+  systemPrompt?: string
+  suggestedPrompts?: SuggestedPrompt[]
+}
+
+export const responseHandler: ResponseHandler = {
+  systemPrompt: '{{#if isAi}}You are a helpful assistant. Be concise and friendly.{{else}}You are a helpful assistant.{{/if}}',
+
+  suggestedPrompts: [
+    { title: 'Say hello', message: 'Hello!' },
+    { title: 'Get help', message: 'What can you help me with?' },
+  ],
+
+  async *generateResponse(message, context) {
+    // Handle ping command
+    if (message.toLowerCase() === 'ping') {
+      yield 'pong'
+      return
+    }
+{{#if isAi}}
+
+    // Build messages from history
+    const messages = context.history
+      .filter(m => m.content.trim())
+      .map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }))
+
+    // Add current message
+    messages.push({ role: 'user', content: message })
+
+    // Stream response from AI
+    const result = streamText({
+      model: getModel(),
+      system: this.systemPrompt,
+      messages,
+    })
+
+    for await (const chunk of result.textStream) {
+      yield chunk
+    }
+{{else}}
+
+    // Echo response - replace with your logic
+    yield `You said: ${message}`
+{{/if}}
+  },
+}

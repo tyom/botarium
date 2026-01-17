@@ -1,0 +1,116 @@
+import { App, LogLevel } from '@slack/bolt'
+import { registerListeners } from './listeners/index'
+import { settings, isSimulatorMode } from './settings'
+import { startConfigServer } from './config/http-server'
+import { slackConfig } from './config/loader'
+import { appLogger, slackLogger } from './utils/logger'
+
+// Simulator tokens for local mode
+const SIMULATOR_BOT_TOKEN = 'xoxb-simulator-token'
+const SIMULATOR_APP_TOKEN = 'xapp-simulator-token'
+
+function createApp() {
+  const logLevel =
+    settings.LOG_LEVEL === 'debug' ? LogLevel.DEBUG : LogLevel.INFO
+
+  if (isSimulatorMode) {
+    slackLogger.info(
+      { apiUrl: process.env.SLACK_API_URL },
+      'Connecting to simulator'
+    )
+    return new App({
+      token: SIMULATOR_BOT_TOKEN,
+      appToken: SIMULATOR_APP_TOKEN,
+      socketMode: true,
+      logLevel,
+      clientOptions: {
+        slackApiUrl: process.env.SLACK_API_URL,
+      },
+    })
+  }
+
+  return new App({
+    token: settings.SLACK_BOT_TOKEN,
+    appToken: settings.SLACK_APP_TOKEN,
+    socketMode: true,
+    logLevel,
+  })
+}
+
+async function registerWithSimulator(maxRetries = 30, retryDelayMs = 2000) {
+  const apiUrl = process.env.SLACK_API_URL
+  if (!apiUrl) return
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(`${apiUrl}/api/config/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(slackConfig),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+
+      slackLogger.info('Registered with simulator')
+      return
+    } catch (error) {
+      if (attempt < maxRetries) {
+        slackLogger.debug(
+          { attempt, maxRetries },
+          'Simulator not ready, retrying...'
+        )
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs))
+      } else {
+        slackLogger.warn({ error }, 'Failed to register with simulator')
+      }
+    }
+  }
+}
+
+async function main() {
+  appLogger.info({ simulatorMode: isSimulatorMode }, 'Starting bot...')
+
+  // Start config server for simulator
+  if (isSimulatorMode) {
+    const configPort = settings.PORT + 1
+    startConfigServer(configPort)
+  }
+
+  const app = createApp()
+  registerListeners(app)
+  await app.start()
+
+  // Register with simulator after WebSocket is connected
+  if (isSimulatorMode) {
+    await registerWithSimulator()
+
+    // Re-register on reconnection
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const receiver = (app as any).receiver as { client?: { on?: Function } }
+    receiver?.client?.on?.('connected', () => {
+      slackLogger.info('WebSocket reconnected, re-registering...')
+      registerWithSimulator().catch((err) => {
+        slackLogger.error({ err }, 'Failed to re-register with simulator')
+      })
+    })
+  }
+
+  // Graceful shutdown
+  const shutdown = async () => {
+    appLogger.info('Shutting down...')
+    await app.stop()
+    process.exit(0)
+  }
+
+  process.on('SIGTERM', shutdown)
+  process.on('SIGINT', shutdown)
+
+  appLogger.info(`${settings.BOT_NAME} is running!`)
+}
+
+main().catch((error) => {
+  appLogger.fatal({ error }, 'Fatal error')
+  process.exit(1)
+})

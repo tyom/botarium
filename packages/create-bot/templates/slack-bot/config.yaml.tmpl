@@ -37,16 +37,6 @@ settings:
       label: Bot Personality
       description: System prompt describing how the bot should behave
       group: bot
-
-  dm_history_limit:
-    value: 0
-    schema:
-      type: number
-      label: DM History Limit
-      description: Number of previous DM messages to include (0 = none)
-      group: bot
-      min: 0
-      max: 50
 {{#if isAi}}
 
   # AI Provider
@@ -77,62 +67,28 @@ settings:
     env: OPENAI_API_KEY
     schema:
       type: secret
-      label: API Key
+      label: OpenAI API Key
       group: ai
-      condition:
-        field: ai_provider
-        equals: openai
-      required_when:
-        field: ai_provider
-        equals: openai
+      required: true
 {{/if}}
 {{#if isAnthropic}}
   anthropic_api_key:
     env: ANTHROPIC_API_KEY
     schema:
       type: secret
-      label: API Key
+      label: Anthropic API Key
       group: ai
-      condition:
-        field: ai_provider
-        equals: anthropic
-      required_when:
-        field: ai_provider
-        equals: anthropic
+      required: true
 {{/if}}
 {{#if isGoogle}}
   google_api_key:
     env: GOOGLE_API_KEY
     schema:
       type: secret
-      label: API Key
+      label: Google API Key
       group: ai
-      condition:
-        field: ai_provider
-        equals: google
-      required_when:
-        field: ai_provider
-        equals: google
+      required: true
 {{/if}}
-
-  # Model Configuration
-  model_fast:
-    schema:
-      type: model_select
-      label: Fast Model
-      description: Used for classification and quick tasks
-      group: models
-      tier: fast
-      provider_field: ai_provider
-
-  model_default:
-    schema:
-      type: model_select
-      label: Default Model
-      description: Used for standard conversations
-      group: models
-      tier: default
-      provider_field: ai_provider
 {{/if}}
 
 # Group definitions with display order
@@ -141,36 +97,7 @@ groups:
   - id: ai
     label: AI Provider
     order: 1
-  - id: models
-    label: Model Configuration
-    order: 2
 {{/if}}
   - id: bot
     label: Bot Configuration
-    order: {{#if isAi}}3{{else}}1{{/if}}
-{{#if isAi}}
-
-# Model tiers per provider (single source of truth)
-model_tiers:
-{{#if isOpenai}}
-  openai:
-    fast:
-      - gpt-4o-mini
-    default:
-      - gpt-4o
-{{/if}}
-{{#if isAnthropic}}
-  anthropic:
-    fast:
-      - claude-3-5-haiku-latest
-    default:
-      - claude-sonnet-4-5
-{{/if}}
-{{#if isGoogle}}
-  google:
-    fast:
-      - gemini-2.0-flash
-    default:
-      - gemini-2.5-pro
-{{/if}}
-{{/if}}
+    order: {{#if isAi}}2{{else}}1{{/if}}

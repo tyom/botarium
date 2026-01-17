@@ -90,9 +90,6 @@ export interface ConfigFile {
   slack: SlackConfig
   settings: Record<string, SettingDefinition>
   groups: GroupDefinition[]
-{{#if isAi}}
-  model_tiers: Record<string, Record<string, string[]>>
-{{/if}}
 }
 
 // Export typed config
@@ -107,8 +104,3 @@ export const slackConfig = {
   app: { name: botName, id: config.simulator.id },
   ...config.slack,
 }
-{{~#if isAi}}
-
-// Export model tiers from config
-export const MODEL_TIERS = config.model_tiers
-{{~/if}}

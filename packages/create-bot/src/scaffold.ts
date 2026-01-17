@@ -110,11 +110,6 @@ async function copyDirectory(
  * Directories to skip based on context.
  */
 function shouldSkipDirectory(dirName: string, ctx: TemplateContext): boolean {
-  // Skip AI-related directories when AI is disabled
-  if (!ctx.isAi && dirName === 'ai') {
-    return true
-  }
-
   // Skip DB-related directories when no database selected
   // memory and preferences depend on db
   if (

@@ -1,40 +1,13 @@
 import { z } from 'zod'
-{{~#if isOpenai}}
+{{#if isOpenai}}
 import { openai } from '@ai-sdk/openai'
-{{~/if}}
-{{~#if isAnthropic}}
+{{/if}}
+{{#if isAnthropic}}
 import { anthropic } from '@ai-sdk/anthropic'
-{{~/if}}
-{{~#if isGoogle}}
+{{/if}}
+{{#if isGoogle}}
 import { google } from '@ai-sdk/google'
-{{~/if}}
-{{~#if isAi}}
-
-// Model tiers - customize as needed
-export const MODEL_TIERS = {
-{{~#if isOpenai}}
-  openai: {
-    fast: ['gpt-4o-mini'],
-    default: ['gpt-4o'],
-  },
-{{~/if}}
-{{~#if isAnthropic}}
-  anthropic: {
-    fast: ['claude-3-5-haiku-latest'],
-    default: ['claude-sonnet-4-5'],
-  },
-{{~/if}}
-{{~#if isGoogle}}
-  google: {
-    fast: ['gemini-2.0-flash'],
-    default: ['gemini-2.5-pro'],
-  },
-{{~/if}}
-}
-
-export type AIProvider = keyof typeof MODEL_TIERS
-export type ModelTier = 'fast' | 'default'
-{{~/if}}
+{{/if}}
 
 // Local simulator mode (SLACK_API_URL set)
 export const isSimulatorMode = Boolean(process.env.SLACK_API_URL)
@@ -55,29 +28,26 @@ const envSchema = z.object({
   SLACK_SIGNING_SECRET: isLocalMode
     ? z.string().default('local')
     : z.string().min(1),
-{{~#if isAi}}
+{{#if isAi}}
 
   // AI Provider
   AI_PROVIDER: z.enum(['{{aiProvider}}']).default('{{aiProvider}}'),
-{{~#if isOpenai}}
-  OPENAI_API_KEY: z.string().min(1),
-{{~/if}}
-{{~#if isAnthropic}}
-  ANTHROPIC_API_KEY: z.string().min(1),
-{{~/if}}
-{{~#if isGoogle}}
-  GOOGLE_API_KEY: z.string().min(1),
-{{~/if}}
-{{~/if}}
-{{~#if isDb}}
-
-  // Database
-  DB_ADAPTER: z.enum(['{{dbAdapter}}']).default('{{dbAdapter}}'),
-{{~#if isPostgres}}
-  DATABASE_URL: z.string().url(),
-{{~/if}}
-  DATA_DIR: z.string().default('./data'),
-{{~/if}}
+{{#if isOpenai}}
+  OPENAI_API_KEY: isLocalMode
+    ? z.string().default('sk-local')
+    : z.string().min(1),
+{{/if}}
+{{#if isAnthropic}}
+  ANTHROPIC_API_KEY: isLocalMode
+    ? z.string().default('sk-local')
+    : z.string().min(1),
+{{/if}}
+{{#if isGoogle}}
+  GOOGLE_API_KEY: isLocalMode
+    ? z.string().default('sk-local')
+    : z.string().min(1),
+{{/if}}
+{{/if}}
 
   // Server
   PORT: z.coerce.number().default(3000),
@@ -101,29 +71,18 @@ function loadSettings(): Settings {
 }
 
 export const settings = loadSettings()
-{{~#if isAi}}
+{{#if isAi}}
 
-// Model helpers
-function getModelForTier(tier: ModelTier) {
-  const provider = settings.AI_PROVIDER
-  const models = MODEL_TIERS[provider][tier]
-  const modelId = models[0]!
-{{~#if isOpenai}}
-  return openai(modelId)
-{{~/if}}
-{{~#if isAnthropic}}
-  return anthropic(modelId)
-{{~/if}}
-{{~#if isGoogle}}
-  return google(modelId)
-{{~/if}}
-}
-
+// AI Model helper
 export function getModel() {
-  return getModelForTier('default')
+{{#if isOpenai}}
+  return openai('gpt-4o')
+{{/if}}
+{{#if isAnthropic}}
+  return anthropic('claude-sonnet-4-20250514')
+{{/if}}
+{{#if isGoogle}}
+  return google('gemini-2.0-flash')
+{{/if}}
 }
-
-export function getFastModel() {
-  return getModelForTier('fast')
-}
-{{~/if}}
+{{/if}}

@@ -12,9 +12,6 @@ export interface ConfigResponse {
   schema: {
     settings: Record<string, SettingSchema>
     groups: GroupDefinition[]
-{{~#if isAi}}
-    model_tiers: Record<string, Record<string, string[]>>
-{{~/if}}
   }
   values: Record<string, unknown>
 }
@@ -46,9 +43,6 @@ function getConfigResponse(): ConfigResponse {
     schema: {
       settings: settingsSchema,
       groups: config.groups,
-{{~#if isAi}}
-      model_tiers: config.model_tiers,
-{{~/if}}
     },
     values,
   }
