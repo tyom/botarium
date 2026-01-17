@@ -562,12 +562,12 @@ export class EmulatorState {
     connectionId: string,
     appConfig: SlackAppConfig
   ): Promise<string> {
-    // Switch app_id for filtering DM messages
+    // Switch bot id for filtering DM messages
     const appId = appConfig.app?.id
     if (appId && this.persistence) {
       const currentAppId = this.persistence.getAppId()
       if (currentAppId !== appId) {
-        stateLogger.info({ appId, currentAppId }, 'Switching to bot app_id')
+        stateLogger.info({ appId, currentAppId }, 'Switching to bot id')
         this.persistence.setAppId(appId)
         // Clear only DM messages from memory (keep channel messages)
         this.clearDmMessagesFromMemory()
@@ -577,15 +577,15 @@ export class EmulatorState {
       }
     }
 
-    // Check for existing disconnected bot with the same app_id (preferred) or name (fallback)
-    // Using app_id is more reliable since names may not be unique
-    const newAppId = appConfig.app?.id
+    // Check for existing disconnected bot with the same id (preferred) or name (fallback)
+    // Using id is more reliable since names may not be unique
+    const newBotId = appConfig.app?.id
     const existingBot = Array.from(this.connectedBots.values()).find((bot) => {
       if (bot.status !== 'disconnected') return false
 
-      // Prefer matching by app_id if both have one
-      if (newAppId && bot.appConfig.app?.id) {
-        return bot.appConfig.app.id === newAppId
+      // Prefer matching by id if both have one
+      if (newBotId && bot.appConfig.app?.id) {
+        return bot.appConfig.app.id === newBotId
       }
 
       // Fall back to name matching for backward compatibility

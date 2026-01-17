@@ -392,7 +392,7 @@ function handleSSEEvent(event: {
         // Also update app config and commands when a bot connects
         loadAppConfig()
         loadCommands()
-        // Reload messages (DM messages are filtered by app_id)
+        // Reload messages (DM messages are filtered by simulator scope_id)
         loadMessages().then((messages) => {
           if (messages.length > 0) {
             restoreMessages(messages)

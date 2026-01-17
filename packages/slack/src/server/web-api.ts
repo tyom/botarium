@@ -1094,7 +1094,7 @@ export class SlackWebAPI {
         const botName = bot.appConfig.app?.name?.toLowerCase()
         const botId = bot.appConfig.app?.id?.toLowerCase()
 
-        // Check for @mention or plain mention of either bot name or bot ID
+        // Check for @mention or plain mention of either bot name or id
         const isMentioned =
           (botName &&
             (lowerText.includes(`@${botName}`) ||

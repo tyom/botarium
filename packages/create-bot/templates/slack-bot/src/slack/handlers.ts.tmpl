@@ -141,8 +141,8 @@ export async function registerHandlers(app: SlackApp) {
 
     const text = event.text
       .replace(/<@[A-Z0-9]+(\|[^>]*)?>/g, '')
-      .replace(new RegExp(slackConfig.app.name, 'gi'), '')
-      .replace(new RegExp(slackConfig.app.id, 'gi'), '')
+      .replace(new RegExp(`@?${slackConfig.app.name}`, 'gi'), '')
+      .replace(new RegExp(`@?${slackConfig.app.id ?? ''}`, 'gi'), '')
       .trim()
 
     if (!text) {
