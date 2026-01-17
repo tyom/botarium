@@ -31,7 +31,7 @@ interface PendingAck {
 }
 
 // Heartbeat configuration
-const HEARTBEAT_INTERVAL_MS = 30_000 // Send ping every 30 seconds
+const HEARTBEAT_INTERVAL_MS = 15_000 // Send ping every 15 seconds (must be < Slack SDK's 30s timeout)
 const HEARTBEAT_TIMEOUT_MS = 10_000 // Mark as dead if no pong within 10 seconds
 
 export class SocketModeServer {
@@ -90,7 +90,10 @@ export class SocketModeServer {
       } else {
         // Send ping to check if connection is still alive
         try {
-          conn.ws.ping()
+          const bytesSent = conn.ws.ping(Buffer.from('ping'))
+          socketModeLogger.debug(
+            `Heartbeat ping to ${connectionId}, bytes: ${bytesSent}`
+          )
         } catch (err) {
           socketModeLogger.warn(
             { err, connectionId },
@@ -181,6 +184,19 @@ export class SocketModeServer {
     }
 
     ws.send(JSON.stringify(hello))
+
+    // Send immediate ping to reset client's ping timeout
+    // This prevents race conditions where the client times out
+    // before the first interval-based ping arrives
+    try {
+      // Send ping with data payload - some WebSocket clients need this
+      const bytesSent = ws.ping(Buffer.from('ping'))
+      socketModeLogger.info(
+        `Sent immediate ping to ${connectionId}, bytes: ${bytesSent}`
+      )
+    } catch (err) {
+      socketModeLogger.warn({ err }, 'Failed to send immediate ping')
+    }
   }
 
   handleMessage(
@@ -191,6 +207,9 @@ export class SocketModeServer {
 
     try {
       const data = JSON.parse(message.toString()) as SocketModeAck
+
+      // Log all incoming messages for debugging
+      socketModeLogger.debug({ data }, 'Received WebSocket message')
 
       // Handle acknowledgments from bot
       if (data.envelope_id) {

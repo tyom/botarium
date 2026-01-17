@@ -390,6 +390,10 @@ export async function startEmulatorServer(
       close(ws) {
         socketMode.handleClose(ws)
       },
+      ping(ws, data) {
+        // Respond to client pings with pong (keeps connection alive)
+        ws.pong(data)
+      },
       pong(ws) {
         socketMode.handlePong(ws)
       },
