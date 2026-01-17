@@ -1,10 +1,9 @@
 /**
- * Slack-compatible type definitions for the API emulator
- * These types mirror Slack's actual API structures for compatibility
+ * Type definitions for the Slack API emulator
  */
 
 // =============================================================================
-// Core Slack Types
+// Core Slack Types (simplified for emulator)
 // =============================================================================
 
 export interface SlackUser {
@@ -33,6 +32,23 @@ export interface SlackReaction {
   count: number
 }
 
+export interface SlackFile {
+  id: string
+  name: string
+  title: string
+  mimetype: string
+  size?: number
+  filetype?: string
+  url_private: string
+  url_private_download?: string
+  thumb_360?: string
+  thumb_480?: string
+  timestamp?: number
+  channels?: string[]
+  user?: string
+  isExpanded?: boolean
+}
+
 export interface SlackMessage {
   type: 'message'
   subtype?: string
@@ -43,10 +59,14 @@ export interface SlackMessage {
   thread_ts?: string
   reactions?: SlackReaction[]
   file?: SlackFile
+  files?: Array<{
+    mimetype?: string
+    url_private?: string
+  }>
 }
 
 // =============================================================================
-// Slash Command Types
+// Slash Command & Shortcut Definitions (for app configuration)
 // =============================================================================
 
 export interface SlashCommandDefinition {
@@ -73,6 +93,11 @@ export interface SlackAppConfig {
   modals: Record<string, string>
 }
 
+// =============================================================================
+// Slash Command Payload (emulator-simplified version)
+// The official SlashCommand from @slack/bolt requires a `token` field
+// =============================================================================
+
 export interface SlashCommandPayload {
   command: string
   text: string
@@ -86,6 +111,11 @@ export interface SlashCommandPayload {
   response_url: string
   api_app_id: string
 }
+
+// =============================================================================
+// Message Shortcut Payload (emulator-simplified version)
+// The official MessageShortcut from @slack/bolt uses type: 'message_action'
+// =============================================================================
 
 export interface MessageShortcutPayload {
   type: 'shortcut'
@@ -244,18 +274,6 @@ export interface ChatPostMessageResponse {
   error?: string
 }
 
-// reactions.add / reactions.remove
-export interface ReactionsRequest {
-  channel: string
-  timestamp: string
-  name: string
-}
-
-export interface ReactionsResponse {
-  ok: boolean
-  error?: string
-}
-
 // conversations.replies
 export interface ConversationsRepliesResponse {
   ok: boolean
@@ -291,37 +309,29 @@ export interface UsersInfoResponse {
   error?: string
 }
 
-// apps.connections.open
+export interface ReactionsRequest {
+  channel: string
+  timestamp: string
+  name: string
+}
+
+export interface ReactionsResponse {
+  ok: boolean
+  error?: string
+}
+
 export interface AppsConnectionsOpenResponse {
   ok: boolean
   url?: string
   error?: string
 }
 
-// files.uploadV2
 export interface FilesUploadV2Request {
   channel_id: string
   file: Blob | Buffer
   filename?: string
   title?: string
   initial_comment?: string
-}
-
-export interface SlackFile {
-  id: string
-  name: string
-  title: string
-  mimetype: string
-  size?: number
-  filetype?: string
-  url_private: string
-  url_private_download?: string
-  thumb_360?: string
-  thumb_480?: string
-  timestamp?: number
-  channels?: string[]
-  user?: string
-  isExpanded?: boolean
 }
 
 export interface FilesUploadV2Response {
