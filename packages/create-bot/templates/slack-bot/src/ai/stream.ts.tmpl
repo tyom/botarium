@@ -1,0 +1,84 @@
+/**
+ * AI Streaming utilities with error handling
+ */
+import { streamText } from 'ai'
+import type { LanguageModelV1 } from 'ai'
+import { slackLogger } from '../utils/logger'
+
+export interface StreamOptions {
+  model: LanguageModelV1
+  system?: string
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>
+}
+
+/**
+ * Stream AI response with proper error handling.
+ * Validates API key if stream returns no content.
+ */
+export async function* streamAIResponse(options: StreamOptions): AsyncIterable<string> {
+  const { model, system, messages } = options
+
+  const result = streamText({
+    model,
+    system,
+    messages,
+  })
+
+  // Collect chunks and handle errors
+  const chunks: string[] = []
+  let streamError: Error | null = null
+
+  try {
+    for await (const chunk of result.textStream) {
+      chunks.push(chunk)
+    }
+  } catch (error) {
+    streamError = error as Error
+  }
+
+  // Check for errors even if stream appeared to succeed
+  if (chunks.length === 0 && !streamError) {
+    // Validate API key with a quick test call
+    try {
+      const testResponse = await fetch('https://api.openai.com/v1/models', {
+        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+        signal: AbortSignal.timeout(5000),
+      })
+      if (testResponse.status === 401) {
+        streamError = new Error('Invalid API key (401 Unauthorized)')
+      } else if (!testResponse.ok) {
+        streamError = new Error(`API error: ${testResponse.status}`)
+      }
+    } catch (error) {
+      streamError = error as Error
+    }
+  }
+
+  // Handle any error with user-friendly messages
+  if (streamError) {
+    const err = streamError as Error & { status?: number; statusCode?: number }
+    const message = err.message || String(streamError)
+    const status = err.status || err.statusCode
+
+    if (message.includes('API key') || message.includes('401') || message.includes('Unauthorized') || status === 401) {
+      slackLogger.error('Invalid OpenAI API key')
+      throw new Error('Invalid API key. Please check your OpenAI API key in Settings.')
+    }
+    if (message.includes('rate limit') || message.includes('429') || status === 429) {
+      slackLogger.error('OpenAI rate limit exceeded')
+      throw new Error('Rate limit exceeded. Please try again in a moment.')
+    }
+    if (message.includes('insufficient_quota') || message.includes('billing')) {
+      slackLogger.error('OpenAI billing/quota issue')
+      throw new Error('OpenAI quota exceeded. Please check your billing settings.')
+    }
+
+    slackLogger.error({ error: message }, 'AI error')
+    throw streamError
+  }
+
+  // Yield all collected chunks
+  for (const chunk of chunks) {
+    yield chunk
+  }
+}

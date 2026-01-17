@@ -195,8 +195,10 @@ function createBackendState() {
     const api = getElectronAPI()
     if (api) {
       // Electron mode: save via IPC
+      // Set backendReady to false BEFORE the IPC call to avoid race condition
+      // (backend:ready event might fire during the saveSettings call)
+      backendReady = false
       await api.saveSettings(newSettings)
-      backendReady = false // Will be set true when backend:ready event fires
     } else {
       // Web mode: save to localStorage
       saveSettingsToStorage(newSettings)

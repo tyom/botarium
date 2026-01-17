@@ -12,6 +12,7 @@ export interface ConfigResponse {
   schema: {
     settings: Record<string, SettingSchema>
     groups: GroupDefinition[]
+    model_tiers: Record<string, Record<string, string[]>>
   }
   values: Record<string, unknown>
 }
@@ -43,6 +44,7 @@ function getConfigResponse(): ConfigResponse {
     schema: {
       settings: settingsSchema,
       groups: config.groups,
+      model_tiers: {},
     },
     values,
   }
@@ -56,6 +58,7 @@ export function startConfigServer(port: number) {
   try {
     const server = Bun.serve({
       port,
+      hostname: '127.0.0.1', // Explicit IPv4 for Electron compatibility
       async fetch(req) {
         const url = new URL(req.url)
 

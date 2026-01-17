@@ -9,6 +9,35 @@ import { appLogger, slackLogger } from './utils/logger'
 const SIMULATOR_BOT_TOKEN = 'xoxb-simulator-token'
 const SIMULATOR_APP_TOKEN = 'xapp-simulator-token'
 
+/**
+ * Poll the emulator's health endpoint to verify a WebSocket connection exists.
+ * This ensures registration happens only after the WebSocket is tracked.
+ */
+async function waitForWebSocketConnection(
+  apiUrl: string,
+  timeoutMs: number = 5000
+): Promise<boolean> {
+  const startTime = Date.now()
+  const baseUrl = apiUrl.replace(/\/api$/, '')
+
+  while (Date.now() - startTime < timeoutMs) {
+    try {
+      const response = await fetch(`${baseUrl}/health`)
+      if (response.ok) {
+        const data = (await response.json()) as { connected_bots?: number }
+        // Health endpoint returns connected_bots which tracks WebSocket connections
+        if (data.connected_bots && data.connected_bots > 0) {
+          return true
+        }
+      }
+    } catch {
+      // Emulator not ready yet
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+  return false
+}
+
 function createApp() {
   const logLevel =
     settings.LOG_LEVEL === 'debug' ? LogLevel.DEBUG : LogLevel.INFO
@@ -37,20 +66,32 @@ function createApp() {
   })
 }
 
-async function registerWithSimulator(maxRetries = 30, retryDelayMs = 2000) {
+async function registerWithSimulator(maxRetries = 10, retryDelayMs = 1000) {
   const apiUrl = process.env.SLACK_API_URL
   if (!apiUrl) return
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const response = await fetch(`${apiUrl}/api/config/register`, {
+      // apiUrl already includes /api suffix (e.g., http://localhost:7557/api)
+      const response = await fetch(`${apiUrl}/config/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(slackConfig),
       })
 
+      const data = (await response.json()) as { error?: string; message?: string }
+
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+        // Handle WebSocket not ready - use faster retries for this transient condition
+        if (data.error === 'no_websocket_connection') {
+          slackLogger.debug(
+            { attempt, maxRetries },
+            'WebSocket not tracked yet, retrying quickly...'
+          )
+          await new Promise((resolve) => setTimeout(resolve, 200))
+          continue
+        }
+        throw new Error(`HTTP ${response.status}: ${data.message || data.error}`)
       }
 
       slackLogger.info('Registered with simulator')
@@ -58,7 +99,7 @@ async function registerWithSimulator(maxRetries = 30, retryDelayMs = 2000) {
     } catch (error) {
       if (attempt < maxRetries) {
         slackLogger.debug(
-          { attempt, maxRetries },
+          { attempt, maxRetries, error: String(error) },
           'Simulator not ready, retrying...'
         )
         await new Promise((resolve) => setTimeout(resolve, retryDelayMs))
@@ -80,21 +121,44 @@ async function main() {
 
   const app = createApp()
   registerListeners(app)
+
+  // Add WebSocket event logging for diagnostics (simulator mode only)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const receiver = (app as any).receiver as { client?: { on?: Function } }
+
+  if (isSimulatorMode && receiver?.client?.on) {
+    receiver.client.on('connecting', () =>
+      slackLogger.debug('WebSocket connecting...')
+    )
+    receiver.client.on('connected', () =>
+      slackLogger.info('WebSocket connected')
+    )
+    receiver.client.on('disconnected', () =>
+      slackLogger.warn('WebSocket disconnected')
+    )
+    receiver.client.on('error', (err: Error) =>
+      slackLogger.error({ err }, 'WebSocket error')
+    )
+  }
+
   await app.start()
+  slackLogger.info('Slack app started')
 
-  // Register with simulator after WebSocket is connected
+  // Register with simulator after verifying WebSocket is tracked
   if (isSimulatorMode) {
-    await registerWithSimulator()
+    const apiUrl = process.env.SLACK_API_URL
+    if (apiUrl) {
+      slackLogger.info('Waiting for WebSocket connection to be tracked...')
+      const connected = await waitForWebSocketConnection(apiUrl, 5000)
 
-    // Re-register on reconnection
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const receiver = (app as any).receiver as { client?: { on?: Function } }
-    receiver?.client?.on?.('connected', () => {
-      slackLogger.info('WebSocket reconnected, re-registering...')
-      registerWithSimulator().catch((err) => {
-        slackLogger.error({ err }, 'Failed to re-register with simulator')
-      })
-    })
+      if (!connected) {
+        slackLogger.warn(
+          'WebSocket not detected after 5s, attempting registration anyway'
+        )
+      }
+
+      await registerWithSimulator()
+    }
   }
 
   // Graceful shutdown

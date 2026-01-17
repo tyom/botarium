@@ -39,13 +39,27 @@
   let showSecrets: Record<string, boolean> = $state({})
   let collapsedGroups: Record<string, boolean> = $state({})
 
-  // Initialize form data once from initial values
-  let initialized = false
+  // Track previous initialValues to detect changes
+  let prevInitialValues: Record<string, unknown> = {}
+
+  // Initialize form data from initial values
+  // Re-sync if initialValues changes (e.g., async loading)
   $effect.pre(() => {
-    if (!initialized) {
-      formData = { ...initialValues }
-      initialized = true
+    for (const [key, value] of Object.entries(initialValues)) {
+      const prevValue = prevInitialValues[key]
+      const currentFormValue = formData[key]
+
+      // Update formData if:
+      // 1. formData doesn't have this key yet, OR
+      // 2. initialValues changed AND formData still has the old initialValue (not user-modified)
+      if (
+        currentFormValue === undefined ||
+        (prevValue !== value && currentFormValue === prevValue)
+      ) {
+        formData[key] = value
+      }
     }
+    prevInitialValues = { ...initialValues }
   })
 
   onMount(async () => {

@@ -73,7 +73,7 @@ async function main() {
   // Compile each bot
   let successCount = 0
   for (const bot of bots) {
-    const entry = bot.entry ?? 'src/index.ts'
+    const entry = bot.entry ?? 'src/app.ts'
     const sourcePath = path.resolve(ROOT_DIR, bot.source)
     const entryPath = path.join(sourcePath, entry)
     const outfile = path.join(OUTPUT_DIR, bot.name)

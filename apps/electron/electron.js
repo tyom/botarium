@@ -270,25 +270,36 @@ function getBotConfigs() {
   const botsConfig = readBotsConfig()
   const isPackaged = app.isPackaged
 
+  electronLogger.info(
+    { botsConfig, useDevServer, useBundledBots, isPackaged },
+    'getBotConfigs called'
+  )
+
   if (botsConfig.length === 0) {
+    electronLogger.info('No bots in config')
     return []
   }
 
   if (useDevServer && !useBundledBots) {
     // Dev mode: run from source
-    return botsConfig
-      .map((bot) => {
-        const sourcePath = path.resolve(__dirname, bot.source)
-        const entry = bot.entry || 'src/index.ts'
-        return {
-          type: 'bun',
-          bunPath: 'bun',
-          script: path.join(sourcePath, entry),
-          cwd: sourcePath,
-          name: bot.name,
-        }
-      })
-      .filter((config) => fs.existsSync(config.script))
+    const configs = botsConfig.map((bot) => {
+      const sourcePath = path.resolve(__dirname, bot.source)
+      const entry = bot.entry || 'src/app.ts'
+      const script = path.join(sourcePath, entry)
+      const exists = fs.existsSync(script)
+      electronLogger.info(
+        { bot: bot.name, sourcePath, entry, script, exists },
+        'Bot config'
+      )
+      return {
+        type: 'bun',
+        bunPath: 'bun',
+        script,
+        cwd: sourcePath,
+        name: bot.name,
+      }
+    })
+    return configs.filter((config) => fs.existsSync(config.script))
   }
 
   // Bundled/production mode: use compiled binaries
@@ -310,13 +321,24 @@ function getBotConfigs() {
 
 // Settings management
 function loadSettings() {
+  electronLogger.debug({ settingsPath }, 'Loading settings')
   try {
     if (fs.existsSync(settingsPath)) {
       const data = fs.readFileSync(settingsPath, 'utf-8')
       const settings = JSON.parse(data)
+      electronLogger.debug(
+        { keys: Object.keys(settings).filter((k) => !k.startsWith('_')) },
+        'Settings loaded from file'
+      )
       const decrypted = decryptSensitiveFields(settings)
+      // Log which fields were decrypted (without values)
+      const decryptedFields = Object.keys(settings).filter(
+        (k) => k.endsWith('_encrypted') && settings[k] === true
+      )
+      electronLogger.debug({ decryptedFields }, 'Decrypted sensitive fields')
       return decrypted
     }
+    electronLogger.debug('No settings file found')
   } catch (err) {
     electronLogger.error({ err }, 'Failed to load settings')
   }
@@ -324,10 +346,23 @@ function loadSettings() {
 }
 
 function saveSettings(settings) {
+  electronLogger.debug(
+    {
+      settingsPath,
+      keys: Object.keys(settings).filter((k) => !k.startsWith('_')),
+    },
+    'Saving settings'
+  )
   try {
     fs.mkdirSync(path.dirname(settingsPath), { recursive: true })
     const encrypted = encryptSensitiveFields(settings)
+    // Log which fields were encrypted (without values)
+    const encryptedFields = Object.keys(encrypted).filter(
+      (k) => k.endsWith('_encrypted') && encrypted[k] === true
+    )
+    electronLogger.debug({ encryptedFields }, 'Encrypted sensitive fields')
     fs.writeFileSync(settingsPath, JSON.stringify(encrypted, null, 2))
+    electronLogger.info('Settings saved successfully')
   } catch (err) {
     electronLogger.error({ err }, 'Failed to save settings')
     throw err
@@ -756,14 +791,25 @@ async function waitForBotConnection(retries = 20, delay = 500) {
 // IPC Handlers
 function setupIpcHandlers() {
   ipcMain.handle('settings:load', () => {
-    return loadSettings()
+    electronLogger.debug('IPC: settings:load called')
+    const settings = loadSettings()
+    electronLogger.debug(
+      { hasSettings: !!settings, hasApiKey: !!settings?.openai_api_key },
+      'IPC: settings:load returning'
+    )
+    return settings
   })
 
   ipcMain.handle('settings:save', async (_event, settings) => {
+    electronLogger.debug(
+      { hasApiKey: !!settings?.openai_api_key },
+      'IPC: settings:save called'
+    )
     saveSettings(settings)
     // Restart backend with new settings
     await stopBackend()
     await startBackend(settings)
+    electronLogger.debug('IPC: settings:save completed')
   })
 
   ipcMain.handle('backend:restart', async () => {
@@ -786,6 +832,35 @@ function setupIpcHandlers() {
   // Sync logs panel state from renderer (when toggled via keyboard shortcut in web mode)
   ipcMain.on('logs-panel:state-changed', (_event, visible) => {
     updateLogsPanelMenuState(visible)
+  })
+
+  // Fetch bot config (proxied to avoid renderer CSP issues)
+  // Includes retry logic since bot config server may not be immediately available
+  ipcMain.handle('bot:fetchConfig', async () => {
+    const CONFIG_PORT = 3001
+    const MAX_RETRIES = 10
+    const RETRY_DELAY = 300
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const response = await fetch(`http://127.0.0.1:${CONFIG_PORT}/config`)
+        if (response.ok) {
+          const data = await response.json()
+          electronLogger.debug({ attempt }, 'Bot config fetched successfully')
+          return data
+        }
+        electronLogger.debug({ status: response.status, attempt }, 'Config server returned error')
+      } catch (error) {
+        electronLogger.debug({ error: error.message, attempt }, 'Config server not ready')
+      }
+
+      if (attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, RETRY_DELAY))
+      }
+    }
+
+    electronLogger.warn('Bot config not available after retries')
+    return null
   })
 }
 
@@ -988,6 +1063,19 @@ app.on('activate', () => {
   }
 })
 
-app.on('before-quit', async () => {
+// Track if we're currently cleaning up to avoid double-cleanup
+let isQuitting = false
+
+app.on('before-quit', async (event) => {
+  if (isQuitting) return // Already cleaning up
+
+  // Prevent immediate quit
+  event.preventDefault()
+  isQuitting = true
+
+  // Stop backend processes
   await stopBackend()
+
+  // Now actually quit
+  app.quit()
 })

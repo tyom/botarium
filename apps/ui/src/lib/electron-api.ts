@@ -25,6 +25,9 @@ export interface ElectronAPI {
   // Logs panel menu communication
   onToggleLogsPanel: (callback: (visible: boolean) => void) => () => void
   notifyLogsPanelState: (visible: boolean) => void
+
+  // Bot config (proxied through main process to avoid CSP issues)
+  fetchBotConfig: () => Promise<unknown | null>
 }
 
 /**

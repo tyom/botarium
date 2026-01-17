@@ -43,4 +43,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   notifyLogsPanelState: (visible: boolean): void => {
     ipcRenderer.send('logs-panel:state-changed', visible)
   },
+
+  // Fetch bot config (proxied through main process to avoid CSP issues)
+  fetchBotConfig: (): Promise<unknown | null> =>
+    ipcRenderer.invoke('bot:fetchConfig'),
 })

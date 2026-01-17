@@ -4,8 +4,8 @@
  * This is the main file to customize bot responses.
  */
 {{#if isAi}}
-import { streamText } from 'ai'
-import { getModel, settings } from './settings'
+import { getModel } from './settings'
+import { streamAIResponse } from './ai/stream'
 {{/if}}
 
 export interface ThreadContext {
@@ -58,15 +58,11 @@ export const responseHandler: ResponseHandler = {
     messages.push({ role: 'user', content: message })
 
     // Stream response from AI
-    const result = streamText({
+    yield* streamAIResponse({
       model: getModel(),
       system: this.systemPrompt,
       messages,
     })
-
-    for await (const chunk of result.textStream) {
-      yield chunk
-    }
 {{else}}
 
     // Echo response - replace with your logic

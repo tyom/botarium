@@ -8,6 +8,8 @@
  * - Group definitions for UI organization
  */
 
+import { getElectronAPI, isElectron } from './electron-api'
+
 // Config server runs on bot port + 1 (default: 3001)
 export const DEFAULT_CONFIG_PORT = 3001
 export const CONFIG_API_URL = `http://localhost:${DEFAULT_CONFIG_PORT}`
@@ -69,17 +71,29 @@ export interface BotConfig {
 
 /**
  * Fetch bot configuration from the /config endpoint
+ * In Electron, uses IPC to avoid CSP issues with renderer fetch
  */
 export async function fetchBotConfig(): Promise<BotConfig | null> {
+  // In Electron, use IPC to fetch through main process (avoids CSP issues)
+  if (isElectron) {
+    try {
+      const api = getElectronAPI()
+      if (api) {
+        return (await api.fetchBotConfig()) as BotConfig | null
+      }
+    } catch {
+      return null
+    }
+  }
+
+  // In web mode, fetch directly
   try {
     const response = await fetch(`${CONFIG_API_URL}/config`)
     if (!response.ok) {
-      console.error(`Failed to fetch config: HTTP ${response.status}`)
       return null
     }
     return await response.json()
-  } catch (error) {
-    console.error('Failed to fetch bot config:', error)
+  } catch {
     return null
   }
 }

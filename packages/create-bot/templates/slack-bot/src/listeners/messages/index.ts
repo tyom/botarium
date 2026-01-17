@@ -59,6 +59,11 @@ async function processMessage(
       response += chunk
     }
 
+    // Ensure we have a response to send
+    if (!response.trim()) {
+      response = "I couldn't generate a response. Please try again."
+    }
+
     // In DMs: reply inline unless user is in a thread
     if (isThreadReply) {
       await say({ text: response, thread_ts: threadTs })
@@ -66,7 +71,19 @@ async function processMessage(
       await say({ text: response })
     }
   } catch (error) {
+    // Log the full error for debugging
     slackLogger.error({ error }, 'Error handling DM')
-    await say({ text: 'Sorry, something went wrong!' })
+    
+    // Provide helpful error message based on error type
+    let errorMessage = 'Sorry, something went wrong!'
+    if (error instanceof Error) {
+      if (error.message.includes('API key') || error.message.includes('401') || error.message.includes('Unauthorized')) {
+        errorMessage = 'AI service authentication failed. Please check your API key in Settings.'
+      } else if (error.message.includes('rate limit') || error.message.includes('429')) {
+        errorMessage = 'AI service rate limit reached. Please try again in a moment.'
+      }
+    }
+    
+    await say({ text: errorMessage })
   }
 }

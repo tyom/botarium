@@ -131,11 +131,14 @@ export class SlackWebAPI {
     const token = req.headers.get('Authorization')?.replace('Bearer ', '')
 
     // Accept any token starting with xoxb- or xoxp-
+    // Also whitelist internal simulator endpoints
     const isValidToken =
       token?.startsWith('xoxb-') ||
       token?.startsWith('xoxp-') ||
       !path.startsWith('/api/') ||
-      path === '/api/apps.connections.open'
+      path === '/api/apps.connections.open' ||
+      path === '/api/config/register' ||
+      path === '/api/commands/register'
 
     if (!isValidToken && path.startsWith('/api/')) {
       return Response.json(
@@ -247,7 +250,13 @@ export class SlackWebAPI {
   ): Promise<Response> {
     const { channel, text, thread_ts } = body
 
+    webApiLogger.debug({ body, channel, text }, 'chat.postMessage request')
+
     if (!channel || !text) {
+      webApiLogger.error(
+        { channel, text, hasChannel: !!channel, hasText: !!text },
+        'chat.postMessage missing required argument'
+      )
       return Response.json(
         { ok: false, error: 'missing_argument' },
         { headers: corsHeaders() }

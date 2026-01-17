@@ -13,6 +13,7 @@
     "dev:electron": "bun run --filter @botarium/desktop dev:electron",
     "build": "bun run --filter '*' build",
     "package": "bun run --filter @botarium/desktop package",
+    "test": "bun test apps packages",
     "typecheck": "bun run --filter '*' typecheck",
     "lint": "eslint .",
     "format": "prettier --write .",
