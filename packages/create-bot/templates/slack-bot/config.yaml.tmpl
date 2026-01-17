@@ -2,8 +2,9 @@
 # This is the single source of truth for bot settings and Slack app config.
 # The schema metadata enables dynamic UI generation in the simulator.
 
-# App identifier for message isolation in simulator
-app_id: {{packageName}}
+# Simulator-specific configuration (not sent to Slack)
+simulator:
+  id: {{packageName}}  # Isolates DM messages per-bot in the simulator
 
 # Slack app configuration
 slack:

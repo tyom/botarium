@@ -80,8 +80,13 @@ export interface SlackConfig {
   modals: Record<string, string>
 }
 
+// Simulator-specific configuration
+export interface SimulatorConfig {
+  id: string // Isolates DM messages per-bot in the simulator
+}
+
 export interface ConfigFile {
-  app_id: string
+  simulator: SimulatorConfig
   slack: SlackConfig
   settings: Record<string, SettingDefinition>
   groups: GroupDefinition[]
@@ -96,13 +101,10 @@ export const config = rawConfig as ConfigFile
 // Get bot name from settings (with fallback)
 const botName = (config.settings.bot_name?.value as string) ?? '{{botNamePascal}}'
 
-// Export app_id for message isolation
-export const appId = config.app_id
-
 // Convenience exports for Slack config
 // Include app info for emulator registration (derived from bot_name setting)
 export const slackConfig = {
-  app: { name: botName, id: appId },
+  app: { name: botName, id: config.simulator.id },
   ...config.slack,
 }
 {{~#if isAi}}
