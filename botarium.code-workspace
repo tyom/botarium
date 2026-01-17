@@ -53,10 +53,13 @@
       {
         "label": "Dev Electron",
         "detail": "Electron app with embedded emulator",
-        "command": "bun run --filter @botarium/electron dev:electron",
+        "command": "bun dev:electron",
         "icon": {
           "id": "device-desktop",
           "color": "terminal.ansiMagenta",
+        },
+        "options": {
+          "cwd": "${workspaceFolder}/apps/electron",
         },
         "type": "shell",
         "problemMatcher": ["$tsc"],
