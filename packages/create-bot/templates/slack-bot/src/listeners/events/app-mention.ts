@@ -1,5 +1,6 @@
 import type { AllMiddlewareArgs, SlackEventMiddlewareArgs } from '@slack/bolt'
 import type { AppMentionEvent } from '@slack/types'
+import type { WebClient } from '@slack/web-api'
 import { responseHandler, type ThreadContext } from '../../response-handler'
 import { slackConfig } from '../../config/loader'
 import { slackLogger } from '../../utils/logger'
@@ -28,18 +29,29 @@ export async function appMention({ event, client, say }: AppMentionArgs) {
   }
 
   // Process asynchronously to ack within 3 seconds
-  processMention(say, event, text, threadTs)
+  processMention(client, say, event, text, threadTs)
 }
 
 async function processMention(
+  client: WebClient,
   say: (msg: { text: string; thread_ts: string }) => Promise<unknown>,
   event: AppMentionEvent,
   text: string,
   threadTs: string
 ) {
+  const messageTs = event.ts
+  const channel = event.channel
+
   try {
+    // Add thinking reaction
+    await client.reactions.add({
+      channel,
+      timestamp: messageTs,
+      name: 'thinking_face',
+    }).catch(err => slackLogger.error({ err }, 'Failed to add thinking reaction'))
+
     const threadContext: ThreadContext = {
-      channelId: event.channel,
+      channelId: channel,
       threadTs: threadTs,
       userId: event.user ?? '',
       teamId: '',
@@ -53,8 +65,30 @@ async function processMention(
     }
 
     await say({ text: response, thread_ts: threadTs })
+
+    // Remove thinking and add checkmark
+    await client.reactions.remove({
+      channel,
+      timestamp: messageTs,
+      name: 'thinking_face',
+    }).catch(err => slackLogger.error({ err }, 'Failed to remove thinking reaction'))
+    await client.reactions.add({
+      channel,
+      timestamp: messageTs,
+      name: 'white_check_mark',
+    }).catch(err => slackLogger.error({ err }, 'Failed to add checkmark reaction'))
   } catch (error) {
     slackLogger.error({ error }, 'Error handling app_mention')
+    // Try to remove thinking reaction on error
+    try {
+      await client.reactions.remove({
+        channel,
+        timestamp: messageTs,
+        name: 'thinking_face',
+      })
+    } catch {
+      // Ignore reaction removal errors
+    }
     await say({ text: 'Sorry, something went wrong!', thread_ts: threadTs })
   }
 }

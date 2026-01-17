@@ -1,7 +1,15 @@
 import type { App } from '@slack/bolt'
 import type { GenericMessageEvent } from '@slack/types'
+import type { WebClient } from '@slack/web-api'
 import { responseHandler, type ThreadContext } from '../../response-handler'
 import { slackLogger } from '../../utils/logger'
+
+// Non-AI commands that don't need thinking/done reactions
+const NON_AI_COMMANDS = ['ping']
+
+function isAIResponse(text: string): boolean {
+  return !NON_AI_COMMANDS.includes(text.toLowerCase().trim())
+}
 
 export function register(app: App) {
   // Handle direct messages
@@ -33,20 +41,34 @@ export function register(app: App) {
     slackLogger.info({ user: messageEvent.user, channel: messageEvent.channel }, 'DM received')
 
     // Process asynchronously to ack within 3 seconds
-    processMessage(say, text, messageEvent, isThreadReply, threadTs)
+    processMessage(client, say, text, messageEvent, isThreadReply, threadTs)
   })
 }
 
 async function processMessage(
+  client: WebClient,
   say: (msg: string | { text: string; thread_ts?: string }) => Promise<unknown>,
   text: string,
   messageEvent: GenericMessageEvent,
   isThreadReply: boolean,
   threadTs: string
 ) {
+  const channel = messageEvent.channel
+  const messageTs = messageEvent.ts
+  const useReactions = isAIResponse(text)
+
   try {
+    // Add thinking reaction for AI responses
+    if (useReactions) {
+      await client.reactions.add({
+        channel,
+        timestamp: messageTs,
+        name: 'thinking_face',
+      }).catch(err => slackLogger.error({ err }, 'Failed to add thinking reaction'))
+    }
+
     const threadContext: ThreadContext = {
-      channelId: messageEvent.channel,
+      channelId: channel,
       threadTs: threadTs,
       userId: messageEvent.user ?? '',
       teamId: '',
@@ -70,10 +92,33 @@ async function processMessage(
     } else {
       await say({ text: response })
     }
+
+    // Remove thinking and add checkmark for AI responses
+    if (useReactions) {
+      await client.reactions.remove({
+        channel,
+        timestamp: messageTs,
+        name: 'thinking_face',
+      }).catch(err => slackLogger.error({ err }, 'Failed to remove thinking reaction'))
+      await client.reactions.add({
+        channel,
+        timestamp: messageTs,
+        name: 'white_check_mark',
+      }).catch(err => slackLogger.error({ err }, 'Failed to add checkmark reaction'))
+    }
   } catch (error) {
     // Log the full error for debugging
     slackLogger.error({ error }, 'Error handling DM')
-    
+
+    // Try to remove thinking reaction on error
+    if (useReactions) {
+      await client.reactions.remove({
+        channel,
+        timestamp: messageTs,
+        name: 'thinking_face',
+      }).catch(() => {})
+    }
+
     // Provide helpful error message based on error type
     let errorMessage = 'Sorry, something went wrong!'
     if (error instanceof Error) {
@@ -83,7 +128,7 @@ async function processMessage(
         errorMessage = 'AI service rate limit reached. Please try again in a moment.'
       }
     }
-    
+
     await say({ text: errorMessage })
   }
 }
