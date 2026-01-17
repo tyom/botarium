@@ -282,7 +282,7 @@ export class SocketModeServer {
   // Event Dispatching
   // ==========================================================================
 
-  async dispatchEvent(event: SlackEvent): Promise<void> {
+  async dispatchEvent(event: SlackEvent, targetBotId?: string): Promise<void> {
     if (this.connections.size === 0) {
       socketModeLogger.warn(
         `No bots connected, event not dispatched: ${event.type}`
@@ -307,9 +307,76 @@ export class SocketModeServer {
 
     const message = JSON.stringify(envelope)
 
-    // Send to all connected bots
+    // Determine target connections
+    // For DM channels (D_{botId}), only send to that specific bot
+    // For targeted dispatch (e.g., app_mention), only send to the specified bot
+    // For regular channels, send to all bots
+    let targetConnections: SocketConnection[] = []
+    const channel = event.channel
+
+    if (channel && channel.startsWith('D_')) {
+      // Extract botId from channel (e.g., "D_simple" -> "simple")
+      const botId = channel.substring(2)
+      const bot = this.state.getBot(botId)
+      const allBots = this.state.getBots()
+
+      socketModeLogger.info(
+        {
+          channel,
+          botId,
+          botFound: !!bot,
+          botStatus: bot?.status,
+          allBotIds: allBots.map((b) => b.id),
+          connectionCount: this.connections.size,
+        },
+        'DM dispatch lookup'
+      )
+
+      if (bot && bot.status === 'connected') {
+        const conn = this.connections.get(bot.connectionId)
+        if (conn) {
+          targetConnections = [conn]
+          socketModeLogger.info(
+            `DM event targeting bot: ${bot.appConfig.app.name} (${botId})`
+          )
+        } else {
+          socketModeLogger.warn(
+            `Bot ${botId} found but no connection for connectionId: ${bot.connectionId}`
+          )
+        }
+      }
+
+      if (targetConnections.length === 0) {
+        socketModeLogger.warn(
+          `Bot not found or not connected for DM channel: ${channel}`
+        )
+        return
+      }
+    } else if (targetBotId) {
+      // Targeted dispatch (e.g., app_mention for specific bot)
+      const bot = this.state.getBot(targetBotId)
+      if (bot && bot.status === 'connected') {
+        const conn = this.connections.get(bot.connectionId)
+        if (conn) {
+          targetConnections = [conn]
+          socketModeLogger.info(
+            `Targeted event for bot: ${bot.appConfig.app.name} (${targetBotId})`
+          )
+        }
+      }
+      if (targetConnections.length === 0) {
+        socketModeLogger.warn(
+          `Target bot not found or not connected: ${targetBotId}`
+        )
+        return
+      }
+    } else {
+      // Send to all connected bots for regular channels
+      targetConnections = Array.from(this.connections.values())
+    }
+
     const sendPromises: Promise<void>[] = []
-    for (const conn of this.connections.values()) {
+    for (const conn of targetConnections) {
       sendPromises.push(this.sendWithAck(conn, envelope.envelope_id, message))
     }
 
@@ -322,7 +389,7 @@ export class SocketModeServer {
         ),
       ])
       socketModeLogger.debug(
-        `Event dispatched to ${this.connections.size} bot(s): ${event.type}`
+        `Event dispatched to ${targetConnections.length} bot(s): ${event.type}`
       )
     } catch (err) {
       socketModeLogger.error({ err }, 'Failed to dispatch event')
@@ -374,6 +441,10 @@ export class SocketModeServer {
     ts: string,
     threadTs?: string
   ): Promise<void> {
+    socketModeLogger.info(
+      { channel, user, text: text.substring(0, 50) },
+      'dispatchMessageEvent called'
+    )
     const isIM = this.state.isDirectMessage(channel)
 
     const event: SlackEvent = {
@@ -394,7 +465,8 @@ export class SocketModeServer {
     user: string,
     text: string,
     ts: string,
-    threadTs?: string
+    threadTs?: string,
+    targetBotId?: string
   ): Promise<void> {
     const event: SlackEvent = {
       type: 'app_mention',
@@ -406,7 +478,7 @@ export class SocketModeServer {
       channel_type: 'channel',
     }
 
-    await this.dispatchEvent(event)
+    await this.dispatchEvent(event, targetBotId)
   }
 
   async dispatchSlashCommand(payload: SlashCommandPayload): Promise<void> {

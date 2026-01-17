@@ -1060,6 +1060,11 @@ export class SlackWebAPI {
   ): Promise<Response> {
     const { text, channel, thread_ts, user } = body
 
+    webApiLogger.info(
+      { text, channel, user, thread_ts },
+      'Received user message'
+    )
+
     if (!text || !channel || !user) {
       return Response.json(
         { ok: false, error: 'missing_argument' },
@@ -1117,7 +1122,8 @@ export class SlackWebAPI {
             user,
             text,
             ts,
-            thread_ts
+            thread_ts,
+            bot.id
           )
           break // Only dispatch once even if multiple bots are mentioned
         }

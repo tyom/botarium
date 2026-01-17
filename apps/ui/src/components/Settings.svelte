@@ -6,7 +6,15 @@
   import IconButton from './IconButton.svelte'
   import DynamicSettings from './DynamicSettings.svelte'
   import { clearAllMessages } from '../lib/dispatcher.svelte'
-  import { clearMessages } from '../lib/state.svelte'
+  import { clearMessages, simulatorState } from '../lib/state.svelte'
+
+  // Get first connected bot ID for fetching config schema
+  // (any bot works since we only need the schema for global settings)
+  const firstBotId = $derived(
+    simulatorState.connectedBots.size > 0
+      ? Array.from(simulatorState.connectedBots.keys())[0]
+      : undefined
+  )
 
   interface Props {
     settings: Record<string, unknown>
@@ -124,6 +132,7 @@
           initialValues={settings}
           bind:formData
           filterScope="global"
+          botId={firstBotId}
         >
           {#snippet advancedContent()}
             <!-- Delete All Data section -->
@@ -207,6 +216,7 @@
           initialValues={settings}
           bind:formData
           filterScope="global"
+          botId={firstBotId}
         />
 
         {#if error}
