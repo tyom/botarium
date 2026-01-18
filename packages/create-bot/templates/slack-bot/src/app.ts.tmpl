@@ -83,6 +83,11 @@ async function registerWithSimulator(maxRetries = 10, retryDelayMs = 1000) {
   const apiUrl = process.env.SLACK_API_URL
   if (!apiUrl) return
 
+  if (configServerPort == null) {
+    slackLogger.warn('Config server not started; skipping simulator registration')
+    return
+  }
+
   // Build registration payload with actual config server port
   const registrationPayload = {
     ...slackConfig,
