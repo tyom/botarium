@@ -46,6 +46,8 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
   const useReactions = isAIResponse(message.text) && messageTs
 {{/if}}
 
+  let streamer: ReturnType<typeof client.chatStream> | undefined
+
   try {
     // Set thread title to the user's message
     await setTitle(message.text)
@@ -91,7 +93,7 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
     }
 
     // Generate and stream response
-    const streamer = client.chatStream({
+    streamer = client.chatStream({
       channel,
       recipient_team_id: teamId,
       recipient_user_id: userId,
@@ -104,8 +106,6 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
     )) {
       await streamer.append({ markdown_text: chunk })
     }
-
-    await streamer.stop()
 
 {{#if isAi}}
     // Remove thinking and add checkmark for AI responses
@@ -135,5 +135,9 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
     }
 {{/if}}
     await say({ text: 'Sorry, something went wrong!' })
+  } finally {
+    if (streamer) {
+      await streamer.stop().catch(() => {})
+    }
   }
 }
