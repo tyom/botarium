@@ -20,6 +20,7 @@ import {
   addConnectedBot,
   markBotDisconnected,
   restoreMessages,
+  isBotUserId,
 } from './state.svelte'
 import type {
   SimulatorMessage,
@@ -299,8 +300,9 @@ function handleSSEEvent(event: {
     case 'message':
       if (event.message) {
         const msg = event.message
-        // Only add messages from bot (we already added our own messages)
-        if (msg.user === simulatorState.botUserId) {
+        // Only add messages from bots (we already added our own messages)
+        // Bot user IDs have format U_{botId} (e.g., U_simple) or legacy U_BOT
+        if (isBotUserId(msg.user)) {
           addMessage({
             ts: msg.ts,
             user: msg.user,

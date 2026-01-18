@@ -12,7 +12,3 @@
 #     source: /path/to/my-bot
 
 bots:
-  - name: simple
-    source: ../../simple
-  - name: my-bot
-    source: ../../my-bot

@@ -480,3 +480,38 @@ export function markBotDisconnected(botId: string): void {
     simulatorState.connectedBots.set(botId, { ...bot, status: 'disconnected' })
   }
 }
+
+// Check if a user ID belongs to a bot
+// Bot user IDs follow the format U_{botId} (e.g., U_simple, U_my-bot)
+export function isBotUserId(userId: string): boolean {
+  // Legacy format check
+  if (userId === BOT_USER_ID) return true
+
+  // New multi-bot format: U_{botId}
+  if (userId.startsWith('U_')) {
+    const botId = userId.slice(2)
+    // Check if this botId exists in connected bots
+    if (simulatorState.connectedBots.has(botId)) return true
+    // Also check if it's a valid DM channel bot (for messages from disconnected bots)
+    // DM channels follow D_{botId} pattern, so any U_{something} could be a bot
+    return true // For display purposes, treat any U_ prefix as a bot
+  }
+
+  return false
+}
+
+// Get bot info by user ID
+// Returns the bot info if the user ID belongs to a registered bot
+export function getBotByUserId(userId: string): ConnectedBotInfo | undefined {
+  if (userId === BOT_USER_ID) {
+    // Legacy: return first connected bot or undefined
+    return Array.from(simulatorState.connectedBots.values())[0]
+  }
+
+  if (userId.startsWith('U_')) {
+    const botId = userId.slice(2)
+    return simulatorState.connectedBots.get(botId)
+  }
+
+  return undefined
+}

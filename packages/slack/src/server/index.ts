@@ -208,6 +208,31 @@ export async function startEmulatorServer(
         })
       }
 
+      // Simulator settings endpoints (Electron pushes settings, bots can fetch them)
+      if (path === '/api/simulator/settings') {
+        if (req.method === 'POST') {
+          try {
+            const settings = (await req.json()) as Record<string, unknown>
+            state.setSimulatorSettings(settings)
+            return Response.json(
+              { ok: true },
+              { headers: { 'Access-Control-Allow-Origin': '*' } }
+            )
+          } catch {
+            return Response.json(
+              { ok: false, error: 'invalid_json' },
+              { status: 400, headers: { 'Access-Control-Allow-Origin': '*' } }
+            )
+          }
+        }
+        if (req.method === 'GET') {
+          return Response.json(
+            { ok: true, settings: state.getSimulatorSettings() },
+            { headers: { 'Access-Control-Allow-Origin': '*' } }
+          )
+        }
+      }
+
       // Status endpoint
       if (path === '/api/simulator/status') {
         return webApi.getStatus()
@@ -273,6 +298,15 @@ export async function startEmulatorServer(
           { success: true },
           { headers: { 'Access-Control-Allow-Origin': '*' } }
         )
+      }
+
+      // Bot registration routes without /api prefix (for external bots using SLACK_API_URL=http://localhost:PORT)
+      if (path === '/config/register' && req.method === 'POST') {
+        return await webApi.handleConfigRegister(await req.json())
+      }
+
+      if (path === '/commands/register' && req.method === 'POST') {
+        return webApi.handleCommandRegister(await req.json())
       }
 
       // Command registration (called by bot at startup)

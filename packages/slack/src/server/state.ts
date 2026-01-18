@@ -55,6 +55,9 @@ export class EmulatorState {
     { filename: string; length: number; data?: Buffer }
   > = new Map()
 
+  // Global simulator settings (pushed from Electron, provided to connecting bots)
+  private simulatorSettings: Record<string, unknown> = {}
+
   constructor(config: WorkspaceConfig = DEFAULT_WORKSPACE_CONFIG) {
     this.config = config
     this.initializeWorkspace()
@@ -288,6 +291,25 @@ export class EmulatorState {
 
   getBotInfo(): { id: string; name: string; display_name: string } {
     return this.config.bot
+  }
+
+  /**
+   * Get bot info for a specific registered bot by its app ID.
+   * Returns a Slack-compatible bot identity with user_id derived from the app ID.
+   */
+  getBotInfoById(
+    botId: string
+  ): { id: string; name: string; display_name: string } | undefined {
+    const bot = this.connectedBots.get(botId)
+    if (!bot) return undefined
+
+    const appConfig = bot.appConfig
+    return {
+      // Generate a consistent user ID from the app ID (e.g., "simple" -> "U_simple")
+      id: `U_${appConfig.app.id}`,
+      name: appConfig.app.name,
+      display_name: appConfig.app.name,
+    }
   }
 
   // ==========================================================================
@@ -988,6 +1010,19 @@ export class EmulatorState {
         this.messages.set(message.channel, [message])
       }
     }
+  }
+
+  // ==========================================================================
+  // Simulator Settings (pushed from Electron, provided to connecting bots)
+  // ==========================================================================
+
+  setSimulatorSettings(settings: Record<string, unknown>): void {
+    this.simulatorSettings = settings
+    stateLogger.debug({ keys: Object.keys(settings) }, 'Simulator settings updated')
+  }
+
+  getSimulatorSettings(): Record<string, unknown> {
+    return this.simulatorSettings
   }
 
   close(): void {

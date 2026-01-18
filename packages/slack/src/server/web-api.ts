@@ -56,6 +56,34 @@ export class SlackWebAPI {
   }
 
   /**
+   * Extract bot ID from authentication token.
+   * Tokens are formatted as xoxb-{botId} (e.g., "xoxb-simple" -> "simple")
+   */
+  private extractBotIdFromToken(token: string | null): string | undefined {
+    if (!token) return undefined
+    // Handle tokens like "xoxb-simple" or "xoxb-my-bot"
+    if (token.startsWith('xoxb-')) {
+      return token.slice(5) // Remove "xoxb-" prefix
+    }
+    return undefined
+  }
+
+  /**
+   * Get bot info from token, falling back to global bot info if not found.
+   */
+  private getBotInfoFromToken(
+    token: string | null
+  ): { id: string; name: string; display_name: string } {
+    const botId = this.extractBotIdFromToken(token)
+    if (botId) {
+      const botInfo = this.state.getBotInfoById(botId)
+      if (botInfo) return botInfo
+    }
+    // Fallback to global bot info for backward compatibility
+    return this.state.getBotInfo()
+  }
+
+  /**
    * Parse request body - handles both JSON and form-urlencoded formats
    * Slack's Web API can send requests in either format
    */
@@ -128,7 +156,7 @@ export class SlackWebAPI {
     console.log(`[Emulator] API request: ${req.method} ${path}`)
 
     // Validate authorization for Slack API routes
-    const token = req.headers.get('Authorization')?.replace('Bearer ', '')
+    const token = req.headers.get('Authorization')?.replace('Bearer ', '') ?? null
 
     // Accept any token starting with xoxb- or xoxp-
     // Also whitelist internal simulator endpoints
@@ -151,19 +179,19 @@ export class SlackWebAPI {
       switch (path) {
         // Slack Web API endpoints
         case '/api/auth.test':
-          return this.authTest()
+          return this.authTest(token)
 
         case '/api/chat.postMessage':
-          return this.chatPostMessage(await this.parseBody(req))
+          return this.chatPostMessage(await this.parseBody(req), token)
 
         case '/api/chat.update':
-          return this.chatUpdate(await this.parseBody(req))
+          return this.chatUpdate(await this.parseBody(req), token)
 
         case '/api/reactions.add':
-          return this.reactionsAdd(await this.parseBody(req))
+          return this.reactionsAdd(await this.parseBody(req), token)
 
         case '/api/reactions.remove':
-          return this.reactionsRemove(await this.parseBody(req))
+          return this.reactionsRemove(await this.parseBody(req), token)
 
         case '/api/conversations.replies':
           return this.conversationsReplies(await this.getParams(req))
@@ -188,7 +216,7 @@ export class SlackWebAPI {
           return this.viewsPush(await this.parseBody(req))
 
         case '/api/files.uploadV2':
-          return this.filesUploadV2(req)
+          return this.filesUploadV2(req, token)
 
         case '/api/files.getUploadURLExternal':
           return this.filesGetUploadURLExternal(await this.parseBody(req))
@@ -205,7 +233,7 @@ export class SlackWebAPI {
             '[Emulator] files.completeUploadExternal raw body:',
             JSON.stringify(body, null, 2)
           )
-          return this.filesCompleteUploadExternal(body)
+          return this.filesCompleteUploadExternal(body, token)
         }
 
         case '/api/files.info':
@@ -231,8 +259,8 @@ export class SlackWebAPI {
   // Slack Web API Endpoints
   // ==========================================================================
 
-  private authTest(): Response {
-    const botInfo = this.state.getBotInfo()
+  private authTest(token: string | null): Response {
+    const botInfo = this.getBotInfoFromToken(token)
     const response: AuthTestResponse = {
       ok: true,
       url: `${getEmulatorUrl()}/`,
@@ -246,7 +274,8 @@ export class SlackWebAPI {
   }
 
   private async chatPostMessage(
-    body: ChatPostMessageRequest
+    body: ChatPostMessageRequest,
+    token: string | null
   ): Promise<Response> {
     const { channel, text, thread_ts } = body
 
@@ -263,7 +292,7 @@ export class SlackWebAPI {
       )
     }
 
-    const botInfo = this.state.getBotInfo()
+    const botInfo = this.getBotInfoFromToken(token)
     const ts = this.state.generateTimestamp()
 
     const message: SlackMessage = {
@@ -295,7 +324,8 @@ export class SlackWebAPI {
   }
 
   private async chatUpdate(
-    body: ChatPostMessageRequest & { ts: string }
+    body: ChatPostMessageRequest & { ts: string },
+    _token: string | null
   ): Promise<Response> {
     const { channel, text, ts } = body
 
@@ -325,7 +355,10 @@ export class SlackWebAPI {
     )
   }
 
-  private async reactionsAdd(body: ReactionsRequest): Promise<Response> {
+  private async reactionsAdd(
+    body: ReactionsRequest,
+    token: string | null
+  ): Promise<Response> {
     const { channel, timestamp, name } = body
 
     if (!channel || !timestamp || !name) {
@@ -335,7 +368,7 @@ export class SlackWebAPI {
       )
     }
 
-    const botInfo = this.state.getBotInfo()
+    const botInfo = this.getBotInfoFromToken(token)
     const success = this.state.addReaction(channel, timestamp, botInfo.id, name)
 
     if (!success) {
@@ -350,7 +383,10 @@ export class SlackWebAPI {
     return Response.json(response, { headers: corsHeaders() })
   }
 
-  private async reactionsRemove(body: ReactionsRequest): Promise<Response> {
+  private async reactionsRemove(
+    body: ReactionsRequest,
+    token: string | null
+  ): Promise<Response> {
     const { channel, timestamp, name } = body
 
     if (!channel || !timestamp || !name) {
@@ -360,7 +396,7 @@ export class SlackWebAPI {
       )
     }
 
-    const botInfo = this.state.getBotInfo()
+    const botInfo = this.getBotInfoFromToken(token)
     const success = this.state.removeReaction(
       channel,
       timestamp,
@@ -559,7 +595,10 @@ export class SlackWebAPI {
     return this.viewsOpen(body)
   }
 
-  private async filesUploadV2(req: Request): Promise<Response> {
+  private async filesUploadV2(
+    req: Request,
+    token: string | null
+  ): Promise<Response> {
     try {
       const formData = await req.formData()
       const channelId = formData.get('channel_id') as string
@@ -601,7 +640,7 @@ export class SlackWebAPI {
       this.state.storeFile(slackFile)
 
       // Create message with file attachment
-      const botInfo = this.state.getBotInfo()
+      const botInfo = this.getBotInfoFromToken(token)
       const messageText = initialComment || `Shared a file: ${title}`
 
       const message: SlackMessage = {
@@ -669,13 +708,16 @@ export class SlackWebAPI {
     )
   }
 
-  private async filesCompleteUploadExternal(body: {
-    files?: Array<{ id: string; title?: string }> | string
-    channel_id?: string
-    channels?: string // SDK might use 'channels' instead of 'channel_id'
-    channel?: string // SDK might also use 'channel'
-    initial_comment?: string
-  }): Promise<Response> {
+  private async filesCompleteUploadExternal(
+    body: {
+      files?: Array<{ id: string; title?: string }> | string
+      channel_id?: string
+      channels?: string // SDK might use 'channels' instead of 'channel_id'
+      channel?: string // SDK might also use 'channel'
+      initial_comment?: string
+    },
+    token: string | null
+  ): Promise<Response> {
     webApiLogger.info({ body }, 'filesCompleteUploadExternal called')
 
     // files may be a JSON string if sent as form-urlencoded
@@ -745,7 +787,7 @@ export class SlackWebAPI {
       const fileUrl = `${getEmulatorUrl()}/api/simulator/files/${fileId}`
 
       // Create file object with HTTP URL
-      const botInfo = this.state.getBotInfo()
+      const botInfo = this.getBotInfoFromToken(token)
       const slackFile: SlackFile = {
         id: fileId,
         name: pendingUpload.filename,
@@ -1197,8 +1239,11 @@ export class SlackWebAPI {
         `Registered bot: ${config.app.name} (${botId}) via connection ${connectionId}`
       )
 
+      // Include simulator settings in response so external bots can apply them
+      const simulatorSettings = this.state.getSimulatorSettings()
+
       return Response.json(
-        { ok: true, bot_id: botId },
+        { ok: true, bot_id: botId, settings: simulatorSettings },
         { headers: corsHeaders() }
       )
     } catch (err) {

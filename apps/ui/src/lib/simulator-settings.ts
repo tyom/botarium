@@ -1,9 +1,12 @@
 /**
  * Static schema for global simulator settings
  *
- * These are infrastructure settings for the simulator itself,
- * independent of any connected bots. Bot-specific settings
- * (AI provider, API keys, etc.) come from each bot's config.yaml.
+ * These settings include both infrastructure settings for the simulator
+ * and global AI provider settings. AI settings are defined here so they're
+ * available in the Settings UI even before any bot connects (discovery mode).
+ *
+ * When a bot connects, its config.yaml settings are merged with these,
+ * with bot-specific settings taking precedence.
  */
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
@@ -13,6 +16,10 @@ export interface SimulatorSettings {
   emulator_port: number
   data_dir: string
   log_level: LogLevel
+  ai_provider: string
+  openai_api_key?: string
+  anthropic_api_key?: string
+  google_api_key?: string
 }
 
 export const DEFAULT_SIMULATOR_SETTINGS: SimulatorSettings = {
@@ -20,12 +27,49 @@ export const DEFAULT_SIMULATOR_SETTINGS: SimulatorSettings = {
   emulator_port: 7557,
   data_dir: './data',
   log_level: 'info',
+  ai_provider: 'openai',
 }
 
 // Schema for UI generation (matches bot config schema format)
 // All simulator settings are global scope (not app-specific)
 export const SIMULATOR_SETTINGS_SCHEMA = {
   settings: {
+    ai_provider: {
+      type: 'select' as const,
+      label: 'AI Provider',
+      group: 'ai',
+      scope: 'global' as const,
+      required: true,
+      options: [
+        { value: 'openai', label: 'OpenAI' },
+        { value: 'anthropic', label: 'Anthropic' },
+        { value: 'google', label: 'Google' },
+      ],
+    },
+    openai_api_key: {
+      type: 'secret' as const,
+      label: 'OpenAI API Key',
+      group: 'ai',
+      scope: 'global' as const,
+      required: true,
+      condition: { field: 'ai_provider', equals: 'openai' },
+    },
+    anthropic_api_key: {
+      type: 'secret' as const,
+      label: 'Anthropic API Key',
+      group: 'ai',
+      scope: 'global' as const,
+      required: true,
+      condition: { field: 'ai_provider', equals: 'anthropic' },
+    },
+    google_api_key: {
+      type: 'secret' as const,
+      label: 'Google API Key',
+      group: 'ai',
+      scope: 'global' as const,
+      required: true,
+      condition: { field: 'ai_provider', equals: 'google' },
+    },
     simulated_user_name: {
       type: 'string' as const,
       label: 'Your Name',
@@ -66,6 +110,7 @@ export const SIMULATOR_SETTINGS_SCHEMA = {
     },
   },
   groups: [
+    { id: 'ai', label: 'AI Provider', order: 0 },
     { id: 'general', label: 'General', order: 1 },
     { id: 'advanced', label: 'Advanced', order: 2, collapsed: true },
   ],

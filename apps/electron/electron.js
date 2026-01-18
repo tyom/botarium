@@ -678,6 +678,18 @@ async function startBackend(settings) {
   }
   emulatorProcLogger.info('Ready')
 
+  // Push global settings to emulator so external bots can receive them on registration
+  try {
+    await fetch(`${EMULATOR_URL}/api/simulator/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settingsEnv),
+    })
+    electronLogger.debug('Pushed settings to emulator')
+  } catch (err) {
+    electronLogger.warn({ err }, 'Failed to push settings to emulator')
+  }
+
   // 2. Start bots from bots.yaml configuration
   const botConfigs = getBotConfigs()
   const startedBots = botConfigs.map((b) => b.name)
