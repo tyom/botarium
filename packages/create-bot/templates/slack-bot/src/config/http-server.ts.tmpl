@@ -51,13 +51,13 @@ function getConfigResponse(): ConfigResponse {
 }
 
 /**
- * Start the config HTTP server
- * Returns null if the server fails to start (non-fatal)
+ * Start the config HTTP server on a random available port
+ * Returns the server instance with its actual port, or null if failed
  */
-export function startConfigServer(port: number) {
+export function startConfigServer() {
   try {
     const server = Bun.serve({
-      port,
+      port: 0, // Let OS pick an available port
       hostname: '127.0.0.1', // Explicit IPv4 for Electron compatibility
       async fetch(req) {
         const url = new URL(req.url)
@@ -87,10 +87,10 @@ export function startConfigServer(port: number) {
       },
     })
 
-    appLogger.info({ port }, 'Config server started')
+    appLogger.info({ port: server.port }, 'Config server started')
     return server
   } catch (error) {
-    appLogger.warn({ port, error }, 'Failed to start config server (non-fatal)')
+    appLogger.warn({ error }, 'Failed to start config server (non-fatal)')
     return null
   }
 }

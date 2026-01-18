@@ -12,6 +12,9 @@ const SIMULATOR_APP_TOKEN = `xapp-${config.simulator.id}`
 // Track connection state for reconnection handling
 let hasConnectedOnce = false
 
+// Config server port (set when server starts)
+let configServerPort: number | undefined
+
 /**
  * Poll the emulator's health endpoint to verify a WebSocket connection exists.
  * This ensures registration happens only after the WebSocket is tracked.
@@ -80,13 +83,19 @@ async function registerWithSimulator(maxRetries = 10, retryDelayMs = 1000) {
   const apiUrl = process.env.SLACK_API_URL
   if (!apiUrl) return
 
+  // Build registration payload with actual config server port
+  const registrationPayload = {
+    ...slackConfig,
+    app: { ...slackConfig.app, configPort: configServerPort },
+  }
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       // apiUrl already includes /api suffix (e.g., http://localhost:7557/api)
       const response = await fetch(`${apiUrl}/config/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(slackConfig),
+        body: JSON.stringify(registrationPayload),
       })
 
       const data = (await response.json()) as RegistrationResponse
@@ -134,10 +143,12 @@ async function registerWithSimulator(maxRetries = 10, retryDelayMs = 1000) {
 async function main() {
   appLogger.info({ simulatorMode: isSimulatorMode }, 'Starting bot...')
 
-  // Start config server for simulator
+  // Start config server for simulator (uses random port)
   if (isSimulatorMode) {
-    const configPort = settings.PORT + 1
-    startConfigServer(configPort)
+    const server = startConfigServer()
+    if (server) {
+      configServerPort = server.port
+    }
   }
 
   const app = createApp()
