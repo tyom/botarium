@@ -162,7 +162,10 @@ export function getCurrentMessages(): SimulatorMessage[] {
 // Get channel display name
 export function getChannelDisplayName(): string {
   if (simulatorState.isDM) {
-    return simulatorState.botName
+    // Extract bot ID from channel ID "D_{botId}"
+    const botId = simulatorState.currentChannel.slice(2)
+    const bot = simulatorState.connectedBots.get(botId)
+    return bot?.name ?? simulatorState.botName
   }
   return '#' + simulatorState.currentChannel.replace(/^C_/, '').toLowerCase()
 }

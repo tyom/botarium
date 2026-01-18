@@ -834,23 +834,29 @@ function setupIpcHandlers() {
   // Includes retry logic since bot config server may not be immediately available
   ipcMain.handle('bot:fetchConfig', async (_event, botId) => {
     // Look up the config port for this bot
-    // First check local processes (bots started by Electron)
-    let configPort = botProcesses.get(botId)?.configPort
+    // Always query the emulator first - it has the actual port from bot registration
+    // (bots use random ports, so Electron's calculated port may be wrong)
+    let configPort = null
 
-    // If not found locally, query the emulator for external bots
-    if (!configPort) {
-      try {
-        const botsResponse = await fetch(`${EMULATOR_URL}/api/simulator/bots`)
-        if (botsResponse.ok) {
-          const botsData = await botsResponse.json()
-          const bot = botsData.bots?.find(b => b.id === botId)
-          if (bot?.configPort) {
-            configPort = bot.configPort
-            electronLogger.debug({ botId, configPort }, 'Found config port from emulator')
-          }
+    try {
+      const botsResponse = await fetch(`${EMULATOR_URL}/api/simulator/bots`)
+      if (botsResponse.ok) {
+        const botsData = await botsResponse.json()
+        const bot = botsData.bots?.find(b => b.id === botId)
+        if (bot?.configPort) {
+          configPort = bot.configPort
+          electronLogger.debug({ botId, configPort }, 'Found config port from emulator')
         }
-      } catch (error) {
-        electronLogger.debug({ error: error.message, botId }, 'Failed to query emulator for bot config port')
+      }
+    } catch (error) {
+      electronLogger.debug({ error: error.message, botId }, 'Failed to query emulator for bot config port')
+    }
+
+    // Fallback to local process map only if emulator didn't have it
+    if (!configPort) {
+      configPort = botProcesses.get(botId)?.configPort
+      if (configPort) {
+        electronLogger.debug({ botId, configPort }, 'Using config port from local process map')
       }
     }
 
