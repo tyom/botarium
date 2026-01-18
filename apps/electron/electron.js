@@ -46,7 +46,7 @@ app.commandLine.appendSwitch('disable-features', 'AutofillServerCommunication')
 
 let mainWindow = null
 let emulatorProcess = null
-let botProcesses = new Map() // Map<botName, { process, configPort }>
+let botProcesses = new Map() // Map<botName, { process }>
 let logsPanelChecked = false
 
 // Paths - adjust based on whether running from root (dev) or dist folder (bundled)
@@ -548,8 +548,6 @@ function spawnProcess(config, env, label, forwardLogs = false) {
 
 // Start a single bot process
 function startBotProcess(botConfig, settingsEnv, botName, botPort) {
-  // Config server runs on PORT + 1
-  const configPort = botPort + 1
   const botEnv = { ...settingsEnv, PORT: String(botPort) }
   const proc = spawnProcess(botConfig, botEnv, `Bot:${botName}`, true)
 
@@ -577,7 +575,7 @@ function startBotProcess(botConfig, settingsEnv, botName, botPort) {
     }
   })
 
-  botProcesses.set(botName, { process: proc, configPort })
+  botProcesses.set(botName, { process: proc })
   return proc
 }
 
@@ -819,9 +817,6 @@ function setupIpcHandlers() {
       emulatorRunning: emulatorProcess !== null,
       botCount: botProcesses.size,
       botNames: Array.from(botProcesses.keys()),
-      botPorts: Object.fromEntries(
-        Array.from(botProcesses.entries()).map(([name, { configPort }]) => [name, configPort])
-      ),
     }
   })
 
@@ -831,11 +826,9 @@ function setupIpcHandlers() {
   })
 
   // Fetch bot config (proxied to avoid renderer CSP issues)
+  // Bots register their config port with the emulator, so we query the emulator to get it
   // Includes retry logic since bot config server may not be immediately available
   ipcMain.handle('bot:fetchConfig', async (_event, botId) => {
-    // Look up the config port for this bot
-    // Always query the emulator first - it has the actual port from bot registration
-    // (bots use random ports, so Electron's calculated port may be wrong)
     let configPort = null
 
     try {
@@ -852,16 +845,8 @@ function setupIpcHandlers() {
       electronLogger.debug({ error: error.message, botId }, 'Failed to query emulator for bot config port')
     }
 
-    // Fallback to local process map only if emulator didn't have it
     if (!configPort) {
-      configPort = botProcesses.get(botId)?.configPort
-      if (configPort) {
-        electronLogger.debug({ botId, configPort }, 'Using config port from local process map')
-      }
-    }
-
-    if (!configPort) {
-      electronLogger.warn({ botId }, 'Bot config port not found')
+      electronLogger.warn({ botId }, 'Bot config port not found - bot may not have registered yet')
       return null
     }
 
