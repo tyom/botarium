@@ -209,7 +209,10 @@ export class SocketModeServer {
       const data = JSON.parse(message.toString()) as SocketModeAck
 
       // Log all incoming messages for debugging
-      socketModeLogger.debug({ data }, 'Received WebSocket message')
+      socketModeLogger.debug(
+        { envelope_id: data.envelope_id },
+        'Received WebSocket message'
+      )
 
       // Handle acknowledgments from bot
       if (data.envelope_id) {
@@ -461,7 +464,7 @@ export class SocketModeServer {
     threadTs?: string
   ): Promise<void> {
     socketModeLogger.info(
-      { channel, user, text: text.substring(0, 50) },
+      { channel, user, textLength: text.length },
       'dispatchMessageEvent called'
     )
     const isIM = this.state.isDirectMessage(channel)
