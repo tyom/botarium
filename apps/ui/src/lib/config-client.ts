@@ -10,10 +10,6 @@
 
 import { getElectronAPI, isElectron } from './electron-api'
 
-// Config server runs on bot port + 1 (default: 3001)
-export const DEFAULT_CONFIG_PORT = 3001
-export const CONFIG_API_URL = `http://localhost:${DEFAULT_CONFIG_PORT}`
-
 // Schema field types
 export type FieldType =
   | 'string'
@@ -71,46 +67,28 @@ export interface BotConfig {
 
 /**
  * Fetch bot configuration from the /config endpoint
- * In Electron, uses IPC to avoid CSP issues with renderer fetch
- * @param botId - The bot identifier to fetch config for (required in Electron)
+ * Uses IPC in Electron to fetch through main process (which queries the emulator for the config port)
+ * @param botId - The bot identifier to fetch config for
  */
 export async function fetchBotConfig(botId?: string): Promise<BotConfig | null> {
-  // In Electron, use IPC to fetch through main process (avoids CSP issues)
-  if (isElectron) {
-    if (!botId) {
-      console.warn('fetchBotConfig: botId is required in Electron mode')
-      return null
-    }
-    try {
-      const api = getElectronAPI()
-      if (api) {
-        return (await api.fetchBotConfig(botId)) as BotConfig | null
-      }
-    } catch {
-      return null
-    }
+  if (!botId) {
+    console.warn('fetchBotConfig: botId is required')
+    return null
   }
 
-  // In web mode, fetch directly (no botId needed as there's only one bot)
+  if (!isElectron) {
+    console.warn('fetchBotConfig: only supported in Electron mode')
+    return null
+  }
+
   try {
-    const response = await fetch(`${CONFIG_API_URL}/config`)
-    if (!response.ok) {
-      return null
+    const api = getElectronAPI()
+    if (api) {
+      return (await api.fetchBotConfig(botId)) as BotConfig | null
     }
-    return await response.json()
   } catch {
     return null
   }
-}
 
-/**
- * Check if the config server is available
- */
-export async function isConfigServerAvailable(): Promise<boolean> {
-  try {
-    const response = await fetch(`${CONFIG_API_URL}/health`)
-    return response.ok
-  } catch {
-    return false
-  }
+  return null
 }
