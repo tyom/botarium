@@ -82,7 +82,7 @@ export function getModel() {
   return anthropic('claude-sonnet-4-5')
 {{/if}}
 {{#if isGoogle}}
-  return google('gemini-3-flash')
+  return google('gemini-3-flash-preview')
 {{/if}}
 }
 {{/if}}
