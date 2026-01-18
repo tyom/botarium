@@ -81,14 +81,16 @@ export async function fetchBotConfig(botId?: string): Promise<BotConfig | null> 
     return null
   }
 
-  try {
-    const api = getElectronAPI()
-    if (api) {
-      return (await api.fetchBotConfig(botId)) as BotConfig | null
-    }
-  } catch {
+  const api = getElectronAPI()
+  if (!api) {
+    console.warn('fetchBotConfig: Electron API not available')
     return null
   }
 
-  return null
+  try {
+    return (await api.fetchBotConfig(botId)) as BotConfig | null
+  } catch (error) {
+    console.warn('fetchBotConfig: failed to fetch config', error)
+    return null
+  }
 }
