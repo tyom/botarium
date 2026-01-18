@@ -69,7 +69,13 @@ async function main() {
   }
 
   const content = fs.readFileSync(CONFIG_PATH, 'utf-8')
-  const config = JSON.parse(content) as BotsConfig
+  let config: BotsConfig
+  try {
+    config = JSON.parse(content) as BotsConfig
+  } catch (error) {
+    console.error(`Failed to parse ${CONFIG_PATH}: ${error instanceof Error ? error.message : error}`)
+    process.exit(1)
+  }
   const botEntries = config.bots ?? []
 
   if (botEntries.length === 0) {
