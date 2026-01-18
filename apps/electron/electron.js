@@ -876,13 +876,31 @@ function setupIpcHandlers() {
   // Includes retry logic since bot config server may not be immediately available
   ipcMain.handle('bot:fetchConfig', async (_event, botId) => {
     // Look up the config port for this bot
-    const botInfo = botProcesses.get(botId)
-    if (!botInfo) {
-      electronLogger.warn({ botId }, 'Bot not found in process list')
+    // First check local processes (bots started by Electron)
+    let configPort = botProcesses.get(botId)?.configPort
+
+    // If not found locally, query the emulator for external bots
+    if (!configPort) {
+      try {
+        const botsResponse = await fetch(`${EMULATOR_URL}/api/simulator/bots`)
+        if (botsResponse.ok) {
+          const botsData = await botsResponse.json()
+          const bot = botsData.bots?.find(b => b.id === botId)
+          if (bot?.configPort) {
+            configPort = bot.configPort
+            electronLogger.debug({ botId, configPort }, 'Found config port from emulator')
+          }
+        }
+      } catch (error) {
+        electronLogger.debug({ error: error.message, botId }, 'Failed to query emulator for bot config port')
+      }
+    }
+
+    if (!configPort) {
+      electronLogger.warn({ botId }, 'Bot config port not found')
       return null
     }
 
-    const configPort = botInfo.configPort
     const MAX_RETRIES = 10
     const RETRY_DELAY = 300
 

@@ -86,6 +86,7 @@ export interface SlackAppConfig {
   app: {
     name: string
     id?: string // Bot identifier in simulator (from config.yaml simulator.id)
+    configPort?: number // Port for bot's config HTTP server (usually bot port + 1)
   }
   commands: SlashCommandDefinition[]
   shortcuts: ShortcutDefinition[]

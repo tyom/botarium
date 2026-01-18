@@ -9,6 +9,7 @@
  */
 
 import rawConfig from '../../config.yaml'
+import { settings } from '../settings'
 
 // Schema field types for UI generation
 export type FieldType =
@@ -101,6 +102,6 @@ const botName = (config.settings.bot_name?.value as string) ?? '{{botNamePascal}
 // Convenience exports for Slack config
 // Include app info for emulator registration (derived from bot_name setting)
 export const slackConfig = {
-  app: { name: botName, id: config.simulator.id },
+  app: { name: botName, id: config.simulator.id, configPort: settings.PORT + 1 },
   ...config.slack,
 }

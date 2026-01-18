@@ -1270,6 +1270,7 @@ export class SlackWebAPI {
       status: bot.status,
       commands: bot.appConfig.commands?.length ?? 0,
       shortcuts: bot.appConfig.shortcuts?.length ?? 0,
+      configPort: bot.appConfig.app.configPort,
     }))
     return Response.json({ ok: true, bots }, { headers: corsHeaders() })
   }

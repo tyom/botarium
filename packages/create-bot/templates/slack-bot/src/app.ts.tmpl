@@ -9,6 +9,9 @@ import { appLogger, slackLogger } from './utils/logger'
 const SIMULATOR_BOT_TOKEN = `xoxb-${config.simulator.id}`
 const SIMULATOR_APP_TOKEN = `xapp-${config.simulator.id}`
 
+// Track connection state for reconnection handling
+let hasConnectedOnce = false
+
 /**
  * Poll the emulator's health endpoint to verify a WebSocket connection exists.
  * This ensures registration happens only after the WebSocket is tracked.
@@ -148,9 +151,23 @@ async function main() {
     receiver.client.on('connecting', () =>
       slackLogger.debug('WebSocket connecting...')
     )
-    receiver.client.on('connected', () =>
+    receiver.client.on('connected', async () => {
       slackLogger.info('WebSocket connected')
-    )
+
+      if (hasConnectedOnce) {
+        // This is a reconnection - re-register with simulator
+        slackLogger.info('Reconnected - re-registering with simulator...')
+        const apiUrl = process.env.SLACK_API_URL
+        if (apiUrl) {
+          const connected = await waitForWebSocketConnection(apiUrl, 5000)
+          if (!connected) {
+            slackLogger.warn('WebSocket not tracked after reconnection, attempting registration anyway')
+          }
+          await registerWithSimulator()
+        }
+      }
+      hasConnectedOnce = true
+    })
     receiver.client.on('disconnected', () =>
       slackLogger.warn('WebSocket disconnected')
     )
