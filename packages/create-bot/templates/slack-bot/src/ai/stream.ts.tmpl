@@ -38,19 +38,21 @@ export async function* streamAIResponse(options: StreamOptions): AsyncIterable<s
 
   // Check for errors even if stream appeared to succeed
   if (chunks.length === 0 && !streamError) {
-    // Validate API key with a quick test call
-    try {
-      const testResponse = await fetch('https://api.openai.com/v1/models', {
-        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-        signal: AbortSignal.timeout(5000),
-      })
-      if (testResponse.status === 401) {
-        streamError = new Error('Invalid API key (401 Unauthorized)')
-      } else if (!testResponse.ok) {
-        streamError = new Error(`API error: ${testResponse.status}`)
+    // Only validate OpenAI API key for OpenAI models
+    if (model.provider === 'openai') {
+      try {
+        const testResponse = await fetch('https://api.openai.com/v1/models', {
+          headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+          signal: AbortSignal.timeout(5000),
+        })
+        if (testResponse.status === 401) {
+          streamError = new Error('Invalid API key (401 Unauthorized)')
+        } else if (!testResponse.ok) {
+          streamError = new Error(`API error: ${testResponse.status}`)
+        }
+      } catch (error) {
+        streamError = error as Error
       }
-    } catch (error) {
-      streamError = error as Error
     }
   }
 
