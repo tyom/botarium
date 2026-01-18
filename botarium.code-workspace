@@ -53,7 +53,7 @@
       {
         "label": "Dev Electron",
         "detail": "Electron app with embedded emulator",
-        "command": "bun dev:electron",
+        "command": "bun dev",
         "icon": {
           "id": "device-desktop",
           "color": "terminal.ansiMagenta",

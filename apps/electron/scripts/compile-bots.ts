@@ -1,5 +1,5 @@
 /**
- * Compile bots from bots.yaml for bundling with the Electron app.
+ * Compile bots from bots.json for bundling with the Electron app.
  * Each bot is compiled to a standalone binary in dist/bots/{name}
  */
 
@@ -7,62 +7,88 @@ import { $ } from 'bun'
 import path from 'path'
 import fs from 'fs'
 
-interface BotConfig {
+// Bot entry - either a simple path string or an object with overrides
+type BotEntry = string | { source: string; name?: string; entry?: string }
+
+// Resolved bot config ready for compilation
+interface ResolvedBot {
   name: string
   source: string
   entry?: string
 }
 
-interface BotsYaml {
-  bots?: BotConfig[]
+interface BotsConfig {
+  bots?: BotEntry[]
 }
 
 const ROOT_DIR = path.join(import.meta.dir, '..')
 const OUTPUT_DIR = path.join(ROOT_DIR, 'dist', 'bots')
-const YAML_PATH = path.join(ROOT_DIR, 'bots.yaml')
+const CONFIG_PATH = path.join(ROOT_DIR, 'bots.json')
 
-// Simple YAML parser for our specific format
-function parseBotsYaml(content: string): BotsYaml {
-  const bots: BotConfig[] = []
-  let currentBot: Partial<BotConfig> | null = null
+// Parse config.yaml from bot's source directory to get simulator.id
+function getBotNameFromConfig(sourcePath: string): string | null {
+  const configPath = path.join(sourcePath, 'config.yaml')
+  if (!fs.existsSync(configPath)) {
+    return null
+  }
+  const content = fs.readFileSync(configPath, 'utf-8')
+  const config = Bun.YAML.parse(content) as { simulator?: { id?: string } }
+  return config.simulator?.id ?? null
+}
 
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim()
-    if (trimmed.startsWith('#') || trimmed === '') continue
-    if (trimmed === 'bots:') continue
+// Resolve a bot entry to a full config with name
+function resolveBotEntry(entry: BotEntry): ResolvedBot | null {
+  const source = typeof entry === 'string' ? entry : entry.source
+  const sourcePath = path.resolve(ROOT_DIR, source)
 
-    if (trimmed.startsWith('- name:')) {
-      if (currentBot && currentBot.name && currentBot.source) {
-        bots.push(currentBot as BotConfig)
-      }
-      currentBot = { name: trimmed.replace('- name:', '').trim() }
-    } else if (trimmed.startsWith('source:') && currentBot) {
-      currentBot.source = trimmed.replace('source:', '').trim()
-    } else if (trimmed.startsWith('entry:') && currentBot) {
-      currentBot.entry = trimmed.replace('entry:', '').trim()
-    }
+  // Get name: use override if provided, otherwise read from config.yaml
+  let name: string | undefined
+  if (typeof entry === 'object' && entry.name) {
+    name = entry.name
+  } else {
+    name = getBotNameFromConfig(sourcePath) ?? undefined
   }
 
-  if (currentBot && currentBot.name && currentBot.source) {
-    bots.push(currentBot as BotConfig)
+  if (!name) {
+    console.error(`Error: Cannot determine bot name for ${source}`)
+    console.error(`  No 'name' override provided and no simulator.id found in config.yaml`)
+    return null
   }
 
-  return { bots }
+  return {
+    name,
+    source,
+    entry: typeof entry === 'object' ? entry.entry : undefined,
+  }
 }
 
 async function main() {
-  if (!fs.existsSync(YAML_PATH)) {
-    console.log('No bots.yaml found - nothing to compile')
+  if (!fs.existsSync(CONFIG_PATH)) {
+    console.log('No bots.json found - nothing to compile')
     process.exit(0)
   }
 
-  const yamlContent = fs.readFileSync(YAML_PATH, 'utf-8')
-  const config = parseBotsYaml(yamlContent)
-  const bots = config.bots ?? []
+  const content = fs.readFileSync(CONFIG_PATH, 'utf-8')
+  const config = JSON.parse(content) as BotsConfig
+  const botEntries = config.bots ?? []
+
+  if (botEntries.length === 0) {
+    console.log('No bots configured in bots.json')
+    process.exit(0)
+  }
+
+  // Resolve all bot entries to full configs
+  const bots: ResolvedBot[] = []
+  for (const entry of botEntries) {
+    const resolved = resolveBotEntry(entry)
+    if (resolved) {
+      bots.push(resolved)
+    }
+  }
 
   if (bots.length === 0) {
-    console.log('No bots configured in bots.yaml')
-    process.exit(0)
+    console.log('No valid bots found after resolving entries')
+    process.exit(1)
   }
 
   console.log(`Found ${bots.length} bot(s) to compile`)
@@ -98,6 +124,15 @@ async function main() {
       console.error(`  Failed to compile ${bot.name}:`, error)
     }
   }
+
+  // Generate manifest with successfully compiled bots
+  const compiledBots = bots
+    .filter((bot) => fs.existsSync(path.join(OUTPUT_DIR, bot.name)))
+    .map((bot) => ({ name: bot.name, entry: bot.entry }))
+
+  const manifestPath = path.join(OUTPUT_DIR, 'manifest.json')
+  fs.writeFileSync(manifestPath, JSON.stringify({ bots: compiledBots }, null, 2))
+  console.log(`\nGenerated manifest: ${manifestPath}`)
 
   console.log(
     `\nCompiled ${successCount}/${bots.length} bot(s) to ${OUTPUT_DIR}`
