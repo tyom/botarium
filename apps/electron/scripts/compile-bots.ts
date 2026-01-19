@@ -32,7 +32,14 @@ function getBotNameFromConfig(sourcePath: string): string | null {
     return null
   }
   const content = fs.readFileSync(configPath, 'utf-8')
-  const config = Bun.YAML.parse(content) as { simulator?: { id?: string } }
+  let config: { simulator?: { id?: string } }
+  try {
+    config = Bun.YAML.parse(content) as { simulator?: { id?: string } }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error(`Failed to parse ${configPath}: ${message}`)
+    return null
+  }
   return config.simulator?.id ?? null
 }
 
