@@ -123,7 +123,7 @@ async function main() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true })
 
   // Compile each bot
-  let successCount = 0
+  const compiledBots: { name: string; entry: string }[] = []
   for (const bot of bots) {
     const sourcePath = path.resolve(ROOT_DIR, bot.source)
     const entryPath = path.join(sourcePath, bot.entry)
@@ -136,6 +136,11 @@ async function main() {
       continue
     }
 
+    // Remove any pre-existing binary to avoid stale code in manifest
+    if (fs.existsSync(outfile)) {
+      fs.rmSync(outfile)
+    }
+
     console.log(`\nCompiling ${bot.name}...`)
     console.log(`  Source: ${sourcePath}`)
     console.log(`  Entry: ${bot.entry}`)
@@ -144,26 +149,21 @@ async function main() {
     try {
       await $`bun build ${entryPath} --compile --outfile=${outfile}`.quiet()
       console.log(`  Done`)
-      successCount++
+      compiledBots.push({ name: bot.name, entry: bot.entry })
     } catch (error) {
       console.error(`  Failed to compile ${bot.name}:`, error)
     }
   }
-
-  // Generate manifest with successfully compiled bots
-  const compiledBots = bots
-    .filter((bot) => fs.existsSync(path.join(OUTPUT_DIR, bot.name)))
-    .map((bot) => ({ name: bot.name, entry: bot.entry }))
 
   const manifestPath = path.join(OUTPUT_DIR, 'manifest.json')
   fs.writeFileSync(manifestPath, JSON.stringify({ bots: compiledBots }, null, 2))
   console.log(`\nGenerated manifest: ${manifestPath}`)
 
   console.log(
-    `\nCompiled ${successCount}/${bots.length} bot(s) to ${OUTPUT_DIR}`
+    `\nCompiled ${compiledBots.length}/${bots.length} bot(s) to ${OUTPUT_DIR}`
   )
 
-  if (successCount === 0 && bots.length > 0) {
+  if (compiledBots.length === 0 && bots.length > 0) {
     process.exit(1)
   }
 }
