@@ -12,7 +12,11 @@
     type GroupDefinition,
   } from '../lib/config-client'
   import { isElectron } from '../lib/electron-api'
-  import { SIMULATOR_SETTINGS_SCHEMA } from '../lib/simulator-settings'
+  import {
+  SIMULATOR_SETTINGS_SCHEMA,
+  MODEL_TIERS,
+  BOT_OVERRIDABLE_SETTINGS,
+} from '../lib/simulator-settings'
 
   import type { Snippet } from 'svelte'
 
@@ -29,6 +33,10 @@
     advancedContent?: Snippet
     /** Bot ID to fetch config for (required in Electron mode) */
     botId?: string
+    /** Global/inherited values to compare against (for showing inherited badge) */
+    inheritedValues?: Record<string, unknown>
+    /** Enable inherited/override indication */
+    showInheritedBadge?: boolean
   }
 
   let {
@@ -38,6 +46,8 @@
     filterScope = 'all',
     advancedContent,
     botId,
+    inheritedValues = {},
+    showInheritedBadge = false,
   }: Props = $props()
 
   let config: BotConfig | null = $state(null)
@@ -95,27 +105,56 @@
 
         if (botConfig) {
           // Merge bot config with simulator settings
-          // Simulator settings come first (lower order), bot settings second
-          const mergedSettings = {
-            ...simulatorSettings,
-            ...botConfig.schema.settings,
+          // For bot-overridable settings (ai_provider, api keys, models), use simulator schema
+          // to ensure all options are available. For other bot settings, use bot's schema.
+          const mergedSettings: Record<string, SettingSchema> = { ...simulatorSettings }
+          for (const [key, schema] of Object.entries(botConfig.schema.settings)) {
+            const isBotOverridable = (BOT_OVERRIDABLE_SETTINGS as readonly string[]).includes(key)
+            if (!isBotOverridable) {
+              // Bot-specific setting - use bot's schema
+              mergedSettings[key] = schema
+            }
+            // For bot-overridable settings, keep the simulator's schema (with full options)
           }
 
-          // Merge groups, avoiding duplicates (bot groups take precedence)
-          const botGroupIds = new Set(botConfig.schema.groups.map((g) => g.id))
-          const uniqueSimulatorGroups = simulatorGroups.filter(
-            (g) => !botGroupIds.has(g.id)
-          )
-          const mergedGroups = [
-            ...uniqueSimulatorGroups,
-            ...botConfig.schema.groups,
-          ]
+          // Merge groups: simulator groups provide base, bot can override expanded only in bot settings mode
+          const simulatorGroupMap = new Map(simulatorGroups.map((g) => [g.id, g]))
+          const mergedGroups: GroupDefinition[] = []
+          const seenGroupIds = new Set<string>()
+
+          // First, add bot groups (use simulator's definition, bot can override expanded in bot settings mode)
+          for (const botGroup of botConfig.schema.groups) {
+            const simGroup = simulatorGroupMap.get(botGroup.id)
+            if (simGroup) {
+              // Use simulator's definition; only allow bot's expanded override in bot settings mode
+              const expanded = showInheritedBadge && botGroup.expanded !== undefined
+                ? botGroup.expanded
+                : simGroup.expanded
+              mergedGroups.push({
+                ...simGroup,
+                expanded,
+              })
+            } else {
+              mergedGroups.push(botGroup)
+            }
+            seenGroupIds.add(botGroup.id)
+          }
+
+          // Then add any simulator groups not in bot config
+          for (const simGroup of simulatorGroups) {
+            if (!seenGroupIds.has(simGroup.id)) {
+              mergedGroups.push(simGroup)
+            }
+          }
 
           config = {
             schema: {
               settings: mergedSettings,
               groups: mergedGroups,
-              model_tiers: botConfig.schema.model_tiers,
+              model_tiers: {
+                ...MODEL_TIERS,
+                ...botConfig.schema.model_tiers,
+              },
             },
             values: botConfig.values,
           }
@@ -125,7 +164,7 @@
             schema: {
               settings: simulatorSettings,
               groups: simulatorGroups,
-              model_tiers: {},
+              model_tiers: MODEL_TIERS,
             },
             values: {},
           }
@@ -134,22 +173,11 @@
         // Merge values with proper priority:
         // 1. App-specific overrides (from appOverrides) - highest priority
         // 2. Bot config defaults (from config.values)
-        // 3. Initial values (from initialValues) - lowest priority for app-scoped fields
-        for (const [key, schema] of Object.entries(config.schema.settings)) {
-          const isGlobalField =
-            key === 'ai_provider' ||
-            key.endsWith('_api_key') ||
-            schema.group === 'advanced'
-          const fieldScope = schema.scope ?? (isGlobalField ? 'global' : 'app')
-          const isAppScopedInAppMode =
-            filterScope === 'app' && fieldScope === 'app'
-
+        // 3. Initial values (from initialValues) - lowest priority
+        for (const key of Object.keys(config.schema.settings)) {
           if (appOverrides[key] !== undefined) {
             // User's app-specific override takes priority
             formData[key] = appOverrides[key]
-          } else if (isAppScopedInAppMode && config.values[key] !== undefined) {
-            // For app-scoped fields, use bot config value as default
-            formData[key] = config.values[key]
           } else if (
             formData[key] === undefined &&
             config.values[key] !== undefined
@@ -160,9 +188,10 @@
         }
 
         // Initialize collapsed state from group definitions
+        // collapsible: true makes it collapsible, expanded controls initial state (default: true)
         for (const group of config.schema.groups) {
-          if (group.collapsed) {
-            collapsedGroups[group.id] = true
+          if (group.collapsible) {
+            collapsedGroups[group.id] = group.expanded === false
           }
         }
       } catch (error) {
@@ -181,20 +210,26 @@
   }
 
   // Get fields for a group, filtered by scope
-  // Global fields: ai_provider, *_api_key, and 'advanced' group
-  // All other fields are app-scoped by default
+  // - 'global' shows simulator settings only (defined in SIMULATOR_SETTINGS_SCHEMA)
+  // - 'app' shows bot-specific fields only (not in simulator settings)
+  // - 'all' shows everything (but when showInheritedBadge is true, excludes non-overridable simulator settings)
   function getFieldsForGroup(groupId: string): [string, SettingSchema][] {
     if (!config) return []
     return Object.entries(config.schema.settings).filter(([key, schema]) => {
       const matchesGroup = schema.group === groupId
-      // Determine field scope: global for provider/API keys/advanced, app for everything else
-      const isGlobalField =
-        key === 'ai_provider' ||
-        key.endsWith('_api_key') ||
-        schema.group === 'advanced'
-      const fieldScope = schema.scope ?? (isGlobalField ? 'global' : 'app')
-      const matchesScope = filterScope === 'all' || fieldScope === filterScope
-      return matchesGroup && matchesScope
+      const isSimulatorSetting = key in SIMULATOR_SETTINGS_SCHEMA.settings
+      const isBotOverridable = (BOT_OVERRIDABLE_SETTINGS as readonly string[]).includes(key)
+
+      if (filterScope === 'global') return matchesGroup && isSimulatorSetting
+
+      if (filterScope === 'app') return matchesGroup && !isSimulatorSetting
+
+      // 'all' mode: show everything, but when in bot settings mode (showInheritedBadge),
+      // exclude simulator settings that aren't bot-overridable
+      if (showInheritedBadge && isSimulatorSetting && !isBotOverridable) {
+        return false
+      }
+      return matchesGroup
     })
   }
 
@@ -242,6 +277,29 @@
     formData.model_default = undefined
     formData.model_thinking = undefined
   }
+
+  // Check if a field value is inherited (same as global value)
+  function isInherited(key: string): boolean {
+    if (!showInheritedBadge) return false
+    const currentValue = formData[key]
+    const inheritedValue = inheritedValues[key]
+    // Treat undefined/empty as inherited if global is also undefined/empty
+    if (currentValue === undefined || currentValue === '') {
+      return inheritedValue === undefined || inheritedValue === ''
+    }
+    return currentValue === inheritedValue
+  }
+
+  // Check if a field has an override (different from global value)
+  function hasOverride(key: string): boolean {
+    if (!showInheritedBadge) return false
+    return !isInherited(key)
+  }
+
+  // Clear override for a field (revert to inherited value)
+  function clearOverride(key: string) {
+    formData[key] = inheritedValues[key]
+  }
 </script>
 
 {#if loading}
@@ -269,7 +327,7 @@
         <div class="h-px bg-(--border-color) my-5"></div>
       {/if}
 
-      {#if group.collapsed !== undefined}
+      {#if group.collapsible}
         <!-- Collapsible group -->
         <div class="mb-4">
           <button
@@ -307,10 +365,31 @@
   {/each}
 {/snippet}
 
+{#snippet inheritedIndicator(key: string)}
+  {#if showInheritedBadge}
+    {#if isInherited(key)}
+      <span class="text-xs text-(--text-muted) ml-1 italic">(inherited)</span>
+    {:else if hasOverride(key)}
+      <Button
+        type="button"
+        variant="link"
+        class="h-auto p-0 text-xs ml-1 text-(--accent-color)"
+        onclick={() => clearOverride(key)}
+      >
+        Reset
+      </Button>
+    {/if}
+  {/if}
+{/snippet}
+
 {#snippet field(key: string, schema: SettingSchema)}
   <div class="mb-4">
     {#if schema.type === 'select' && key === 'ai_provider'}
       <!-- Special handling for AI provider as tabs -->
+      <Label for={key} class="mb-1.5 text-(--text-secondary)">
+        {schema.label}
+        {@render inheritedIndicator(key)}
+      </Label>
       <Tabs.Root
         value={formData[key] as string}
         onValueChange={(v) => {
@@ -330,6 +409,7 @@
         {#if !isFieldRequired(schema)}
           <span class="text-xs text-(--text-muted) ml-1">(optional)</span>
         {/if}
+        {@render inheritedIndicator(key)}
         <Button
           type="button"
           variant="link"
@@ -355,6 +435,7 @@
         {#if !isFieldRequired(schema)}
           <span class="text-xs text-(--text-muted)">(optional)</span>
         {/if}
+        {@render inheritedIndicator(key)}
       </Label>
       <Input
         id={key}
@@ -371,6 +452,7 @@
     {:else if schema.type === 'text'}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
+        {@render inheritedIndicator(key)}
       </Label>
       <textarea
         id={key}
@@ -386,6 +468,7 @@
     {:else if schema.type === 'number'}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
+        {@render inheritedIndicator(key)}
       </Label>
       <Input
         id={key}
@@ -402,6 +485,7 @@
     {:else if schema.type === 'select'}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
+        {@render inheritedIndicator(key)}
       </Label>
       <Select.Root
         type="single"
@@ -433,6 +517,7 @@
       {@const defaultModel = getDefaultModel(tier)}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
+        {@render inheritedIndicator(key)}
       </Label>
       {#if schema.description}
         <p class="text-xs text-(--text-muted) mb-2">{schema.description}</p>

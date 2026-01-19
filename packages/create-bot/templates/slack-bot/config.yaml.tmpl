@@ -97,7 +97,10 @@ groups:
   - id: ai
     label: AI Provider
     order: 1
+    expanded: true  # Show AI settings expanded in bot settings
 {{/if}}
   - id: bot
     label: Bot Configuration
     order: {{#if isAi}}2{{else}}1{{/if}}
+    collapsible: true
+    expanded: true

@@ -35,7 +35,6 @@ export interface SettingSchema {
   label: string
   description?: string
   group: string
-  scope?: 'global' | 'app' // defaults to 'global'
   required?: boolean
   required_when?: FieldCondition
   condition?: FieldCondition
@@ -51,7 +50,8 @@ export interface GroupDefinition {
   id: string
   label: string
   order: number
-  collapsed?: boolean
+  collapsible?: boolean // Whether the section can be collapsed/expanded
+  expanded?: boolean // Whether the section starts expanded (default: true)
 }
 
 export interface ConfigSchema {
