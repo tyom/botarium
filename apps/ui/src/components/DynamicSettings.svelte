@@ -82,90 +82,95 @@
 
     // Use an async IIFE to handle the fetch
     ;(async () => {
-      const botConfig = await fetchBotConfig(botId)
+      try {
+        const botConfig = await fetchBotConfig(botId)
 
-      // Always include simulator settings, merged with bot config if available
-      const simulatorSettings = SIMULATOR_SETTINGS_SCHEMA.settings as Record<
-        string,
-        SettingSchema
-      >
-      const simulatorGroups =
-        SIMULATOR_SETTINGS_SCHEMA.groups as GroupDefinition[]
+        // Always include simulator settings, merged with bot config if available
+        const simulatorSettings = SIMULATOR_SETTINGS_SCHEMA.settings as Record<
+          string,
+          SettingSchema
+        >
+        const simulatorGroups =
+          SIMULATOR_SETTINGS_SCHEMA.groups as GroupDefinition[]
 
-      if (botConfig) {
-        // Merge bot config with simulator settings
-        // Simulator settings come first (lower order), bot settings second
-        const mergedSettings = {
-          ...simulatorSettings,
-          ...botConfig.schema.settings,
+        if (botConfig) {
+          // Merge bot config with simulator settings
+          // Simulator settings come first (lower order), bot settings second
+          const mergedSettings = {
+            ...simulatorSettings,
+            ...botConfig.schema.settings,
+          }
+
+          // Merge groups, avoiding duplicates (bot groups take precedence)
+          const botGroupIds = new Set(botConfig.schema.groups.map((g) => g.id))
+          const uniqueSimulatorGroups = simulatorGroups.filter(
+            (g) => !botGroupIds.has(g.id)
+          )
+          const mergedGroups = [
+            ...uniqueSimulatorGroups,
+            ...botConfig.schema.groups,
+          ]
+
+          config = {
+            schema: {
+              settings: mergedSettings,
+              groups: mergedGroups,
+              model_tiers: botConfig.schema.model_tiers,
+            },
+            values: botConfig.values,
+          }
+        } else {
+          // No bot config - use simulator settings only
+          config = {
+            schema: {
+              settings: simulatorSettings,
+              groups: simulatorGroups,
+              model_tiers: {},
+            },
+            values: {},
+          }
         }
 
-        // Merge groups, avoiding duplicates (bot groups take precedence)
-        const botGroupIds = new Set(botConfig.schema.groups.map((g) => g.id))
-        const uniqueSimulatorGroups = simulatorGroups.filter(
-          (g) => !botGroupIds.has(g.id)
-        )
-        const mergedGroups = [
-          ...uniqueSimulatorGroups,
-          ...botConfig.schema.groups,
-        ]
+        // Merge values with proper priority:
+        // 1. App-specific overrides (from appOverrides) - highest priority
+        // 2. Bot config defaults (from config.values)
+        // 3. Initial values (from initialValues) - lowest priority for app-scoped fields
+        for (const [key, schema] of Object.entries(config.schema.settings)) {
+          const isGlobalField =
+            key === 'ai_provider' ||
+            key.endsWith('_api_key') ||
+            schema.group === 'advanced'
+          const fieldScope = schema.scope ?? (isGlobalField ? 'global' : 'app')
+          const isAppScopedInAppMode =
+            filterScope === 'app' && fieldScope === 'app'
 
-        config = {
-          schema: {
-            settings: mergedSettings,
-            groups: mergedGroups,
-            model_tiers: botConfig.schema.model_tiers,
-          },
-          values: botConfig.values,
+          if (appOverrides[key] !== undefined) {
+            // User's app-specific override takes priority
+            formData[key] = appOverrides[key]
+          } else if (isAppScopedInAppMode && config.values[key] !== undefined) {
+            // For app-scoped fields, use bot config value as default
+            formData[key] = config.values[key]
+          } else if (
+            formData[key] === undefined &&
+            config.values[key] !== undefined
+          ) {
+            // Fall back to bot config value if formData doesn't have it
+            formData[key] = config.values[key]
+          }
         }
-      } else {
-        // No bot config - use simulator settings only
-        config = {
-          schema: {
-            settings: simulatorSettings,
-            groups: simulatorGroups,
-            model_tiers: {},
-          },
-          values: {},
+
+        // Initialize collapsed state from group definitions
+        for (const group of config.schema.groups) {
+          if (group.collapsed) {
+            collapsedGroups[group.id] = true
+          }
         }
+      } catch (error) {
+        console.error('Failed to fetch bot config:', error)
+        config = null
+      } finally {
+        loading = false
       }
-
-      // Merge values with proper priority:
-      // 1. App-specific overrides (from appOverrides) - highest priority
-      // 2. Bot config defaults (from config.values)
-      // 3. Initial values (from initialValues) - lowest priority for app-scoped fields
-      for (const [key, schema] of Object.entries(config.schema.settings)) {
-        const isGlobalField =
-          key === 'ai_provider' ||
-          key.endsWith('_api_key') ||
-          schema.group === 'advanced'
-        const fieldScope = schema.scope ?? (isGlobalField ? 'global' : 'app')
-        const isAppScopedInAppMode =
-          filterScope === 'app' && fieldScope === 'app'
-
-        if (appOverrides[key] !== undefined) {
-          // User's app-specific override takes priority
-          formData[key] = appOverrides[key]
-        } else if (isAppScopedInAppMode && config.values[key] !== undefined) {
-          // For app-scoped fields, use bot config value as default
-          formData[key] = config.values[key]
-        } else if (
-          formData[key] === undefined &&
-          config.values[key] !== undefined
-        ) {
-          // Fall back to bot config value if formData doesn't have it
-          formData[key] = config.values[key]
-        }
-      }
-
-      // Initialize collapsed state from group definitions
-      for (const group of config.schema.groups) {
-        if (group.collapsed) {
-          collapsedGroups[group.id] = true
-        }
-      }
-
-      loading = false
     })()
   })
 
