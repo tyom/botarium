@@ -1,14 +1,8 @@
-import pino from 'pino'
-import { settings, isSimulatorMode } from '../settings'
+import { createBotariumLogger } from '@botarium/logger'
+import type pino from 'pino'
+import { settings } from '../settings'
 
-// Use JSON output in simulator mode (so Electron can parse logs)
-// Use pretty output in local dev mode (when running standalone)
-const usePretty = process.env.NODE_ENV !== 'production' && !isSimulatorMode && process.env.TERM_PROGRAM
-
-export const logger = pino({
-  level: settings.LOG_LEVEL,
-  transport: usePretty ? { target: 'pino-pretty' } : undefined,
-})
+export const logger = createBotariumLogger({ level: settings.LOG_LEVEL })
 
 export type ModuleName =
   | 'App'
