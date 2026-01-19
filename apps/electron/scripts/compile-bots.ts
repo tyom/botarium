@@ -14,7 +14,7 @@ type BotEntry = string | { source: string; name?: string; entry?: string }
 interface ResolvedBot {
   name: string
   source: string
-  entry?: string
+  entry: string
 }
 
 interface BotsConfig {
@@ -58,7 +58,7 @@ function resolveBotEntry(entry: BotEntry): ResolvedBot | null {
   return {
     name,
     source,
-    entry: typeof entry === 'object' ? entry.entry : undefined,
+    entry: (typeof entry === 'object' ? entry.entry : undefined) ?? 'src/app.ts',
   }
 }
 
@@ -88,6 +88,14 @@ async function main() {
   for (const entry of botEntries) {
     const resolved = resolveBotEntry(entry)
     if (resolved) {
+      const existing = bots.find((b) => b.name === resolved.name)
+      if (existing) {
+        console.error(`Error: Duplicate bot name "${resolved.name}"`)
+        console.error(`  First entry: ${existing.source}`)
+        console.error(`  Conflicting entry: ${resolved.source}`)
+        console.error(`Duplicate names would cause compiled outputs to be overwritten. Please fix before compiling.`)
+        process.exit(1)
+      }
       bots.push(resolved)
     }
   }
@@ -105,9 +113,8 @@ async function main() {
   // Compile each bot
   let successCount = 0
   for (const bot of bots) {
-    const entry = bot.entry ?? 'src/app.ts'
     const sourcePath = path.resolve(ROOT_DIR, bot.source)
-    const entryPath = path.join(sourcePath, entry)
+    const entryPath = path.join(sourcePath, bot.entry)
     const outfile = path.join(OUTPUT_DIR, bot.name)
 
     // Verify source exists
@@ -119,7 +126,7 @@ async function main() {
 
     console.log(`\nCompiling ${bot.name}...`)
     console.log(`  Source: ${sourcePath}`)
-    console.log(`  Entry: ${entry}`)
+    console.log(`  Entry: ${bot.entry}`)
     console.log(`  Output: ${outfile}`)
 
     try {
