@@ -30,7 +30,8 @@ export interface ElectronAPI {
   fetchBotConfig: (botId: string) => Promise<unknown | null>
 
   // Dynamic model tiers - fetch from provider APIs
-  getModelTiers: () => Promise<
+  // Optional apiKeys parameter overrides saved settings (useful for validation before saving)
+  getModelTiers: (apiKeys?: Record<string, string>) => Promise<
     Record<string, { fast: string[]; default: string[]; thinking: string[] }>
   >
   clearModelCache: (provider?: string) => Promise<void>

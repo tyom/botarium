@@ -661,6 +661,21 @@ export class SocketModeServer {
   }
 
   /**
+   * Disconnect all bot connections. Used when settings change to force bots to restart
+   * and pick up new settings. Bots running with --watch will auto-restart.
+   */
+  disconnectAllBots(reason = 'Settings changed'): void {
+    socketModeLogger.info(`Disconnecting all bots: ${reason}`)
+    for (const conn of this.connections.values()) {
+      try {
+        conn.ws.close(1012, reason) // 1012 = Service Restart
+      } catch {
+        // Ignore close errors
+      }
+    }
+  }
+
+  /**
    * Find and claim the oldest WebSocket connection that doesn't have a bot associated yet.
    * The connection is atomically claimed to prevent race conditions with concurrent registrations.
    * Used when registering a bot via HTTP to link it to its WebSocket connection.

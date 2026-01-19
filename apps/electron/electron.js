@@ -350,6 +350,15 @@ function saveSettings(settings) {
   }
 }
 
+// Default models per provider (used when model_default isn't explicitly set)
+// These should match the first model in each tier from the UI's MODEL_TIERS
+const DEFAULT_MODELS = {
+  openai: 'gpt-4o',
+  anthropic: 'claude-sonnet-4-5',
+  google: 'gemini-2.0-flash',
+  openrouter: 'anthropic/claude-sonnet-4', // Valid OpenRouter model ID
+}
+
 // Convert settings to environment variables
 function settingsToEnv(settings) {
   // Use app's userData folder for writable storage (not the read-only app bundle)
@@ -360,8 +369,21 @@ function settingsToEnv(settings) {
     DATA_DIR: dataDir,
   }
 
+  // Merge bot-specific settings from app_settings into flat settings
+  // Bot-specific settings override global settings
+  const flatSettings = { ...settings }
+  if (settings.app_settings && typeof settings.app_settings === 'object') {
+    // Merge all bot-specific settings (they apply to all bots in simulator mode)
+    for (const botSettings of Object.values(settings.app_settings)) {
+      if (botSettings && typeof botSettings === 'object') {
+        Object.assign(flatSettings, botSettings)
+      }
+    }
+  }
+  delete flatSettings.app_settings // Don't process the nested object
+
   // Convert all settings to env vars using convention: snake_case -> UPPER_SNAKE_CASE
-  for (const [key, value] of Object.entries(settings)) {
+  for (const [key, value] of Object.entries(flatSettings)) {
     if (key.startsWith('_')) continue // Skip internal fields like _schema
     if (value === undefined || value === null || value === '') continue
     if (typeof value !== 'string' && typeof value !== 'number') continue
@@ -372,18 +394,24 @@ function settingsToEnv(settings) {
   }
 
   // Special handling: set provider-specific API key env var
-  // Bots expect OPENAI_API_KEY, ANTHROPIC_API_KEY, or GOOGLE_API_KEY
-  const provider = settings.ai_provider
-  const apiKey = settings[`${provider}_api_key`]
+  // Bots expect OPENAI_API_KEY, ANTHROPIC_API_KEY, GOOGLE_API_KEY, or OPENROUTER_API_KEY
+  const provider = flatSettings.ai_provider
+  const apiKey = flatSettings[`${provider}_api_key`]
   if (apiKey) {
     const keyMap = {
       openai: 'OPENAI_API_KEY',
       anthropic: 'ANTHROPIC_API_KEY',
       google: 'GOOGLE_API_KEY',
+      openrouter: 'OPENROUTER_API_KEY',
     }
     if (keyMap[provider]) {
       env[keyMap[provider]] = apiKey
     }
+  }
+
+  // Fill in default model if not explicitly set
+  if (!env.MODEL_DEFAULT && provider && DEFAULT_MODELS[provider]) {
+    env.MODEL_DEFAULT = DEFAULT_MODELS[provider]
   }
 
   return env
@@ -804,7 +832,7 @@ function setupIpcHandlers() {
 
     // Check if API keys changed and clear model cache
     const oldSettings = loadSettings() || {}
-    const apiKeyFields = ['openai_api_key', 'anthropic_api_key', 'google_api_key']
+    const apiKeyFields = ['openai_api_key', 'anthropic_api_key', 'google_api_key', 'openrouter_api_key']
     for (const field of apiKeyFields) {
       if (oldSettings[field] !== settings[field]) {
         const provider = field.replace('_api_key', '')
@@ -843,12 +871,15 @@ function setupIpcHandlers() {
   })
 
   // Model tiers - fetch dynamic models from provider APIs
-  ipcMain.handle('models:getTiers', async () => {
+  // Accepts optional apiKeys to override saved settings (useful for validation before saving)
+  ipcMain.handle('models:getTiers', async (_event, overrideApiKeys) => {
     const settings = loadSettings() || {}
     const apiKeys = {
       openai_api_key: settings.openai_api_key,
       anthropic_api_key: settings.anthropic_api_key,
       google_api_key: settings.google_api_key,
+      openrouter_api_key: settings.openrouter_api_key,
+      ...overrideApiKeys,
     }
     return getModelTiers(apiKeys)
   })

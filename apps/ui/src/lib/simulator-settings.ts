@@ -27,6 +27,11 @@ export const MODEL_TIERS: Record<string, Record<string, string[]>> = {
     default: ['gemini-3-flash-preview', 'gemini-2.5-pro'],
     thinking: ['gemini-2.5-pro', 'gemini-2.0-flash-thinking-exp'],
   },
+  openrouter: {
+    fast: ['openai/gpt-4o-mini', 'anthropic/claude-3-5-haiku', 'google/gemini-2.0-flash-001'],
+    default: ['openai/gpt-4o', 'anthropic/claude-sonnet-4', 'google/gemini-2.5-pro'],
+    thinking: ['openai/o3-mini', 'anthropic/claude-opus-4', 'google/gemini-2.5-pro'],
+  },
 }
 
 export interface SimulatorSettings {
@@ -38,6 +43,7 @@ export interface SimulatorSettings {
   openai_api_key?: string
   anthropic_api_key?: string
   google_api_key?: string
+  openrouter_api_key?: string
   model_fast?: string
   model_default?: string
   model_thinking?: string
@@ -57,6 +63,7 @@ export const BOT_OVERRIDABLE_SETTINGS = [
   'openai_api_key',
   'anthropic_api_key',
   'google_api_key',
+  'openrouter_api_key',
   'model_fast',
   'model_default',
   'model_thinking',
@@ -74,6 +81,7 @@ export const SIMULATOR_SETTINGS_SCHEMA = {
         { value: 'openai', label: 'OpenAI' },
         { value: 'anthropic', label: 'Anthropic' },
         { value: 'google', label: 'Google' },
+        { value: 'openrouter', label: 'OpenRouter' },
       ],
     },
     openai_api_key: {
@@ -96,6 +104,13 @@ export const SIMULATOR_SETTINGS_SCHEMA = {
       group: 'ai',
       required: true,
       condition: { field: 'ai_provider', equals: 'google' },
+    },
+    openrouter_api_key: {
+      type: 'secret' as const,
+      label: 'OpenRouter API Key',
+      group: 'ai',
+      required: true,
+      condition: { field: 'ai_provider', equals: 'openrouter' },
     },
     model_fast: {
       type: 'model_select' as const,

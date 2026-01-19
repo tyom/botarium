@@ -213,7 +213,15 @@ export async function startEmulatorServer(
         if (req.method === 'POST') {
           try {
             const settings = (await req.json()) as Record<string, unknown>
+            const hadPreviousSettings = Object.keys(state.getSimulatorSettings()).length > 0
             state.setSimulatorSettings(settings)
+
+            // If settings changed (not initial push), disconnect bots to force restart
+            // Bots running with --watch will auto-restart with new settings
+            if (hadPreviousSettings) {
+              socketMode.disconnectAllBots('Settings changed - please restart')
+            }
+
             return Response.json(
               { ok: true },
               { headers: { 'Access-Control-Allow-Origin': '*' } }

@@ -31,6 +31,11 @@ const FALLBACK_MODEL_TIERS = {
     default: ['gemini-3-flash-preview', 'gemini-2.5-pro'],
     thinking: ['gemini-2.5-pro', 'gemini-2.0-flash-thinking-exp'],
   },
+  openrouter: {
+    fast: ['openai/gpt-4o-mini', 'anthropic/claude-3-5-haiku', 'google/gemini-2.0-flash-001'],
+    default: ['openai/gpt-4o', 'anthropic/claude-sonnet-4', 'google/gemini-2.5-pro'],
+    thinking: ['openai/o3-mini', 'anthropic/claude-opus-4', 'google/gemini-2.5-pro'],
+  },
 }
 
 /**
@@ -113,6 +118,54 @@ function categorizeGoogleModels(modelIds) {
       tiers.default.push(id)
       // Pro models can also be used for thinking tasks
       tiers.thinking.push(id)
+    }
+  }
+
+  return tiers
+}
+
+/**
+ * Categorize OpenRouter models into tiers
+ * Since OpenRouter aggregates models from multiple providers, categorize by naming patterns
+ * @param {string[]} modelIds - List of model IDs from API
+ * @returns {{ fast: string[], default: string[], thinking: string[] }}
+ */
+function categorizeOpenRouterModels(modelIds) {
+  const tiers = { fast: [], default: [], thinking: [] }
+
+  for (const id of modelIds) {
+    const lower = id.toLowerCase()
+
+    // Fast tier: mini, flash, haiku, instant, lite models
+    if (
+      lower.includes('mini') ||
+      lower.includes('flash') ||
+      lower.includes('haiku') ||
+      lower.includes('instant') ||
+      lower.includes('lite')
+    ) {
+      tiers.fast.push(id)
+    }
+    // Thinking tier: opus, o1, o3, thinking, deep models
+    else if (
+      lower.includes('opus') ||
+      lower.includes('/o1') ||
+      lower.includes('/o3') ||
+      lower.includes('thinking') ||
+      lower.includes('deep')
+    ) {
+      tiers.thinking.push(id)
+    }
+    // Default tier: general-purpose models (sonnet, gpt-4o, pro, etc.)
+    else if (
+      lower.includes('sonnet') ||
+      lower.includes('gpt-4o') ||
+      lower.includes('gpt-5') ||
+      lower.includes('pro') ||
+      lower.includes('claude-3') ||
+      lower.includes('gemini')
+    ) {
+      tiers.default.push(id)
     }
   }
 
@@ -254,6 +307,60 @@ async function fetchGoogleModels(apiKey) {
 }
 
 /**
+ * Fetch models from OpenRouter API
+ * @param {string} apiKey - OpenRouter API key
+ * @returns {Promise<{ fast: string[], default: string[], thinking: string[] } | null>}
+ */
+async function fetchOpenRouterModels(apiKey) {
+  try {
+    electronLogger.debug('Fetching OpenRouter models...')
+    const response = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      electronLogger.warn(
+        { status: response.status, body: text.slice(0, 200) },
+        'OpenRouter models API returned error'
+      )
+      return null
+    }
+
+    const data = await response.json()
+    electronLogger.debug(
+      { modelCount: data.data?.length },
+      'OpenRouter API response received'
+    )
+
+    // Filter to well-known provider models to avoid overwhelming users
+    const allowedPrefixes = [
+      'openai/',
+      'anthropic/',
+      'google/',
+      'meta-llama/',
+      'mistralai/',
+    ]
+
+    const modelIds = data.data
+      .map((m) => m.id)
+      .filter((id) => allowedPrefixes.some((prefix) => id.startsWith(prefix)))
+      .sort()
+
+    electronLogger.debug({ modelCount: modelIds.length }, 'OpenRouter models filtered')
+    return categorizeOpenRouterModels(modelIds)
+  } catch (error) {
+    electronLogger.warn(
+      { error: error.message },
+      'Failed to fetch OpenRouter models'
+    )
+    return null
+  }
+}
+
+/**
  * Get model tiers for a provider, using cache or fetching from API
  * @param {string} provider - Provider name (openai, anthropic, google)
  * @param {string} apiKey - API key for the provider
@@ -291,6 +398,9 @@ async function getModelTiersForProvider(provider, apiKey) {
     case 'google':
       tiers = await fetchGoogleModels(apiKey)
       break
+    case 'openrouter':
+      tiers = await fetchOpenRouterModels(apiKey)
+      break
   }
 
   // Use fallback if fetch failed or returned empty tiers
@@ -324,7 +434,7 @@ async function getModelTiersForProvider(provider, apiKey) {
  * @returns {Promise<Record<string, { fast: string[], default: string[], thinking: string[] }>>}
  */
 export async function getModelTiers(apiKeys = {}) {
-  const providers = ['openai', 'anthropic', 'google']
+  const providers = ['openai', 'anthropic', 'google', 'openrouter']
   const result = {}
 
   // Fetch all providers in parallel
@@ -408,6 +518,20 @@ export async function validateApiKey(provider, apiKey) {
         }
         const data = await response.json().catch(() => ({}))
         return { valid: false, error: data.error?.message || `HTTP ${response.status}` }
+      }
+
+      case 'openrouter': {
+        // Use /api/v1/auth/key endpoint which requires valid authentication
+        // The /models endpoint is public and doesn't validate the key
+        const response = await fetch('https://openrouter.ai/api/v1/auth/key', {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${apiKey}` },
+        })
+        if (response.ok) {
+          return { valid: true }
+        }
+        const data = await response.json().catch(() => ({}))
+        return { valid: false, error: data.error?.message || data.error || `HTTP ${response.status}` }
       }
 
       default:

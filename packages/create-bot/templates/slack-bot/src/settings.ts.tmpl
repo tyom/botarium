@@ -1,11 +1,7 @@
 import { z } from 'zod'
-{{#if isOpenai}}
-import { openai } from '@ai-sdk/openai'
-{{/if}}
-{{#if isAnthropic}}
+{{#if isAi}}
+import { openai, createOpenAI } from '@ai-sdk/openai'
 import { anthropic } from '@ai-sdk/anthropic'
-{{/if}}
-{{#if isGoogle}}
 import { google } from '@ai-sdk/google'
 {{/if}}
 
@@ -31,22 +27,14 @@ const envSchema = z.object({
 {{#if isAi}}
 
   // AI Provider
-  AI_PROVIDER: z.enum(['{{aiProvider}}']).default('{{aiProvider}}'),
-{{#if isOpenai}}
-  OPENAI_API_KEY: isLocalMode
-    ? z.string().default('sk-local')
-    : z.string().min(1),
-{{/if}}
-{{#if isAnthropic}}
-  ANTHROPIC_API_KEY: isLocalMode
-    ? z.string().default('sk-local')
-    : z.string().min(1),
-{{/if}}
-{{#if isGoogle}}
-  GOOGLE_API_KEY: isLocalMode
-    ? z.string().default('sk-local')
-    : z.string().min(1),
-{{/if}}
+  AI_PROVIDER: z.enum(['openai', 'anthropic', 'google', 'openrouter']).default('{{aiProvider}}'),
+  MODEL_DEFAULT: z.string().optional(),
+
+  // API Keys (all optional, validated at runtime based on selected provider)
+  OPENAI_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  GOOGLE_API_KEY: z.string().optional(),
+  OPENROUTER_API_KEY: z.string().optional(),
 {{/if}}
 
   // Server
@@ -55,7 +43,66 @@ const envSchema = z.object({
 })
 
 export type Settings = z.infer<typeof envSchema>
+{{#if isAi}}
 
+/**
+ * Fetch settings from simulator emulator (when running in simulator mode)
+ * The emulator receives settings from Electron and exposes them via HTTP
+ */
+async function fetchSimulatorSettings(): Promise<Record<string, string>> {
+  if (!isSimulatorMode) return {}
+
+  const slackApiUrl = process.env.SLACK_API_URL
+  if (!slackApiUrl) return {}
+
+  // Extract base URL (remove /api suffix if present)
+  const baseUrl = slackApiUrl.replace(/\/api\/?$/, '')
+
+  try {
+    const response = await fetch(`${baseUrl}/api/simulator/settings`)
+    if (response.ok) {
+      const data = await response.json() as { ok: boolean; settings?: Record<string, string> }
+      return data.settings ?? {}
+    }
+  } catch {
+    // Emulator not available, use env vars only
+  }
+
+  return {}
+}
+
+async function loadSettings(): Promise<Settings> {
+  // In simulator mode, fetch settings from emulator and merge with env
+  const simulatorSettings = await fetchSimulatorSettings()
+
+  // Merge: env vars take precedence over simulator settings
+  const mergedEnv = { ...simulatorSettings, ...process.env }
+
+  const result = envSchema.safeParse(mergedEnv)
+
+  if (!result.success) {
+    console.error('Invalid environment configuration:')
+    for (const issue of result.error.issues) {
+      console.error(`  ${issue.path.join('.')}: ${issue.message}`)
+    }
+    throw new Error('Failed to load settings. Check your environment variables.')
+  }
+
+  return result.data
+}
+
+// Use top-level await to load settings asynchronously
+// Use `let` to allow hot-reloading when settings change at runtime
+export let settings = await loadSettings()
+
+/**
+ * Reload settings from environment/simulator
+ * Called after registration updates process.env
+ */
+export async function reloadSettings() {
+  settings = await loadSettings()
+}
+{{else}}
 function loadSettings(): Settings {
   const result = envSchema.safeParse(process.env)
 
@@ -71,18 +118,44 @@ function loadSettings(): Settings {
 }
 
 export const settings = loadSettings()
+{{/if}}
 {{#if isAi}}
+
+// AI Model configuration
+const DEFAULT_MODELS = {
+  openai: 'gpt-4o',
+  anthropic: 'claude-sonnet-4-5',
+  google: 'gemini-2.0-flash',
+  openrouter: 'anthropic/claude-sonnet-4',
+} as const
+
+/**
+ * Get the current model ID dynamically
+ * Re-reads from settings on each call to support hot-reloading
+ */
+export function getModelId(): string {
+  return settings.MODEL_DEFAULT || DEFAULT_MODELS[settings.AI_PROVIDER]
+}
 
 // AI Model helper
 export function getModel() {
-{{#if isOpenai}}
-  return openai('gpt-5.2')
-{{/if}}
-{{#if isAnthropic}}
-  return anthropic('claude-sonnet-4-5')
-{{/if}}
-{{#if isGoogle}}
-  return google('gemini-3-flash-preview')
-{{/if}}
+  const provider = settings.AI_PROVIDER
+  const modelId = getModelId()
+
+  switch (provider) {
+    case 'openai':
+      return openai(modelId)
+    case 'anthropic':
+      return anthropic(modelId)
+    case 'google':
+      return google(modelId)
+    case 'openrouter': {
+      const openrouter = createOpenAI({
+        baseURL: 'https://openrouter.ai/api/v1',
+        apiKey: settings.OPENROUTER_API_KEY,
+      })
+      return openrouter(modelId)
+    }
+  }
 }
 {{/if}}

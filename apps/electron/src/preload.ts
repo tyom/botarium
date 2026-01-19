@@ -49,9 +49,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('bot:fetchConfig', botId),
 
   // Dynamic model tiers - fetch from provider APIs
-  getModelTiers: (): Promise<
+  // Optional apiKeys parameter overrides saved settings (useful for validation before saving)
+  getModelTiers: (
+    apiKeys?: Record<string, string>
+  ): Promise<
     Record<string, { fast: string[]; default: string[]; thinking: string[] }>
-  > => ipcRenderer.invoke('models:getTiers'),
+  > => ipcRenderer.invoke('models:getTiers', apiKeys),
   clearModelCache: (provider?: string): Promise<void> =>
     ipcRenderer.invoke('models:clearCache', provider),
   validateApiKey: (

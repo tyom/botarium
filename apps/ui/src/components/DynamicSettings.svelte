@@ -4,7 +4,13 @@
   import { Input } from '$lib/components/ui/input'
   import { Button } from '$lib/components/ui/button'
   import { Label } from '$lib/components/ui/label'
-  import { ChevronDown, ChevronRight, Check, X, LoaderCircle } from '@lucide/svelte'
+  import {
+    ChevronDown,
+    ChevronRight,
+    Check,
+    Ban,
+    LoaderCircle,
+  } from '@lucide/svelte'
   import {
     fetchBotConfig,
     type BotConfig,
@@ -13,10 +19,10 @@
   } from '../lib/config-client'
   import { isElectron, getElectronAPI } from '../lib/electron-api'
   import {
-  SIMULATOR_SETTINGS_SCHEMA,
-  MODEL_TIERS,
-  BOT_OVERRIDABLE_SETTINGS,
-} from '../lib/simulator-settings'
+    SIMULATOR_SETTINGS_SCHEMA,
+    MODEL_TIERS,
+    BOT_OVERRIDABLE_SETTINGS,
+  } from '../lib/simulator-settings'
 
   import type { Snippet } from 'svelte'
 
@@ -64,7 +70,11 @@
   // API key validation state: { fieldKey: { status: 'idle' | 'validating' | 'valid' | 'invalid', error?: string, validatedValue?: string } }
   let apiKeyValidation: Record<
     string,
-    { status: 'idle' | 'validating' | 'valid' | 'invalid'; error?: string; validatedValue?: string }
+    {
+      status: 'idle' | 'validating' | 'valid' | 'invalid'
+      error?: string
+      validatedValue?: string
+    }
   > = $state({})
 
   // Track previous initialValues to detect changes
@@ -100,11 +110,14 @@
     const electronAPI = getElectronAPI()
     if (!electronAPI) return
 
-    electronAPI.getModelTiers().then((tiers) => {
-      dynamicModelTiers = tiers
-    }).catch((error) => {
-      console.warn('Failed to fetch dynamic model tiers:', error)
-    })
+    electronAPI
+      .getModelTiers()
+      .then((tiers) => {
+        dynamicModelTiers = tiers
+      })
+      .catch((error) => {
+        console.warn('Failed to fetch dynamic model tiers:', error)
+      })
   })
 
   // Fetch config reactively when botId becomes available (or immediately in web mode)
@@ -133,9 +146,15 @@
           // Merge bot config with simulator settings
           // For bot-overridable settings (ai_provider, api keys, models), use simulator schema
           // to ensure all options are available. For other bot settings, use bot's schema.
-          const mergedSettings: Record<string, SettingSchema> = { ...simulatorSettings }
-          for (const [key, schema] of Object.entries(botConfig.schema.settings)) {
-            const isBotOverridable = (BOT_OVERRIDABLE_SETTINGS as readonly string[]).includes(key)
+          const mergedSettings: Record<string, SettingSchema> = {
+            ...simulatorSettings,
+          }
+          for (const [key, schema] of Object.entries(
+            botConfig.schema.settings
+          )) {
+            const isBotOverridable = (
+              BOT_OVERRIDABLE_SETTINGS as readonly string[]
+            ).includes(key)
             if (!isBotOverridable) {
               // Bot-specific setting - use bot's schema
               mergedSettings[key] = schema
@@ -144,7 +163,9 @@
           }
 
           // Merge groups: simulator groups provide base, bot can override expanded only in bot settings mode
-          const simulatorGroupMap = new Map(simulatorGroups.map((g) => [g.id, g]))
+          const simulatorGroupMap = new Map(
+            simulatorGroups.map((g) => [g.id, g])
+          )
           const mergedGroups: GroupDefinition[] = []
           const seenGroupIds = new Set<string>()
 
@@ -153,9 +174,10 @@
             const simGroup = simulatorGroupMap.get(botGroup.id)
             if (simGroup) {
               // Use simulator's definition; only allow bot's expanded override in bot settings mode
-              const expanded = showInheritedBadge && botGroup.expanded !== undefined
-                ? botGroup.expanded
-                : simGroup.expanded
+              const expanded =
+                showInheritedBadge && botGroup.expanded !== undefined
+                  ? botGroup.expanded
+                  : simGroup.expanded
               mergedGroups.push({
                 ...simGroup,
                 expanded,
@@ -244,7 +266,9 @@
     return Object.entries(config.schema.settings).filter(([key, schema]) => {
       const matchesGroup = schema.group === groupId
       const isSimulatorSetting = key in SIMULATOR_SETTINGS_SCHEMA.settings
-      const isBotOverridable = (BOT_OVERRIDABLE_SETTINGS as readonly string[]).includes(key)
+      const isBotOverridable = (
+        BOT_OVERRIDABLE_SETTINGS as readonly string[]
+      ).includes(key)
 
       if (filterScope === 'global') return matchesGroup && isSimulatorSetting
 
@@ -376,8 +400,9 @@
       if (result.valid) {
         apiKeyValidation[key] = { status: 'valid', validatedValue: value }
         // Refresh model tiers after successful validation
+        // Pass the current (unsaved) API key so it's used for fetching
         electronAPI.clearModelCache(provider)
-        electronAPI.getModelTiers().then((tiers) => {
+        electronAPI.getModelTiers({ [key]: value }).then((tiers) => {
           dynamicModelTiers = tiers
         })
       } else {
@@ -389,13 +414,18 @@
   }
 
   // Get validation status for a field, resetting if value changed
-  function getValidationStatus(key: string): 'idle' | 'validating' | 'valid' | 'invalid' {
+  function getValidationStatus(
+    key: string
+  ): 'idle' | 'validating' | 'valid' | 'invalid' {
     const validation = apiKeyValidation[key]
     if (!validation) return 'idle'
 
     // Reset to idle if value changed since validation
     const currentValue = formData[key] as string
-    if (validation.validatedValue && validation.validatedValue !== currentValue) {
+    if (
+      validation.validatedValue &&
+      validation.validatedValue !== currentValue
+    ) {
       return 'idle'
     }
 
@@ -498,7 +528,7 @@
         }}
         class="w-full"
       >
-        <Tabs.List class="w-full grid grid-cols-3">
+        <Tabs.List class="w-full grid grid-cols-4">
           {#each schema.options ?? [] as option}
             <Tabs.Trigger value={option.value}>{option.label}</Tabs.Trigger>
           {/each}
@@ -531,22 +561,29 @@
           placeholder={schema.placeholder ??
             `Enter ${schema.label.toLowerCase()}`}
           autocomplete="off"
-          class="h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) placeholder:text-(--text-muted) {isApiKeyField && isElectron ? 'pr-10' : ''}"
+          class="h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) placeholder:text-(--text-muted) {isApiKeyField &&
+          isElectron
+            ? 'pr-10'
+            : ''}"
         />
-        {#if isApiKeyField && isElectron}
+        {#if isApiKeyField && isElectron && formData[key]}
           <button
             type="button"
             onclick={() => validateKey(key)}
-            disabled={validationStatus === 'validating' || !formData[key]}
+            disabled={validationStatus === 'validating'}
             class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-(--sidebar-hover) disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title={validationStatus === 'valid' ? 'API key is valid' : validationStatus === 'invalid' ? apiKeyValidation[key]?.error : 'Validate API key'}
+            title={validationStatus === 'valid'
+              ? 'API key is valid'
+              : validationStatus === 'invalid'
+                ? apiKeyValidation[key]?.error
+                : 'Validate API key'}
           >
             {#if validationStatus === 'validating'}
               <LoaderCircle class="size-4 text-(--text-muted) animate-spin" />
             {:else if validationStatus === 'valid'}
               <Check class="size-4 text-green-500" />
             {:else if validationStatus === 'invalid'}
-              <X class="size-4 text-red-500" />
+              <Ban class="size-4 text-red-500" />
             {:else}
               <Check class="size-4 text-(--text-muted)" />
             {/if}
