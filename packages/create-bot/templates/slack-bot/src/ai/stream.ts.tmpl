@@ -24,20 +24,21 @@ export async function* streamAIResponse(options: StreamOptions): AsyncIterable<s
     messages,
   })
 
-  // Collect chunks and handle errors
-  const chunks: string[] = []
+  // Stream chunks immediately and track errors
+  let hasYieldedChunks = false
   let streamError: Error | null = null
 
   try {
     for await (const chunk of result.textStream) {
-      chunks.push(chunk)
+      hasYieldedChunks = true
+      yield chunk
     }
   } catch (error) {
     streamError = error as Error
   }
 
   // Check for errors even if stream appeared to succeed
-  if (chunks.length === 0 && !streamError) {
+  if (!hasYieldedChunks && !streamError) {
     // Only validate OpenAI API key for OpenAI models
     if (model.provider === 'openai') {
       try {
@@ -77,10 +78,5 @@ export async function* streamAIResponse(options: StreamOptions): AsyncIterable<s
 
     slackLogger.error({ error: message }, 'AI error')
     throw streamError
-  }
-
-  // Yield all collected chunks
-  for (const chunk of chunks) {
-    yield chunk
   }
 }
