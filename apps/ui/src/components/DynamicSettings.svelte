@@ -4,14 +4,14 @@
   import { Input } from '$lib/components/ui/input'
   import { Button } from '$lib/components/ui/button'
   import { Label } from '$lib/components/ui/label'
-  import { ChevronDown, ChevronRight } from '@lucide/svelte'
+  import { ChevronDown, ChevronRight, Check, X, LoaderCircle } from '@lucide/svelte'
   import {
     fetchBotConfig,
     type BotConfig,
     type SettingSchema,
     type GroupDefinition,
   } from '../lib/config-client'
-  import { isElectron } from '../lib/electron-api'
+  import { isElectron, getElectronAPI } from '../lib/electron-api'
   import {
   SIMULATOR_SETTINGS_SCHEMA,
   MODEL_TIERS,
@@ -55,6 +55,18 @@
   let showSecrets: Record<string, boolean> = $state({})
   let collapsedGroups: Record<string, boolean> = $state({})
 
+  // Dynamic model tiers fetched from provider APIs (Electron only)
+  let dynamicModelTiers: Record<
+    string,
+    { fast: string[]; default: string[]; thinking: string[] }
+  > | null = $state(null)
+
+  // API key validation state: { fieldKey: { status: 'idle' | 'validating' | 'valid' | 'invalid', error?: string, validatedValue?: string } }
+  let apiKeyValidation: Record<
+    string,
+    { status: 'idle' | 'validating' | 'valid' | 'invalid'; error?: string; validatedValue?: string }
+  > = $state({})
+
   // Track previous initialValues to detect changes
   let prevInitialValues: Record<string, unknown> = {}
 
@@ -80,6 +92,20 @@
 
   // Track if we've already fetched config to avoid duplicate fetches
   let configFetched = $state(false)
+
+  // Fetch dynamic model tiers from provider APIs (Electron only)
+  $effect(() => {
+    if (!isElectron) return
+
+    const electronAPI = getElectronAPI()
+    if (!electronAPI) return
+
+    electronAPI.getModelTiers().then((tiers) => {
+      dynamicModelTiers = tiers
+    }).catch((error) => {
+      console.warn('Failed to fetch dynamic model tiers:', error)
+    })
+  })
 
   // Fetch config reactively when botId becomes available (or immediately in web mode)
   $effect(() => {
@@ -249,16 +275,42 @@
   }
 
   // Get models for a tier based on current provider
+  // Priority: dynamic API → bot config → hardcoded fallback
   function getModelsForTier(tier: string): string[] {
-    if (!config) return []
     const provider = formData.ai_provider as string
-    return config.schema.model_tiers[provider]?.[tier] ?? []
+    if (!provider) return []
+
+    type TierKey = 'fast' | 'default' | 'thinking'
+    const tierKey = tier as TierKey
+
+    // Priority 1: Dynamic model tiers from API (Electron only)
+    const dynamicTiers = dynamicModelTiers?.[provider]
+    if (dynamicTiers?.[tierKey]?.length) {
+      return dynamicTiers[tierKey]
+    }
+
+    // Priority 2: Bot config model_tiers
+    if (config?.schema.model_tiers[provider]?.[tier]?.length) {
+      return config.schema.model_tiers[provider][tier]
+    }
+
+    // Priority 3: Hardcoded fallback
+    return MODEL_TIERS[provider]?.[tier] ?? []
   }
 
   // Get default model for a tier (first in list)
   function getDefaultModel(tier: string): string {
     const models = getModelsForTier(tier)
     return models[0] ?? ''
+  }
+
+  // Check if current provider has an API key configured
+  function hasProviderApiKey(): boolean {
+    const provider = formData.ai_provider as string
+    if (!provider) return false
+    const keyField = `${provider}_api_key`
+    const key = formData[keyField] as string | undefined
+    return !!key && key.length > 0
   }
 
   function toggleSecret(key: string) {
@@ -299,6 +351,55 @@
   // Clear override for a field (revert to inherited value)
   function clearOverride(key: string) {
     formData[key] = inheritedValues[key]
+  }
+
+  // Validate an API key
+  async function validateKey(key: string) {
+    if (!isElectron) return
+
+    const electronAPI = getElectronAPI()
+    if (!electronAPI) return
+
+    const value = formData[key] as string
+    if (!value || value.trim() === '') {
+      apiKeyValidation[key] = { status: 'invalid', error: 'API key is empty' }
+      return
+    }
+
+    // Extract provider from key name (e.g., 'openai_api_key' -> 'openai')
+    const provider = key.replace('_api_key', '')
+
+    apiKeyValidation[key] = { status: 'validating' }
+
+    try {
+      const result = await electronAPI.validateApiKey(provider, value)
+      if (result.valid) {
+        apiKeyValidation[key] = { status: 'valid', validatedValue: value }
+        // Refresh model tiers after successful validation
+        electronAPI.clearModelCache(provider)
+        electronAPI.getModelTiers().then((tiers) => {
+          dynamicModelTiers = tiers
+        })
+      } else {
+        apiKeyValidation[key] = { status: 'invalid', error: result.error }
+      }
+    } catch (error) {
+      apiKeyValidation[key] = { status: 'invalid', error: 'Validation failed' }
+    }
+  }
+
+  // Get validation status for a field, resetting if value changed
+  function getValidationStatus(key: string): 'idle' | 'validating' | 'valid' | 'invalid' {
+    const validation = apiKeyValidation[key]
+    if (!validation) return 'idle'
+
+    // Reset to idle if value changed since validation
+    const currentValue = formData[key] as string
+    if (validation.validatedValue && validation.validatedValue !== currentValue) {
+      return 'idle'
+    }
+
+    return validation.status
   }
 </script>
 
@@ -404,6 +505,8 @@
         </Tabs.List>
       </Tabs.Root>
     {:else if schema.type === 'secret'}
+      {@const validationStatus = getValidationStatus(key)}
+      {@const isApiKeyField = key.endsWith('_api_key')}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
         {#if !isFieldRequired(schema)}
@@ -419,16 +522,40 @@
           {showSecrets[key] ? 'Hide' : 'Show'}
         </Button>
       </Label>
-      <Input
-        id={key}
-        type={showSecrets[key] ? 'text' : 'password'}
-        value={(formData[key] as string) ?? ''}
-        oninput={(e) => (formData[key] = e.currentTarget.value)}
-        placeholder={schema.placeholder ??
-          `Enter ${schema.label.toLowerCase()}`}
-        autocomplete="off"
-        class="h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) placeholder:text-(--text-muted)"
-      />
+      <div class="relative">
+        <Input
+          id={key}
+          type={showSecrets[key] ? 'text' : 'password'}
+          value={(formData[key] as string) ?? ''}
+          oninput={(e) => (formData[key] = e.currentTarget.value)}
+          placeholder={schema.placeholder ??
+            `Enter ${schema.label.toLowerCase()}`}
+          autocomplete="off"
+          class="h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) placeholder:text-(--text-muted) {isApiKeyField && isElectron ? 'pr-10' : ''}"
+        />
+        {#if isApiKeyField && isElectron}
+          <button
+            type="button"
+            onclick={() => validateKey(key)}
+            disabled={validationStatus === 'validating' || !formData[key]}
+            class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-(--sidebar-hover) disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title={validationStatus === 'valid' ? 'API key is valid' : validationStatus === 'invalid' ? apiKeyValidation[key]?.error : 'Validate API key'}
+          >
+            {#if validationStatus === 'validating'}
+              <LoaderCircle class="size-4 text-(--text-muted) animate-spin" />
+            {:else if validationStatus === 'valid'}
+              <Check class="size-4 text-green-500" />
+            {:else if validationStatus === 'invalid'}
+              <X class="size-4 text-red-500" />
+            {:else}
+              <Check class="size-4 text-(--text-muted)" />
+            {/if}
+          </button>
+        {/if}
+      </div>
+      {#if validationStatus === 'invalid' && apiKeyValidation[key]?.error}
+        <p class="text-xs text-red-500 mt-1">{apiKeyValidation[key].error}</p>
+      {/if}
     {:else if schema.type === 'string'}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
@@ -515,6 +642,7 @@
       {@const tier = schema.tier ?? 'default'}
       {@const models = getModelsForTier(tier)}
       {@const defaultModel = getDefaultModel(tier)}
+      {@const hasApiKey = hasProviderApiKey()}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
         {@render inheritedIndicator(key)}
@@ -526,15 +654,22 @@
         type="single"
         value={(formData[key] as string) ?? ''}
         onValueChange={(v) => (formData[key] = v || undefined)}
+        disabled={!hasApiKey}
       >
         <Select.Trigger
-          class="w-full h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary)"
+          class="w-full h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {(formData[key] as string) || `Default (${defaultModel})`}
+          {#if hasApiKey}
+            {(formData[key] as string) || `Default (${defaultModel})`}
+          {:else}
+            Enter API key to select model
+          {/if}
         </Select.Trigger>
         <Select.Content
           portalProps={{ disabled: true }}
-          class="bg-(--main-bg) border-(--border-color)"
+          side="top"
+          avoidCollisions={true}
+          class="bg-(--main-bg) border-(--border-color) max-h-60 overflow-y-auto"
         >
           <Select.Item
             value=""

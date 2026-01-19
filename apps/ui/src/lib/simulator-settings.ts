@@ -18,9 +18,9 @@ export const MODEL_TIERS: Record<string, Record<string, string[]>> = {
     thinking: ['o3-mini', 'o1'],
   },
   anthropic: {
-    fast: ['claude-3-5-haiku-latest', 'claude-3-haiku-20240307'],
-    default: ['claude-sonnet-4-5', 'claude-sonnet-4-20250514'],
-    thinking: ['claude-opus-4-20250514', 'claude-sonnet-4-5'],
+    fast: ['claude-haiku-4-5'],
+    default: ['claude-sonnet-4-5'],
+    thinking: ['claude-opus-4-5'],
   },
   google: {
     fast: ['gemini-2.0-flash', 'gemini-2.0-flash-lite'],

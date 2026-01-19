@@ -47,4 +47,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Fetch bot config (proxied through main process to avoid CSP issues)
   fetchBotConfig: (botId: string): Promise<unknown | null> =>
     ipcRenderer.invoke('bot:fetchConfig', botId),
+
+  // Dynamic model tiers - fetch from provider APIs
+  getModelTiers: (): Promise<
+    Record<string, { fast: string[]; default: string[]; thinking: string[] }>
+  > => ipcRenderer.invoke('models:getTiers'),
+  clearModelCache: (provider?: string): Promise<void> =>
+    ipcRenderer.invoke('models:clearCache', provider),
+  validateApiKey: (
+    provider: string,
+    apiKey: string
+  ): Promise<{ valid: boolean; error?: string }> =>
+    ipcRenderer.invoke('models:validateKey', provider, apiKey),
 })

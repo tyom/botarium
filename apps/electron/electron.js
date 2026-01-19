@@ -25,6 +25,11 @@ import {
   emulatorProcLogger,
   botProcLogger,
 } from './electron-logger.js'
+import {
+  getModelTiers,
+  clearModelCache,
+  validateApiKey,
+} from './model-fetcher.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -796,6 +801,18 @@ function setupIpcHandlers() {
       { hasApiKey: !!settings?.openai_api_key },
       'IPC: settings:save called'
     )
+
+    // Check if API keys changed and clear model cache
+    const oldSettings = loadSettings() || {}
+    const apiKeyFields = ['openai_api_key', 'anthropic_api_key', 'google_api_key']
+    for (const field of apiKeyFields) {
+      if (oldSettings[field] !== settings[field]) {
+        const provider = field.replace('_api_key', '')
+        clearModelCache(provider)
+        electronLogger.debug({ provider }, 'Cleared model cache due to API key change')
+      }
+    }
+
     saveSettings(settings)
     // Restart backend with new settings
     await stopBackend()
@@ -823,6 +840,27 @@ function setupIpcHandlers() {
   // Sync logs panel state from renderer (when toggled via keyboard shortcut in web mode)
   ipcMain.on('logs-panel:state-changed', (_event, visible) => {
     updateLogsPanelMenuState(visible)
+  })
+
+  // Model tiers - fetch dynamic models from provider APIs
+  ipcMain.handle('models:getTiers', async () => {
+    const settings = loadSettings() || {}
+    const apiKeys = {
+      openai_api_key: settings.openai_api_key,
+      anthropic_api_key: settings.anthropic_api_key,
+      google_api_key: settings.google_api_key,
+    }
+    return getModelTiers(apiKeys)
+  })
+
+  // Clear model cache (when API keys change)
+  ipcMain.handle('models:clearCache', async (_event, provider) => {
+    clearModelCache(provider)
+  })
+
+  // Validate API key
+  ipcMain.handle('models:validateKey', async (_event, provider, apiKey) => {
+    return validateApiKey(provider, apiKey)
   })
 
   // Fetch bot config (proxied to avoid renderer CSP issues)

@@ -28,6 +28,16 @@ export interface ElectronAPI {
 
   // Bot config (proxied through main process to avoid CSP issues)
   fetchBotConfig: (botId: string) => Promise<unknown | null>
+
+  // Dynamic model tiers - fetch from provider APIs
+  getModelTiers: () => Promise<
+    Record<string, { fast: string[]; default: string[]; thinking: string[] }>
+  >
+  clearModelCache: (provider?: string) => Promise<void>
+  validateApiKey: (
+    provider: string,
+    apiKey: string
+  ) => Promise<{ valid: boolean; error?: string }>
 }
 
 /**
