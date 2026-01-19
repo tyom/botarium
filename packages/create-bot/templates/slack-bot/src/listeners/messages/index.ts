@@ -46,6 +46,7 @@ export function register(app: App) {
 
     // Process asynchronously to ack within 3 seconds
     processMessage({{#if isAi}}client, {{/if}}say, text, messageEvent, isThreadReply, threadTs)
+      .catch(err => slackLogger.error({ err }, 'Unhandled error in processMessage'))
   })
 }
 
