@@ -305,8 +305,9 @@ export class EmulatorState {
 
     const appConfig = bot.appConfig
     return {
-      // Generate a consistent user ID from the app ID (e.g., "simple" -> "U_simple")
-      id: `U_${appConfig.app.id}`,
+      // Generate a consistent user ID from the app ID (e.g., "my-bot" -> "U_my-bot")
+      // Fall back to botId for legacy bots that may not have appConfig.app.id
+      id: `U_${appConfig.app.id || botId}`,
       name: appConfig.app.name,
       display_name: appConfig.app.name,
     }
