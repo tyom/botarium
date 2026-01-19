@@ -35,7 +35,9 @@ export async function appMention({ event, client, say }: AppMentionArgs) {
   }
 
   // Process asynchronously to ack within 3 seconds
-  processMention({{#if isAi}}client, {{/if}}say, event, text, threadTs)
+  processMention({{#if isAi}}client, {{/if}}say, event, text, threadTs).catch(err => {
+    slackLogger.error({ err }, 'Unhandled error in processMention')
+  })
 }
 
 async function processMention(
