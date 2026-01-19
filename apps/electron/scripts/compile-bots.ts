@@ -79,7 +79,12 @@ async function main() {
   const botEntries = config.bots ?? []
 
   if (botEntries.length === 0) {
-    console.log('No bots configured in bots.json')
+    console.log('No bots configured in bots.json - clearing dist/bots/')
+    if (fs.existsSync(OUTPUT_DIR)) {
+      fs.rmSync(OUTPUT_DIR, { recursive: true })
+    }
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true })
+    fs.writeFileSync(path.join(OUTPUT_DIR, 'manifest.json'), JSON.stringify({ bots: [] }, null, 2))
     process.exit(0)
   }
 
