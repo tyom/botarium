@@ -100,8 +100,8 @@
     prevInitialValues = { ...initialValues }
   })
 
-  // Track if we've already fetched config to avoid duplicate fetches
-  let configFetched = $state(false)
+  // Track the key of the last fetched config to avoid duplicate fetches and detect bot changes
+  let lastFetchedKey: string | null = $state(null)
 
   // Fetch dynamic model tiers from provider APIs (Electron only)
   $effect(() => {
@@ -122,12 +122,12 @@
 
   // Fetch config reactively when botId becomes available (or immediately in web mode)
   $effect(() => {
-    // In Electron mode, wait for botId to be available
-    // In web mode, botId is not needed
-    const shouldFetch = !isElectron || botId
-    if (!shouldFetch || configFetched) return
+    // In Electron mode, use botId as the key; in web mode, use a constant
+    const currentKey = isElectron ? botId : 'web'
+    // Skip if no key available or already fetched for this key
+    if (!currentKey || lastFetchedKey === currentKey) return
 
-    configFetched = true
+    lastFetchedKey = currentKey
 
     // Use an async IIFE to handle the fetch
     ;(async () => {
@@ -195,14 +195,25 @@
             }
           }
 
+          // Deep merge model_tiers per provider to preserve default tiers
+          const mergedModelTiers: Record<string, Record<string, string[]>> = {
+            ...MODEL_TIERS,
+          }
+          const botModelTiers = botConfig.schema.model_tiers
+          if (botModelTiers) {
+            for (const provider of Object.keys(botModelTiers)) {
+              mergedModelTiers[provider] = {
+                ...MODEL_TIERS[provider],
+                ...botModelTiers[provider],
+              }
+            }
+          }
+
           config = {
             schema: {
               settings: mergedSettings,
               groups: mergedGroups,
-              model_tiers: {
-                ...MODEL_TIERS,
-                ...botConfig.schema.model_tiers,
-              },
+              model_tiers: mergedModelTiers,
             },
             values: botConfig.values,
           }

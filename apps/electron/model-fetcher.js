@@ -329,7 +329,12 @@ async function fetchGoogleModels(apiKey) {
   try {
     electronLogger.debug('Fetching Google models...')
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+      'https://generativelanguage.googleapis.com/v1beta/models',
+      {
+        headers: {
+          'x-goog-api-key': apiKey
+        }
+      }
     )
 
     if (!response.ok) {
