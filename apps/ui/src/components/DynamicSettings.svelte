@@ -452,7 +452,7 @@
           }
         }
         allApiKeys[key] = value
-        electronAPI.clearModelCache(provider)
+        await electronAPI.clearModelCache(provider)
         electronAPI
           .getModelTiers(allApiKeys)
           .then((tiers) => {
