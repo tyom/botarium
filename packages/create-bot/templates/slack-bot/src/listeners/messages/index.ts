@@ -82,7 +82,7 @@ async function processMessage(
       channelId: messageEvent.channel,
       threadTs: threadTs,
       userId: messageEvent.user ?? '',
-      teamId: '',
+      teamId: messageEvent.team ?? '',
       history: [],
     }
 

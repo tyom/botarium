@@ -673,6 +673,13 @@ export class SocketModeServer {
         // Ignore close errors
       }
     }
+
+    // Clear pending acks to avoid timeout warnings and unblock waiters
+    for (const pending of this.pendingAcks.values()) {
+      clearTimeout(pending.timeout)
+      pending.resolve()
+    }
+    this.pendingAcks.clear()
   }
 
   /**
