@@ -1,6 +1,6 @@
 import Handlebars from 'handlebars'
 
-export type AiProvider = 'openai' | 'anthropic' | 'google'
+export type AiProvider = 'openai' | 'anthropic' | 'google' | 'openrouter'
 export type DbAdapter = 'none' | 'sqlite' | 'postgres'
 
 export interface TemplateContext {
@@ -18,6 +18,7 @@ export interface TemplateContext {
   isOpenai: boolean
   isAnthropic: boolean
   isGoogle: boolean
+  isOpenrouter: boolean
   isDb: boolean
   isSqlite: boolean
   isPostgres: boolean
@@ -61,6 +62,7 @@ export function createTemplateContext(
     isOpenai: aiProvider === 'openai',
     isAnthropic: aiProvider === 'anthropic',
     isGoogle: aiProvider === 'google',
+    isOpenrouter: aiProvider === 'openrouter',
     isDb: dbAdapter !== 'none',
     isSqlite: dbAdapter === 'sqlite',
     isPostgres: dbAdapter === 'postgres',

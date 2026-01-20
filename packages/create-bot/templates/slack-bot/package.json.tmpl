@@ -34,6 +34,10 @@
     ,
     "@ai-sdk/google": "^1.2.20"
     {{~/if}}
+    {{~#if isOpenrouter~}}
+    ,
+    "@openrouter/ai-sdk-provider": "^0.7.5"
+    {{~/if}}
   },
   "devDependencies": {
     "@types/bun": "latest",

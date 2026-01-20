@@ -19,6 +19,10 @@
       "path": "packages/slack",
       "name": "Slack",
     },
+    {
+      "path": "packages/create-bot",
+      "name": "Create Bot",
+    },
   ],
   "settings": {},
   "tasks": {

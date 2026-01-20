@@ -18,6 +18,7 @@ export const AI_PROVIDERS = [
   { value: 'openai', title: 'OpenAI' },
   { value: 'anthropic', title: 'Anthropic' },
   { value: 'google', title: 'Google' },
+  { value: 'openrouter', title: 'OpenRouter' },
 ] as const
 
 export type AiProvider = (typeof AI_PROVIDERS)[number]['value']
