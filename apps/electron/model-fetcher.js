@@ -32,9 +32,21 @@ const FALLBACK_MODEL_TIERS = {
     thinking: ['gemini-2.5-pro', 'gemini-2.0-flash-thinking-exp'],
   },
   openrouter: {
-    fast: ['openai/gpt-4o-mini', 'anthropic/claude-3-5-haiku', 'google/gemini-2.0-flash-001'],
-    default: ['openai/gpt-4o', 'anthropic/claude-sonnet-4', 'google/gemini-2.5-pro'],
-    thinking: ['openai/o3-mini', 'anthropic/claude-opus-4', 'google/gemini-2.5-pro'],
+    fast: [
+      'openai/gpt-4o-mini',
+      'anthropic/claude-3-5-haiku',
+      'google/gemini-2.0-flash-001',
+    ],
+    default: [
+      'openai/gpt-4o',
+      'anthropic/claude-sonnet-4',
+      'google/gemini-2.5-pro',
+    ],
+    thinking: [
+      'openai/o3-mini',
+      'anthropic/claude-opus-4',
+      'google/gemini-2.5-pro',
+    ],
   },
 }
 
@@ -50,7 +62,7 @@ function categorizeOpenAIModels(modelIds) {
     const lower = id.toLowerCase()
 
     // Thinking models: o1, o3 series
-    if (lower.startsWith('o3') || lower.startsWith('o3-mini')) {
+    if (lower.startsWith('o3') || lower.startsWith('o1')) {
       tiers.thinking.push(id)
     }
     // Fast models: mini
@@ -396,7 +408,10 @@ async function fetchOpenRouterModels(apiKey) {
       .filter((id) => allowedPrefixes.some((prefix) => id.startsWith(prefix)))
       .sort()
 
-    electronLogger.debug({ modelCount: modelIds.length }, 'OpenRouter models filtered')
+    electronLogger.debug(
+      { modelCount: modelIds.length },
+      'OpenRouter models filtered'
+    )
     return categorizeOpenRouterModels(modelIds)
   } catch (error) {
     electronLogger.warn(
@@ -423,15 +438,27 @@ async function getModelTiersForProvider(provider, apiKey) {
 
   // No API key - return fallback
   if (!apiKey) {
-    const fallback = FALLBACK_MODEL_TIERS[provider] || { fast: [], default: [], thinking: [] }
+    const fallback = FALLBACK_MODEL_TIERS[provider] || {
+      fast: [],
+      default: [],
+      thinking: [],
+    }
     electronLogger.info(
-      { provider, fast: fallback.fast.length, default: fallback.default.length, thinking: fallback.thinking.length },
+      {
+        provider,
+        fast: fallback.fast.length,
+        default: fallback.default.length,
+        thinking: fallback.thinking.length,
+      },
       'No API key, using fallback model tiers'
     )
     return fallback
   }
 
-  electronLogger.debug({ provider, hasKey: !!apiKey }, 'Fetching models from API')
+  electronLogger.debug(
+    { provider, hasKey: !!apiKey },
+    'Fetching models from API'
+  )
 
   // Fetch from API
   let tiers = null
@@ -538,7 +565,10 @@ export async function validateApiKey(provider, apiKey) {
           return { valid: true }
         }
         const data = await response.json().catch(() => ({}))
-        return { valid: false, error: data.error?.message || `HTTP ${response.status}` }
+        return {
+          valid: false,
+          error: data.error?.message || `HTTP ${response.status}`,
+        }
       }
 
       case 'anthropic': {
@@ -553,7 +583,10 @@ export async function validateApiKey(provider, apiKey) {
           return { valid: true }
         }
         const data = await response.json().catch(() => ({}))
-        return { valid: false, error: data.error?.message || `HTTP ${response.status}` }
+        return {
+          valid: false,
+          error: data.error?.message || `HTTP ${response.status}`,
+        }
       }
 
       case 'google': {
@@ -564,7 +597,10 @@ export async function validateApiKey(provider, apiKey) {
           return { valid: true }
         }
         const data = await response.json().catch(() => ({}))
-        return { valid: false, error: data.error?.message || `HTTP ${response.status}` }
+        return {
+          valid: false,
+          error: data.error?.message || `HTTP ${response.status}`,
+        }
       }
 
       case 'openrouter': {
@@ -578,7 +614,10 @@ export async function validateApiKey(provider, apiKey) {
           return { valid: true }
         }
         const data = await response.json().catch(() => ({}))
-        return { valid: false, error: data.error?.message || data.error || `HTTP ${response.status}` }
+        return {
+          valid: false,
+          error: data.error?.message || data.error || `HTTP ${response.status}`,
+        }
       }
 
       default:
