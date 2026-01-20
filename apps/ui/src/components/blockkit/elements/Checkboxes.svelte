@@ -44,7 +44,7 @@
 </script>
 
 <div class="space-y-2">
-  {#each element.options as option}
+  {#each element.options as option (option.text.text)}
     <label class="flex items-center gap-2 cursor-pointer group">
       <input
         type="checkbox"

@@ -469,7 +469,7 @@
     const fields = getFieldsForGroup(g.id)
     return fields.some(([_, schema]) => shouldShowField(schema))
   })}
-  {#each groupsWithVisibleFields as group, visibleGroupIndex}
+  {#each groupsWithVisibleFields as group, visibleGroupIndex (group.id)}
     {@const fields = getFieldsForGroup(group.id)}
     {@const visibleFields = fields.filter(([_, schema]) =>
       shouldShowField(schema)
@@ -513,7 +513,7 @@
 {/if}
 
 {#snippet groupFields(fields: [string, SettingSchema][])}
-  {#each fields as [key, schema]}
+  {#each fields as [key, schema] (key)}
     {@render field(key, schema)}
   {/each}
 {/snippet}
@@ -551,7 +551,7 @@
         class="w-full"
       >
         <Tabs.List class="w-full grid grid-cols-4">
-          {#each schema.options ?? [] as option}
+          {#each schema.options ?? [] as option (option.value)}
             <Tabs.Trigger value={option.value}>{option.label}</Tabs.Trigger>
           {/each}
         </Tabs.List>
@@ -688,7 +688,7 @@
           portalProps={{ disabled: true }}
           class="bg-(--main-bg) border-(--border-color)"
         >
-          {#each schema.options ?? [] as option}
+          {#each schema.options ?? [] as option (option.value)}
             <Select.Item
               value={option.value}
               label={option.label}
@@ -735,7 +735,7 @@
             label={`Default (${defaultModel})`}
             class="text-(--text-primary) data-highlighted:bg-(--sidebar-hover)"
           />
-          {#each models.slice(1) as model}
+          {#each models.slice(1) as model (model)}
             <Select.Item
               value={model}
               label={model}

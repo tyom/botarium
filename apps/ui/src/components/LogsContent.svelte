@@ -73,7 +73,7 @@
           {/if}
           <span class="text-log-message">{log.message}</span>
           {#if log.context}
-            {#each Object.entries(log.context) as [key, value]}
+            {#each Object.entries(log.context) as [key, value] (key)}
               <div class="pl-6 text-blue-400">
                 {key}: {typeof value === 'object' && value !== null
                   ? JSON.stringify(value)

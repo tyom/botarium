@@ -44,7 +44,7 @@
     <div
       class="absolute top-full right-0 mt-1 min-w-30 bg-(--main-bg) border border-(--border-color) rounded-md shadow-lg z-100 overflow-hidden"
     >
-      {#each items as item}
+      {#each items as item (item.label)}
         <button
           class="block w-full py-2 px-3 bg-transparent border-none text-left text-sm text-(--text-primary) cursor-pointer transition-colors hover:bg-(--sidebar-hover)"
           onclick={() => handleItemClick(item)}

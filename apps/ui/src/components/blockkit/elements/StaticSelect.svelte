@@ -29,7 +29,7 @@
   {#if element.placeholder}
     <option value="" disabled>{renderText(element.placeholder)}</option>
   {/if}
-  {#each element.options as option}
+  {#each element.options as option (option.text.text)}
     <option value={option.value}>{renderText(option.text)}</option>
   {/each}
 </select>

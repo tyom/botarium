@@ -54,7 +54,7 @@
   </div>
 
   <nav class="flex-1 overflow-y-auto p-2">
-    {#each sections as section}
+    {#each sections as section (section.type)}
       {@const hasBotsForApps =
         section.type !== 'dm' || simulatorState.connectedBots.size > 0}
       {#if hasBotsForApps}
@@ -65,7 +65,7 @@
         </div>
       {/if}
       {#if section.type === 'channel'}
-        {#each CHANNELS.filter((c) => c.type === 'channel') as channel}
+        {#each CHANNELS.filter((c) => c.type === 'channel') as channel (channel.id)}
           {@const isActive = simulatorState.currentChannel === channel.id}
           <div
             class="flex items-center relative hover:bg-(--sidebar-hover) rounded-lg group"
@@ -92,7 +92,7 @@
           </div>
         {/each}
       {:else}
-        {#each Array.from(simulatorState.connectedBots.values()) as bot}
+        {#each Array.from(simulatorState.connectedBots.values()) as bot (bot.id)}
           {@const channelId = `D_${bot.id}`}
           {@const isActive = simulatorState.currentChannel === channelId}
           {@const isDisconnected = bot.status === 'disconnected'}

@@ -160,7 +160,7 @@
     {#if moduleStats.all.length > 0}
       <span class="text-xs text-(--text-muted) shrink-0">Module:</span>
 
-      {#each visibleModules as { module, count }}
+      {#each visibleModules as { module, count } (module)}
         <button
           class="module-toggle shrink-0"
           data-active={isEnabled(module)}
@@ -215,7 +215,7 @@
         portalProps={{ disabled: true }}
         class="bg-(--main-bg) border-(--border-color) min-w-20"
       >
-        {#each logLevels as level}
+        {#each logLevels as level (level.value)}
           <Select.Item
             value={level.value}
             label={level.label}

@@ -55,7 +55,7 @@
 </script>
 
 <div class="space-y-4">
-  {#each blocks as block, index}
+  {#each blocks as block, index (getBlockId(block, index))}
     {#if block.type === 'section'}
       <SectionBlock block={block as SlackSectionBlock} {onAction} />
     {:else if block.type === 'input'}
