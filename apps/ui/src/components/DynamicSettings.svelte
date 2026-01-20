@@ -357,6 +357,17 @@
   // Check if a field value is inherited (same as global value)
   function isInherited(key: string): boolean {
     if (!showInheritedBadge) return false
+
+    // Only simulator settings and bot-overridable settings can be inherited from global
+    // Bot-specific settings (like bot_name, bot_personality) are never inherited
+    const isSimulatorSetting = key in SIMULATOR_SETTINGS_SCHEMA.settings
+    const isBotOverridable = (
+      BOT_OVERRIDABLE_SETTINGS as readonly string[]
+    ).includes(key)
+    if (!isSimulatorSetting && !isBotOverridable) {
+      return false // Bot-specific fields can't be inherited from global settings
+    }
+
     const currentValue = formData[key]
     const inheritedValue = inheritedValues[key]
     // Treat undefined/empty as inherited if global is also undefined/empty
@@ -369,6 +380,17 @@
   // Check if a field has an override (different from global value)
   function hasOverride(key: string): boolean {
     if (!showInheritedBadge) return false
+
+    // Only simulator settings and bot-overridable settings can have overrides
+    // Bot-specific settings (like bot_name, bot_personality) don't have a global value to reset to
+    const isSimulatorSetting = key in SIMULATOR_SETTINGS_SCHEMA.settings
+    const isBotOverridable = (
+      BOT_OVERRIDABLE_SETTINGS as readonly string[]
+    ).includes(key)
+    if (!isSimulatorSetting && !isBotOverridable) {
+      return false
+    }
+
     return !isInherited(key)
   }
 

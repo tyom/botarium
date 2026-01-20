@@ -243,12 +243,16 @@ function createBackendState() {
   ) {
     if (!settings) return
 
-    const allAppSettings = (settings.app_settings ?? {}) as Record<
+    // Create plain object copy to avoid reactive proxy serialization issues
+    const settingsSnapshot = JSON.parse(
+      JSON.stringify(settings)
+    ) as typeof settings
+    const allAppSettings = (settingsSnapshot.app_settings ?? {}) as Record<
       string,
       Record<string, unknown>
     >
     const newSettings = {
-      ...settings,
+      ...settingsSnapshot,
       app_settings: {
         ...allAppSettings,
         [appId]: appSettings,

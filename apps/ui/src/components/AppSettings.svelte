@@ -4,6 +4,10 @@
   import { Button } from '$lib/components/ui/button'
   import IconButton from './IconButton.svelte'
   import DynamicSettings from './DynamicSettings.svelte'
+  import {
+    SIMULATOR_SETTINGS_SCHEMA,
+    BOT_OVERRIDABLE_SETTINGS,
+  } from '../lib/simulator-settings'
 
   interface Props {
     appId: string
@@ -31,10 +35,33 @@
   let error = $state('')
   let dialogEl: HTMLDialogElement | undefined = $state()
 
+  // Filter global settings to only include inheritable fields (simulator settings + bot-overridable)
+  // Bot-specific fields like bot_name shouldn't be inherited from global settings
+  const inheritableGlobalSettings = $derived.by(() => {
+    const result: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(globalSettings)) {
+      const isSimulatorSetting = key in SIMULATOR_SETTINGS_SCHEMA.settings
+      const isBotOverridable = (
+        BOT_OVERRIDABLE_SETTINGS as readonly string[]
+      ).includes(key)
+      if (isSimulatorSetting || isBotOverridable) {
+        result[key] = value
+      }
+    }
+    return result
+  })
+
   // Initialize form data with merged settings only when modal opens
   $effect.pre(() => {
     if (open) {
-      formData = untrack(() => ({ ...globalSettings, ...appSettings }))
+      // Only inherit simulator settings and bot-overridable settings from global
+      // Bot-specific fields should come from appSettings or the bot's defaults
+      // Use JSON parse/stringify to ensure plain objects (no reactive proxies)
+      formData = untrack(() =>
+        JSON.parse(
+          JSON.stringify({ ...inheritableGlobalSettings, ...appSettings })
+        )
+      )
     }
   })
 
@@ -53,7 +80,9 @@
     error = ''
     saving = true
     try {
-      const snapshot = $state.snapshot(formData)
+      // Use JSON parse/stringify to create a plain object copy
+      // This avoids $state.snapshot issues with reactive proxies
+      const snapshot = JSON.parse(JSON.stringify(formData))
       await onSave(snapshot)
     } catch (e) {
       error = e instanceof Error ? e.message : 'Failed to save settings'
@@ -93,11 +122,11 @@
     <!-- Scrollable content -->
     <div class="p-5 overflow-y-auto flex-1 min-h-0">
       <DynamicSettings
-        initialValues={globalSettings}
+        initialValues={inheritableGlobalSettings}
         appOverrides={appSettings}
         bind:formData
         filterScope="all"
-        inheritedValues={globalSettings}
+        inheritedValues={inheritableGlobalSettings}
         showInheritedBadge={true}
         botId={appId}
       />

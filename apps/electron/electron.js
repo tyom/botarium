@@ -369,18 +369,10 @@ function settingsToEnv(settings) {
     DATA_DIR: dataDir,
   }
 
-  // Merge bot-specific settings from app_settings into flat settings
-  // Bot-specific settings override global settings
+  // Don't merge bot-specific settings into global env
+  // Bot-specific settings should only apply to their specific bot
   const flatSettings = { ...settings }
-  if (settings.app_settings && typeof settings.app_settings === 'object') {
-    // Merge all bot-specific settings (they apply to all bots in simulator mode)
-    for (const botSettings of Object.values(settings.app_settings)) {
-      if (botSettings && typeof botSettings === 'object') {
-        Object.assign(flatSettings, botSettings)
-      }
-    }
-  }
-  delete flatSettings.app_settings // Don't process the nested object
+  delete flatSettings.app_settings
 
   // Convert all settings to env vars using convention: snake_case -> UPPER_SNAKE_CASE
   for (const [key, value] of Object.entries(flatSettings)) {
@@ -668,11 +660,16 @@ async function startBackend(settings) {
   emulatorProcLogger.info('Ready')
 
   // Push global settings to emulator so external bots can receive them on registration
+  // Include app_settings so emulator can return bot-specific settings on registration
   try {
+    const settingsPayload = {
+      ...settingsEnv,
+      _app_settings: settings.app_settings || {},
+    }
     await fetch(`${EMULATOR_URL}/api/simulator/settings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settingsEnv),
+      body: JSON.stringify(settingsPayload),
     })
     electronLogger.debug('Pushed settings to emulator')
   } catch (err) {

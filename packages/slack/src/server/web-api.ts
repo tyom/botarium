@@ -1239,11 +1239,12 @@ export class SlackWebAPI {
         `Registered bot: ${config.app.name} (${botId}) via connection ${connectionId}`
       )
 
-      // Include simulator settings in response so external bots can apply them
-      const simulatorSettings = this.state.getSimulatorSettings()
+      // Include bot-specific merged settings in response so external bots can apply them
+      // Use app.id first (matches how settings are stored), fallback to name
+      const botSettings = this.state.getSettingsForBot(config.app.id || config.app.name)
 
       return Response.json(
-        { ok: true, bot_id: botId, settings: simulatorSettings },
+        { ok: true, bot_id: botId, settings: botSettings },
         { headers: corsHeaders() }
       )
     } catch (err) {

@@ -125,6 +125,48 @@ function categorizeGoogleModels(modelIds) {
 }
 
 /**
+ * Sort OpenRouter models by preference (newer/better models first)
+ * @param {string[]} models - List of model IDs
+ * @returns {string[]} - Sorted models with preferred ones first
+ */
+function sortOpenRouterModelsByPreference(models) {
+  // Preferred models in order (best first)
+  const preferredOrder = [
+    // Anthropic - newest first
+    'anthropic/claude-sonnet-4',
+    'anthropic/claude-opus-4',
+    'anthropic/claude-3.5-sonnet',
+    'anthropic/claude-3-5-haiku',
+    'anthropic/claude-3-haiku',
+    // OpenAI - newest first
+    'openai/gpt-5',
+    'openai/gpt-4o',
+    'openai/gpt-4o-mini',
+    'openai/o3',
+    'openai/o3-mini',
+    'openai/o1',
+    // Google - newest first
+    'google/gemini-2.5-pro',
+    'google/gemini-2.0-flash',
+    'google/gemini-2.0-flash-001',
+  ]
+
+  return models.sort((a, b) => {
+    const aIndex = preferredOrder.findIndex((p) => a.startsWith(p))
+    const bIndex = preferredOrder.findIndex((p) => b.startsWith(p))
+
+    // Both in preferred list - sort by preference order
+    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex
+    // Only a in preferred list - a comes first
+    if (aIndex !== -1) return -1
+    // Only b in preferred list - b comes first
+    if (bIndex !== -1) return 1
+    // Neither in preferred list - alphabetical
+    return a.localeCompare(b)
+  })
+}
+
+/**
  * Categorize OpenRouter models into tiers
  * Since OpenRouter aggregates models from multiple providers, categorize by naming patterns
  * @param {string[]} modelIds - List of model IDs from API
@@ -168,6 +210,11 @@ function categorizeOpenRouterModels(modelIds) {
       tiers.default.push(id)
     }
   }
+
+  // Sort each tier by preference (newer models first)
+  tiers.fast = sortOpenRouterModelsByPreference(tiers.fast)
+  tiers.default = sortOpenRouterModelsByPreference(tiers.default)
+  tiers.thinking = sortOpenRouterModelsByPreference(tiers.thinking)
 
   return tiers
 }

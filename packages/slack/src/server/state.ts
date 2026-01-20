@@ -1031,6 +1031,48 @@ export class EmulatorState {
     return this.simulatorSettings
   }
 
+  /**
+   * Get settings merged with bot-specific overrides
+   * Bot-specific settings from _app_settings[botId] take precedence
+   */
+  getSettingsForBot(botId: string): Record<string, unknown> {
+    const appSettings = this.simulatorSettings._app_settings as
+      | Record<string, Record<string, unknown>>
+      | undefined
+
+    stateLogger.debug(
+      { botId, availableKeys: appSettings ? Object.keys(appSettings) : [] },
+      'Looking up bot-specific settings'
+    )
+
+    const botSettings = appSettings?.[botId]
+
+    if (!botSettings) {
+      // No bot-specific settings, return global (without _app_settings)
+      const { _app_settings, ...globalSettings } = this.simulatorSettings
+      stateLogger.debug({ botId }, 'No bot-specific settings found, using global')
+      return globalSettings
+    }
+
+    // Merge: global settings + bot-specific overrides (converted to uppercase)
+    const { _app_settings, ...globalSettings } = this.simulatorSettings
+    const mergedSettings = { ...globalSettings }
+
+    // Bot settings are stored in snake_case, convert to UPPER_SNAKE_CASE
+    for (const [key, value] of Object.entries(botSettings)) {
+      if (key.startsWith('_')) continue
+      if (value === undefined || value === null || value === '') continue
+      const envKey = key.toUpperCase()
+      mergedSettings[envKey] = value
+    }
+
+    stateLogger.debug(
+      { botId, overrideKeys: Object.keys(botSettings) },
+      'Merged bot-specific settings'
+    )
+    return mergedSettings
+  }
+
   close(): void {
     this.persistence?.close()
   }
