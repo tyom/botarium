@@ -462,13 +462,14 @@
             apiKeyValidation[key] = {
               status: 'invalid',
               error: 'Failed to fetch model tiers',
+              validatedValue: undefined,
             }
           })
       } else {
-        apiKeyValidation[key] = { status: 'invalid', error: result.error }
+        apiKeyValidation[key] = { status: 'invalid', error: result.error, validatedValue: undefined }
       }
     } catch {
-      apiKeyValidation[key] = { status: 'invalid', error: 'Validation failed' }
+      apiKeyValidation[key] = { status: 'invalid', error: 'Validation failed', validatedValue: undefined }
     }
   }
 
