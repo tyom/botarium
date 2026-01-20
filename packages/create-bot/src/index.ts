@@ -1,13 +1,19 @@
-import pc from 'picocolors'
 import path from 'path'
-import {
-  promptForSelections,
-  type PartialSelections,
-  type BotTemplate,
-} from './prompts'
+import { promptForSelections, type PartialSelections, type UserSelections } from './prompts'
 import { scaffold } from './scaffold'
 import { installDependenciesWithOutput } from './utils/install'
-import type { AiProvider, DbAdapter } from './utils/template'
+import {
+  printHeader,
+  printStatus,
+  printCancelled,
+  printSuccess,
+  printStep,
+  printCommand,
+  printEnvVar,
+  printSectionHeader,
+  printBlankLine,
+} from './utils/cli-output'
+import { getRequiredEnvVars } from './utils/env-vars'
 
 export interface CreateBotOptions extends PartialSelections {
   skipInstall?: boolean
@@ -17,11 +23,8 @@ export interface CreateBotOptions extends PartialSelections {
  * Create a new Botarium bot.
  */
 export async function createBot(options: CreateBotOptions = {}): Promise<void> {
-  console.log()
-  console.log(pc.bold(pc.blue('Create Botarium Bot')))
-  console.log()
+  printHeader('Create Botarium Bot')
 
-  // Collect missing options via prompts
   const selections = await promptForSelections({
     name: options.name,
     template: options.template,
@@ -31,14 +34,12 @@ export async function createBot(options: CreateBotOptions = {}): Promise<void> {
   })
 
   if (!selections) {
-    console.log(pc.yellow('Cancelled'))
+    printCancelled()
     process.exit(0)
   }
 
-  console.log()
-  console.log(pc.cyan('Scaffolding project...'))
+  printStatus('Scaffolding project...')
 
-  // Scaffold the project
   const targetDir = await scaffold({
     botName: selections.name,
     template: selections.template,
@@ -48,7 +49,6 @@ export async function createBot(options: CreateBotOptions = {}): Promise<void> {
     overwrite: selections.overwrite,
   })
 
-  // Install dependencies
   if (!options.skipInstall) {
     const success = await installDependenciesWithOutput(targetDir)
     if (!success) {
@@ -56,62 +56,54 @@ export async function createBot(options: CreateBotOptions = {}): Promise<void> {
     }
   }
 
-  // Print next steps
-  printNextSteps({
-    targetDir,
-    botName: selections.name,
+  printNextSteps(targetDir, selections)
+}
+
+function printNextSteps(targetDir: string, selections: UserSelections): void {
+  const relativePath = path.relative(process.cwd(), targetDir)
+
+  printSuccess(`Success! Created ${selections.name} at ${relativePath}`)
+
+  console.log('Next steps:')
+  printBlankLine()
+
+  printStep(1, `cd ${relativePath}`)
+  printStep(2, 'Copy .env.example to .env and configure:')
+  printCommand('cp .env.example .env')
+  printBlankLine()
+
+  printEnvVarInstructions(selections)
+
+  printStep(3, 'Start the bot:')
+  printCommand('bun run dev')
+  printBlankLine()
+}
+
+function printEnvVarInstructions(selections: UserSelections): void {
+  const envVars = getRequiredEnvVars({
     template: selections.template,
     useAi: selections.useAi,
     aiProvider: selections.provider,
     dbAdapter: selections.database,
   })
-}
 
-function printNextSteps(options: {
-  targetDir: string
-  botName: string
-  template: BotTemplate
-  useAi: boolean
-  aiProvider?: AiProvider
-  dbAdapter: DbAdapter
-}): void {
-  const { targetDir, botName, template, useAi, aiProvider, dbAdapter } = options
-  const relativePath = path.relative(process.cwd(), targetDir)
+  printSectionHeader('Required environment variables:')
 
-  console.log()
-  console.log(
-    pc.bold(pc.green(`Success! Created ${botName} at ${relativePath}`))
-  )
-  console.log()
-  console.log('Next steps:')
-  console.log()
-  console.log(pc.cyan('  1.'), `cd ${relativePath}`)
-  console.log(pc.cyan('  2.'), 'Copy .env.example to .env and configure:')
-  console.log(pc.dim(`       cp .env.example .env`))
-  console.log()
-  console.log('     Required environment variables:')
-
-  // Template-specific env vars
-  if (template === 'slack') {
-    console.log(pc.dim('       - SLACK_BOT_TOKEN'))
-    console.log(pc.dim('       - SLACK_APP_TOKEN'))
-    console.log(pc.dim('       - SLACK_SIGNING_SECRET'))
+  for (const varName of envVars.templateVars) {
+    printEnvVar(varName)
   }
 
-  if (useAi && aiProvider) {
-    console.log(pc.dim(`       - ${aiProvider.toUpperCase()}_API_KEY`))
+  if (envVars.aiVar) {
+    printEnvVar(envVars.aiVar)
   }
 
-  if (dbAdapter === 'postgres') {
-    console.log(pc.dim('       - DATABASE_URL'))
+  for (const varName of envVars.dbVars) {
+    printEnvVar(varName)
   }
 
-  if (dbAdapter === 'none' && !useAi) {
-    console.log(pc.dim('       (none required)'))
+  if (!envVars.hasAny) {
+    printEnvVar('(none required)')
   }
 
-  console.log()
-  console.log(pc.cyan('  3.'), 'Start the bot:')
-  console.log(pc.dim('       bun run dev'))
-  console.log()
+  printBlankLine()
 }

@@ -1,46 +1,29 @@
 import prompts from 'prompts'
-import { validateBotName, checkTargetDirectory } from './utils/validate'
+import { validateBotNameForPrompts, checkTargetDirectory } from './utils/validate'
+import {
+  BOT_TEMPLATES,
+  AI_PROVIDERS,
+  DB_ADAPTERS,
+  type BotTemplate,
+  type AiProvider,
+  type DbAdapter,
+} from './utils/template'
+import {
+  getTemplateChoices,
+  getProviderChoices,
+  getDatabaseChoices,
+  validateOption,
+} from './utils/prompt-options'
 
-export type BotTemplate = 'slack'
-
-export const AVAILABLE_TEMPLATES: {
-  value: BotTemplate
-  title: string
-  description: string
-}[] = [
-  { value: 'slack', title: 'Slack', description: 'Slack bot using Bolt SDK' },
-  // Future templates:
-  // { value: 'discord', title: 'Discord', description: 'Discord bot using discord.js' },
-  // { value: 'teams', title: 'Teams', description: 'Microsoft Teams bot' },
-]
-
-export const AI_PROVIDERS = [
-  { value: 'openai', title: 'OpenAI' },
-  { value: 'anthropic', title: 'Anthropic' },
-  { value: 'google', title: 'Google' },
-  { value: 'openrouter', title: 'OpenRouter' },
-] as const
-
-export type AiProvider = (typeof AI_PROVIDERS)[number]['value']
-
-export const DATABASE_OPTIONS = [
-  { value: 'none', title: 'None' },
-  {
-    value: 'sqlite',
-    title: 'SQLite',
-    description: 'Recommended for getting started',
-  },
-  { value: 'postgres', title: 'PostgreSQL' },
-] as const
-
-export type DatabaseOption = (typeof DATABASE_OPTIONS)[number]['value']
+// Re-export types for convenience
+export type { BotTemplate, AiProvider, DbAdapter }
 
 export interface UserSelections {
   name: string
   template: BotTemplate
   useAi: boolean
   provider?: AiProvider
-  database: DatabaseOption
+  database: DbAdapter
   overwrite?: boolean
 }
 
@@ -61,7 +44,7 @@ function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {
       name: 'name',
       message: 'Bot name:',
       initial: 'my-bot',
-      validate: validateBotName,
+      validate: validateBotNameForPrompts,
     })
   }
 
@@ -70,11 +53,7 @@ function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {
       type: 'select',
       name: 'template',
       message: 'Bot template:',
-      choices: AVAILABLE_TEMPLATES.map((t) => ({
-        title: t.title,
-        value: t.value,
-        description: t.description,
-      })),
+      choices: getTemplateChoices(),
       initial: 0,
     })
   }
@@ -96,7 +75,7 @@ function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {
         (values.useAi ?? partial.useAi) ? 'select' : null,
       name: 'provider',
       message: 'AI provider:',
-      choices: AI_PROVIDERS.map((p) => ({ title: p.title, value: p.value })),
+      choices: getProviderChoices(),
       initial: 0,
     })
   }
@@ -106,11 +85,7 @@ function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {
       type: 'select',
       name: 'database',
       message: 'Database:',
-      choices: DATABASE_OPTIONS.map((d) => ({
-        title: d.title,
-        value: d.value,
-        description: 'description' in d ? d.description : undefined,
-      })),
+      choices: getDatabaseChoices(),
       initial: 0,
     })
   }
@@ -124,58 +99,49 @@ function mergeAnswers(
 ): UserSelections | null {
   const useAi = partial.useAi ?? answers.useAi ?? false
 
-  const selections: UserSelections = {
-    name: partial.name || answers.name,
-    template: (partial.template || answers.template) as BotTemplate,
+  // Get raw values
+  const rawName = partial.name || answers.name
+  const rawTemplate = partial.template || answers.template
+  const rawProvider = partial.provider || answers.provider
+  const rawDatabase = partial.database || answers.database
+
+  // Validate required fields exist
+  if (!rawName || !rawTemplate || !rawDatabase) {
+    return null
+  }
+
+  if (useAi && !rawProvider) {
+    return null
+  }
+
+  // Validate against source of truth
+  const template = validateOption(rawTemplate, BOT_TEMPLATES, 'template')
+  if (!template) return null
+
+  const database = validateOption(rawDatabase, DB_ADAPTERS, 'database')
+  if (!database) return null
+
+  let provider: AiProvider | undefined
+  if (useAi && rawProvider) {
+    const validatedProvider = validateOption(rawProvider, AI_PROVIDERS, 'provider')
+    if (!validatedProvider) return null
+    provider = validatedProvider
+  }
+
+  return {
+    name: rawName,
+    template,
     useAi,
-    provider: useAi
-      ? ((partial.provider || answers.provider) as AiProvider)
-      : undefined,
-    database: (partial.database || answers.database) as DatabaseOption,
+    provider,
+    database,
   }
-
-  if (!selections.name || !selections.template || !selections.database) {
-    return null
-  }
-
-  if (selections.useAi && !selections.provider) {
-    return null
-  }
-
-  const validTemplates = AVAILABLE_TEMPLATES.map((t) => t.value)
-  if (!validTemplates.includes(selections.template)) {
-    console.error(
-      `Invalid template: ${selections.template}. Available: ${validTemplates.join(', ')}`
-    )
-    return null
-  }
-
-  const validDatabases = DATABASE_OPTIONS.map((d) => d.value)
-  if (!validDatabases.includes(selections.database)) {
-    console.error(
-      `Invalid database: ${selections.database}. Available: ${validDatabases.join(', ')}`
-    )
-    return null
-  }
-
-  if (selections.provider) {
-    const validProviders = AI_PROVIDERS.map((p) => p.value)
-    if (!validProviders.includes(selections.provider)) {
-      console.error(
-        `Invalid provider: ${selections.provider}. Available: ${validProviders.join(', ')}`
-      )
-      return null
-    }
-  }
-
-  return selections
 }
 
-async function promptForOverwrite(dirName: string): Promise<boolean> {
+async function promptForOverwrite(dirPath: string): Promise<boolean> {
   const { overwrite } = await prompts({
     type: 'confirm',
     name: 'overwrite',
-    message: `Directory "${dirName}" is not empty. Overwrite?`,
+    message: `Directory "${dirPath}" is not empty. Overwrite?`,
     initial: false,
   })
   return overwrite === true

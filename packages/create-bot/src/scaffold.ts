@@ -4,25 +4,44 @@ import {
   processTemplate,
   createTemplateContext,
   type TemplateContext,
+  type BotTemplate,
   type AiProvider,
   type DbAdapter,
 } from './utils/template'
-import type { BotTemplate } from './prompts'
+
+// ============================================================================
+// Constants
+// ============================================================================
 
 const TEMPLATES_DIR = path.join(import.meta.dirname, '../templates')
 
-/**
- * Get the template directory for a given template type.
- */
-function getTemplateDir(template: BotTemplate): string {
-  const templateMap: Record<BotTemplate, string> = {
-    slack: 'slack-bot',
-    // Future templates:
-    // discord: 'discord-bot',
-    // teams: 'teams-bot',
-  }
-  return path.join(TEMPLATES_DIR, templateMap[template])
+/** Template directory names by template type */
+const TEMPLATE_DIRS: Record<BotTemplate, string> = {
+  slack: 'slack-bot',
 }
+
+/** File extensions that should be processed as templates */
+const TEMPLATE_EXTENSIONS = new Set([
+  '.tmpl',
+  '.ts',
+  '.json',
+  '.md',
+  '.yaml',
+  '.env.example',
+])
+
+/** Directories to skip when AI is not enabled */
+const AI_DEPENDENT_DIRS = new Set(['ai'])
+
+/** Directories to skip when database is not enabled */
+const DB_DEPENDENT_DIRS = new Set(['db', 'memory', 'preferences'])
+
+/** Files to skip when database is not enabled (prefix match) */
+const DB_DEPENDENT_FILE_PREFIXES = ['drizzle.config']
+
+// ============================================================================
+// Types
+// ============================================================================
 
 export interface ScaffoldOptions {
   botName: string
@@ -34,143 +53,92 @@ export interface ScaffoldOptions {
   overwrite?: boolean
 }
 
-/**
- * Scaffold a new bot from the template.
- */
-export async function scaffold(options: ScaffoldOptions): Promise<string> {
-  const templateDir = getTemplateDir(options.template)
-  const targetDir = path.resolve(options.targetDir || options.botName)
-  const ctx = createTemplateContext({
-    botName: options.botName,
-    useAi: options.useAi,
-    aiProvider: options.aiProvider,
-    dbAdapter: options.dbAdapter,
-  })
-
-  // Verify template exists
-  if (!fs.existsSync(templateDir)) {
-    throw new Error(`Template not found: ${options.template}`)
-  }
-
-  // Create target directory
-  if (options.overwrite && fs.existsSync(targetDir)) {
-    fs.rmSync(targetDir, { recursive: true })
-  }
-  fs.mkdirSync(targetDir, { recursive: true })
-
-  // Copy template files
-  await copyDirectory(templateDir, targetDir, ctx)
-
-  // Clean up package.json (remove trailing commas from conditionals)
-  const packageJsonPath = path.join(targetDir, 'package.json')
-  if (fs.existsSync(packageJsonPath)) {
-    const content = fs.readFileSync(packageJsonPath, 'utf-8')
-    const cleaned = cleanJson(content)
-    fs.writeFileSync(packageJsonPath, cleaned)
-  }
-
-  return targetDir
+interface SkipRules {
+  directories: Set<string>
+  filePrefixes: string[]
+  fileExclusions: Map<string, (ctx: TemplateContext) => boolean>
 }
 
+// ============================================================================
+// Skip Rules
+// ============================================================================
+
 /**
- * Recursively copy a directory, processing templates.
+ * Build skip rules based on template context.
+ * This centralizes all the conditional skip logic.
  */
-async function copyDirectory(
-  src: string,
-  dest: string,
+function buildSkipRules(ctx: TemplateContext): SkipRules {
+  const directories = new Set<string>()
+  const filePrefixes: string[] = []
+  const fileExclusions = new Map<string, (ctx: TemplateContext) => boolean>()
+
+  // AI-dependent directories
+  if (!ctx.isAi) {
+    AI_DEPENDENT_DIRS.forEach((dir) => directories.add(dir))
+  }
+
+  // DB-dependent directories and files
+  if (!ctx.isDb) {
+    DB_DEPENDENT_DIRS.forEach((dir) => directories.add(dir))
+    filePrefixes.push(...DB_DEPENDENT_FILE_PREFIXES)
+  }
+
+  // Database adapter file exclusions (skip the one not selected)
+  fileExclusions.set('sqlite.ts', (c) => c.isPostgres)
+  fileExclusions.set('postgres.ts', (c) => c.isSqlite)
+
+  return { directories, filePrefixes, fileExclusions }
+}
+
+function shouldSkip(
+  name: string,
+  isDirectory: boolean,
+  rules: SkipRules,
   ctx: TemplateContext
-): Promise<void> {
-  const entries = fs.readdirSync(src, { withFileTypes: true })
-
-  for (const entry of entries) {
-    const srcPath = path.join(src, entry.name)
-    let destName = entry.name
-
-    // Remove .tmpl extension
-    if (destName.endsWith('.tmpl')) {
-      destName = destName.slice(0, -5)
-    }
-
-    const destPath = path.join(dest, destName)
-
-    if (entry.isDirectory()) {
-      // Skip directories based on context
-      if (shouldSkipDirectory(entry.name, ctx)) {
-        continue
-      }
-      fs.mkdirSync(destPath, { recursive: true })
-      await copyDirectory(srcPath, destPath, ctx)
-    } else {
-      await copyFile(srcPath, destPath, ctx)
-    }
+): boolean {
+  if (isDirectory) {
+    return rules.directories.has(name)
   }
-}
 
-/**
- * Directories to skip based on context.
- */
-function shouldSkipDirectory(dirName: string, ctx: TemplateContext): boolean {
-  // Skip AI directory when no AI provider selected
-  if (!ctx.isAi && dirName === 'ai') {
+  // Check prefix matches
+  if (rules.filePrefixes.some((prefix) => name.startsWith(prefix))) {
     return true
   }
 
-  // Skip DB-related directories when no database selected
-  // memory and preferences depend on db
-  if (
-    !ctx.isDb &&
-    (dirName === 'db' || dirName === 'memory' || dirName === 'preferences')
-  ) {
+  // Check specific file exclusions
+  const exclusionFn = rules.fileExclusions.get(name)
+  if (exclusionFn && exclusionFn(ctx)) {
     return true
   }
 
   return false
 }
 
-/**
- * Check if a file should be skipped based on context.
- */
-function shouldSkipFile(src: string, ctx: TemplateContext): boolean {
-  const filename = path.basename(src)
+// ============================================================================
+// File Operations
+// ============================================================================
 
-  // Skip drizzle config when no database
-  if (!ctx.isDb && filename.startsWith('drizzle.config')) {
+function isTemplateFile(filePath: string): boolean {
+  const ext = path.extname(filePath)
+  if (TEMPLATE_EXTENSIONS.has(ext)) {
     return true
   }
-
-  // Skip database adapter files based on selected adapter
-  if (filename === 'sqlite.ts' && ctx.isPostgres) {
-    return true
-  }
-  if (filename === 'postgres.ts' && ctx.isSqlite) {
-    return true
-  }
-
-  return false
+  // Handle compound extensions like .env.example
+  const basename = path.basename(filePath)
+  return TEMPLATE_EXTENSIONS.has('.' + basename.split('.').slice(1).join('.'))
 }
 
-/**
- * Copy a single file, processing templates if needed.
- */
+function getDestinationName(name: string): string {
+  // Remove .tmpl extension
+  return name.endsWith('.tmpl') ? name.slice(0, -5) : name
+}
+
 async function copyFile(
   src: string,
   dest: string,
   ctx: TemplateContext
 ): Promise<void> {
-  // Skip files that don't apply to this configuration
-  if (shouldSkipFile(src, ctx)) {
-    return
-  }
-
-  const isTemplate =
-    src.endsWith('.tmpl') ||
-    src.endsWith('.ts') ||
-    src.endsWith('.json') ||
-    src.endsWith('.md') ||
-    src.endsWith('.yaml') ||
-    src.endsWith('.env.example')
-
-  if (isTemplate) {
+  if (isTemplateFile(src)) {
     const content = fs.readFileSync(src, 'utf-8')
     const processed = processTemplate(content, ctx)
     fs.writeFileSync(dest, processed)
@@ -179,19 +147,96 @@ async function copyFile(
   }
 }
 
+async function copyDirectory(
+  src: string,
+  dest: string,
+  ctx: TemplateContext,
+  rules: SkipRules
+): Promise<void> {
+  const entries = fs.readdirSync(src, { withFileTypes: true })
+
+  for (const entry of entries) {
+    if (shouldSkip(entry.name, entry.isDirectory(), rules, ctx)) {
+      continue
+    }
+
+    const srcPath = path.join(src, entry.name)
+    const destName = getDestinationName(entry.name)
+    const destPath = path.join(dest, destName)
+
+    if (entry.isDirectory()) {
+      fs.mkdirSync(destPath, { recursive: true })
+      await copyDirectory(srcPath, destPath, ctx, rules)
+    } else {
+      await copyFile(srcPath, destPath, ctx)
+    }
+  }
+}
+
+// ============================================================================
+// JSON Cleanup
+// ============================================================================
+
 /**
- * Clean JSON by removing trailing commas before closing braces/brackets.
+ * Clean JSON by removing trailing commas and reformatting.
+ * Handles artifacts from Handlebars conditionals in JSON files.
  */
 function cleanJson(content: string): string {
-  // Remove trailing commas
+  // Remove trailing commas before closing braces/brackets
   const cleaned = content.replace(/,(\s*[}\]])/g, '$1')
 
-  // Validate and format
   try {
     const parsed = JSON.parse(cleaned)
     return JSON.stringify(parsed, null, 2) + '\n'
   } catch {
-    // If parsing fails, return original cleaned content
     return cleaned
   }
+}
+
+function cleanupPackageJson(targetDir: string): void {
+  const packageJsonPath = path.join(targetDir, 'package.json')
+  if (fs.existsSync(packageJsonPath)) {
+    const content = fs.readFileSync(packageJsonPath, 'utf-8')
+    fs.writeFileSync(packageJsonPath, cleanJson(content))
+  }
+}
+
+// ============================================================================
+// Main Export
+// ============================================================================
+
+/**
+ * Scaffold a new bot from the template.
+ */
+export async function scaffold(options: ScaffoldOptions): Promise<string> {
+  const templateDir = path.join(TEMPLATES_DIR, TEMPLATE_DIRS[options.template])
+  const targetDir = path.resolve(options.targetDir || options.botName)
+
+  // Verify template exists
+  if (!fs.existsSync(templateDir)) {
+    throw new Error(`Template not found: ${options.template}`)
+  }
+
+  // Prepare target directory
+  if (options.overwrite && fs.existsSync(targetDir)) {
+    fs.rmSync(targetDir, { recursive: true })
+  }
+  fs.mkdirSync(targetDir, { recursive: true })
+
+  // Build context and skip rules
+  const ctx = createTemplateContext({
+    botName: options.botName,
+    useAi: options.useAi,
+    aiProvider: options.aiProvider,
+    dbAdapter: options.dbAdapter,
+  })
+  const rules = buildSkipRules(ctx)
+
+  // Copy template files
+  await copyDirectory(templateDir, targetDir, ctx, rules)
+
+  // Clean up generated JSON
+  cleanupPackageJson(targetDir)
+
+  return targetDir
 }
