@@ -2,11 +2,11 @@
  * AI Streaming utilities with error handling
  */
 import { streamText } from 'ai'
-import type { LanguageModelV1 } from 'ai'
+import type { LanguageModelV3 } from '@ai-sdk/provider'
 import { slackLogger } from '../utils/logger'
 
 export interface StreamOptions {
-  model: LanguageModelV1
+  model: LanguageModelV3
   system?: string
   messages: Array<{ role: 'user' | 'assistant'; content: string }>
 }
