@@ -1036,6 +1036,15 @@ export class EmulatorState {
    * Bot-specific settings from _app_settings[botId] take precedence
    */
   getSettingsForBot(botId: string): Record<string, unknown> {
+    // Fields that should never be inherited from global settings
+    // These are bot-specific and should only come from the bot's own config
+    const NON_INHERITABLE_FIELDS = new Set([
+      'BOT_NAME',
+      'BOT_PERSONALITY',
+      'bot_name',
+      'bot_personality',
+    ])
+
     const appSettings = this.simulatorSettings._app_settings as
       | Record<string, Record<string, unknown>>
       | undefined
@@ -1047,15 +1056,21 @@ export class EmulatorState {
 
     const botSettings = appSettings?.[botId]
 
+    // Filter out non-inheritable fields from global settings
+    const { _app_settings, ...rawGlobalSettings } = this.simulatorSettings
+    const globalSettings: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(rawGlobalSettings)) {
+      if (!NON_INHERITABLE_FIELDS.has(key)) {
+        globalSettings[key] = value
+      }
+    }
+
     if (!botSettings) {
-      // No bot-specific settings, return global (without _app_settings)
-      const { _app_settings, ...globalSettings } = this.simulatorSettings
       stateLogger.debug({ botId }, 'No bot-specific settings found, using global')
       return globalSettings
     }
 
     // Merge: global settings + bot-specific overrides (converted to uppercase)
-    const { _app_settings, ...globalSettings } = this.simulatorSettings
     const mergedSettings = { ...globalSettings }
 
     // Bot settings are stored in snake_case, convert to UPPER_SNAKE_CASE

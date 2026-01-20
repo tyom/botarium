@@ -374,9 +374,16 @@ function settingsToEnv(settings) {
   const flatSettings = { ...settings }
   delete flatSettings.app_settings
 
+  // Fields that should never be in global env - they're bot-specific
+  const NON_GLOBAL_FIELDS = new Set([
+    'bot_name',
+    'bot_personality',
+  ])
+
   // Convert all settings to env vars using convention: snake_case -> UPPER_SNAKE_CASE
   for (const [key, value] of Object.entries(flatSettings)) {
     if (key.startsWith('_')) continue // Skip internal fields like _schema
+    if (NON_GLOBAL_FIELDS.has(key)) continue // Skip bot-specific fields
     if (value === undefined || value === null || value === '') continue
     if (typeof value !== 'string' && typeof value !== 'number') continue
 
