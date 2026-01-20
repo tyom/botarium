@@ -1,6 +1,6 @@
 import { App, LogLevel } from '@slack/bolt'
 import { registerListeners } from './listeners/index'
-import { settings, isSimulatorMode } from './settings'
+import { settings, isSimulatorMode, reloadSettings } from './settings'
 import { startConfigServer } from './config/http-server'
 import { slackConfig, config } from './config/loader'
 import { appLogger, slackLogger } from './utils/logger'
@@ -108,10 +108,10 @@ async function registerWithSimulator(maxRetries = 10, retryDelayMs = 1000) {
       if (!response.ok) {
         // Handle WebSocket not ready - use faster retries for this transient condition
         if (data.error === 'no_websocket_connection') {
-          slackLogger.debug(
-            { attempt, maxRetries },
-            'WebSocket not tracked yet, retrying quickly...'
-          )
+          // Only log on first attempt to reduce noise
+          if (attempt === 1) {
+            slackLogger.debug('WebSocket not tracked yet, retrying...')
+          }
           await new Promise((resolve) => setTimeout(resolve, 200))
           continue
         }
@@ -120,13 +120,19 @@ async function registerWithSimulator(maxRetries = 10, retryDelayMs = 1000) {
 
       // Apply simulator settings to process.env (for API keys, etc.)
       if (data.settings) {
-        const apiKeySettings = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GOOGLE_API_KEY', 'AI_PROVIDER']
+        const apiKeySettings = [
+          'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GOOGLE_API_KEY',
+          'OPENROUTER_API_KEY', 'AI_PROVIDER', 'MODEL_DEFAULT'
+        ]
         for (const key of apiKeySettings) {
-          if (data.settings[key] && !process.env[key]) {
+          // Allow overwriting to support runtime settings changes
+          if (data.settings[key]) {
             process.env[key] = data.settings[key]
             slackLogger.debug(`Applied ${key} from simulator settings`)
           }
         }
+        // Reload settings to pick up the new values
+        await reloadSettings()
       }
 
       slackLogger.info('Registered with simulator')

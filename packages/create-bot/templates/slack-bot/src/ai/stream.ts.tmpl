@@ -4,6 +4,7 @@
 import { streamText } from 'ai'
 import type { LanguageModelV1 } from 'ai'
 import { slackLogger } from '../utils/logger'
+import { settings } from '../settings'
 
 export interface StreamOptions {
   model: LanguageModelV1
@@ -15,8 +16,15 @@ export interface StreamOptions {
  * Stream AI response with proper error handling.
  * Validates API key if stream returns no content.
  */
-export async function* streamAIResponse(options: StreamOptions): AsyncIterable<string> {
+export async function* streamAIResponse(
+  options: StreamOptions
+): AsyncIterable<string> {
   const { model, system, messages } = options
+
+  slackLogger.debug(
+    { provider: settings.AI_PROVIDER, model: model.modelId },
+    'Starting AI stream'
+  )
 
   const result = streamText({
     model,
@@ -35,26 +43,22 @@ export async function* streamAIResponse(options: StreamOptions): AsyncIterable<s
     }
   } catch (error) {
     streamError = error as Error
+    slackLogger.error(
+      { error: (error as Error).message, stack: (error as Error).stack },
+      'AI stream error'
+    )
   }
 
   // Check for errors even if stream appeared to succeed
   if (!hasYieldedChunks && !streamError) {
-    // Only validate OpenAI API key for OpenAI models
-    if (model.provider === 'openai') {
-      try {
-        const testResponse = await fetch('https://api.openai.com/v1/models', {
-          headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-          signal: AbortSignal.timeout(5000),
-        })
-        if (testResponse.status === 401) {
-          streamError = new Error('Invalid API key (401 Unauthorized)')
-        } else if (!testResponse.ok) {
-          streamError = new Error(`API error: ${testResponse.status}`)
-        }
-      } catch (error) {
-        streamError = error as Error
-      }
-    }
+    slackLogger.error(
+      { provider: model.provider, modelId: model.modelId },
+      'AI stream returned no chunks - likely API key issue'
+    )
+    // Set a generic error so user knows something went wrong
+    streamError = new Error(
+      'No response from AI provider. Check your API key configuration.'
+    )
   }
 
   // Handle any error with user-friendly messages
@@ -63,17 +67,30 @@ export async function* streamAIResponse(options: StreamOptions): AsyncIterable<s
     const message = err.message || String(streamError)
     const status = err.status || err.statusCode
 
-    if (message.includes('API key') || message.includes('401') || message.includes('Unauthorized') || status === 401) {
+    if (
+      message.includes('API key') ||
+      message.includes('401') ||
+      message.includes('Unauthorized') ||
+      status === 401
+    ) {
       slackLogger.error('Invalid OpenAI API key')
-      throw new Error('Invalid API key. Please check your OpenAI API key in Settings.')
+      throw new Error(
+        'Invalid API key. Please check your OpenAI API key in Settings.'
+      )
     }
-    if (message.includes('rate limit') || message.includes('429') || status === 429) {
+    if (
+      message.includes('rate limit') ||
+      message.includes('429') ||
+      status === 429
+    ) {
       slackLogger.error('OpenAI rate limit exceeded')
       throw new Error('Rate limit exceeded. Please try again in a moment.')
     }
     if (message.includes('insufficient_quota') || message.includes('billing')) {
       slackLogger.error('OpenAI billing/quota issue')
-      throw new Error('OpenAI quota exceeded. Please check your billing settings.')
+      throw new Error(
+        'OpenAI quota exceeded. Please check your billing settings.'
+      )
     }
 
     slackLogger.error({ error: message }, 'AI error')
