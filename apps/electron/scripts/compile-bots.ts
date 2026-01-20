@@ -58,14 +58,17 @@ function resolveBotEntry(entry: BotEntry): ResolvedBot | null {
 
   if (!name) {
     console.error(`Error: Cannot determine bot name for ${source}`)
-    console.error(`  No 'name' override provided and no simulator.id found in config.yaml`)
+    console.error(
+      `  No 'name' override provided and no simulator.id found in config.yaml`
+    )
     return null
   }
 
   return {
     name,
     source,
-    entry: (typeof entry === 'object' ? entry.entry : undefined) ?? 'src/app.ts',
+    entry:
+      (typeof entry === 'object' ? entry.entry : undefined) ?? 'src/app.ts',
   }
 }
 
@@ -80,7 +83,9 @@ async function main() {
   try {
     config = JSON.parse(content) as BotsConfig
   } catch (error) {
-    console.error(`Failed to parse ${CONFIG_PATH}: ${error instanceof Error ? error.message : error}`)
+    console.error(
+      `Failed to parse ${CONFIG_PATH}: ${error instanceof Error ? error.message : error}`
+    )
     process.exit(1)
   }
   const botEntries = config.bots ?? []
@@ -91,7 +96,10 @@ async function main() {
       fs.rmSync(OUTPUT_DIR, { recursive: true })
     }
     fs.mkdirSync(OUTPUT_DIR, { recursive: true })
-    fs.writeFileSync(path.join(OUTPUT_DIR, 'manifest.json'), JSON.stringify({ bots: [] }, null, 2))
+    fs.writeFileSync(
+      path.join(OUTPUT_DIR, 'manifest.json'),
+      JSON.stringify({ bots: [] }, null, 2)
+    )
     process.exit(0)
   }
 
@@ -105,7 +113,9 @@ async function main() {
         console.error(`Error: Duplicate bot name "${resolved.name}"`)
         console.error(`  First entry: ${existing.source}`)
         console.error(`  Conflicting entry: ${resolved.source}`)
-        console.error(`Duplicate names would cause compiled outputs to be overwritten. Please fix before compiling.`)
+        console.error(
+          `Duplicate names would cause compiled outputs to be overwritten. Please fix before compiling.`
+        )
         process.exit(1)
       }
       bots.push(resolved)
@@ -156,7 +166,10 @@ async function main() {
   }
 
   const manifestPath = path.join(OUTPUT_DIR, 'manifest.json')
-  fs.writeFileSync(manifestPath, JSON.stringify({ bots: compiledBots }, null, 2))
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify({ bots: compiledBots }, null, 2)
+  )
   console.log(`\nGenerated manifest: ${manifestPath}`)
 
   console.log(

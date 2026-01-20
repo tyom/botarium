@@ -71,9 +71,11 @@ export class SlackWebAPI {
   /**
    * Get bot info from token, falling back to global bot info if not found.
    */
-  private getBotInfoFromToken(
-    token: string | null
-  ): { id: string; name: string; display_name: string } {
+  private getBotInfoFromToken(token: string | null): {
+    id: string
+    name: string
+    display_name: string
+  } {
     const botId = this.extractBotIdFromToken(token)
     if (botId) {
       const botInfo = this.state.getBotInfoById(botId)
@@ -156,7 +158,8 @@ export class SlackWebAPI {
     console.log(`[Emulator] API request: ${req.method} ${path}`)
 
     // Validate authorization for Slack API routes
-    const token = req.headers.get('Authorization')?.replace('Bearer ', '') ?? null
+    const token =
+      req.headers.get('Authorization')?.replace('Bearer ', '') ?? null
 
     // Accept any token starting with xoxb- or xoxp-
     // Also whitelist internal simulator endpoints
@@ -1241,7 +1244,9 @@ export class SlackWebAPI {
 
       // Include bot-specific merged settings in response so external bots can apply them
       // Use app.id first (matches how settings are stored), fallback to name
-      const botSettings = this.state.getSettingsForBot(config.app.id || config.app.name)
+      const botSettings = this.state.getSettingsForBot(
+        config.app.id || config.app.name
+      )
 
       return Response.json(
         { ok: true, bot_id: botId, settings: botSettings },

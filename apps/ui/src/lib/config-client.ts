@@ -70,7 +70,9 @@ export interface BotConfig {
  * Uses IPC in Electron to fetch through main process (which queries the emulator for the config port)
  * @param botId - The bot identifier to fetch config for
  */
-export async function fetchBotConfig(botId?: string): Promise<BotConfig | null> {
+export async function fetchBotConfig(
+  botId?: string
+): Promise<BotConfig | null> {
   if (!botId) {
     console.warn('fetchBotConfig: botId is required')
     return null

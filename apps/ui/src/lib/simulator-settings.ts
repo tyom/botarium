@@ -28,9 +28,21 @@ export const MODEL_TIERS: Record<string, Record<string, string[]>> = {
     thinking: ['gemini-2.5-pro', 'gemini-2.0-flash-thinking-exp'],
   },
   openrouter: {
-    fast: ['openai/gpt-4o-mini', 'anthropic/claude-3-5-haiku', 'google/gemini-2.0-flash-001'],
-    default: ['openai/gpt-4o', 'anthropic/claude-sonnet-4', 'google/gemini-2.5-pro'],
-    thinking: ['openai/o3-mini', 'anthropic/claude-opus-4', 'google/gemini-2.5-pro'],
+    fast: [
+      'openai/gpt-4o-mini',
+      'anthropic/claude-3-5-haiku',
+      'google/gemini-2.0-flash-001',
+    ],
+    default: [
+      'openai/gpt-4o',
+      'anthropic/claude-sonnet-4',
+      'google/gemini-2.5-pro',
+    ],
+    thinking: [
+      'openai/o3-mini',
+      'anthropic/claude-opus-4',
+      'google/gemini-2.5-pro',
+    ],
   },
 }
 

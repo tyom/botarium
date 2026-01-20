@@ -9,7 +9,12 @@
     ImageIcon,
   } from '@lucide/svelte'
   import type { SimulatorMessage } from '../lib/types'
-  import { getMessageShortcut, simulatorState, isBotUserId, getBotByUserId } from '../lib/state.svelte'
+  import {
+    getMessageShortcut,
+    simulatorState,
+    isBotUserId,
+    getBotByUserId,
+  } from '../lib/state.svelte'
   import { updateFileExpanded } from '../lib/dispatcher.svelte'
   import { formatTimestamp, formatRelativeTime } from '../lib/time'
   import * as ContextMenu from '$lib/components/ui/context-menu'

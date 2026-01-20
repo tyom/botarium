@@ -608,7 +608,8 @@ export class EmulatorState {
     // Using id is more reliable since names may not be unique
     const newBotId = appConfig.app?.id
     const existingBot = Array.from(this.connectedBots.values()).find((bot) => {
-      if (bot.status !== 'disconnected' && bot.status !== 'connecting') return false
+      if (bot.status !== 'disconnected' && bot.status !== 'connecting')
+        return false
 
       // Prefer matching by id if both have one
       if (newBotId && bot.appConfig.app?.id) {
@@ -1024,7 +1025,10 @@ export class EmulatorState {
 
   setSimulatorSettings(settings: Record<string, unknown>): void {
     this.simulatorSettings = settings
-    stateLogger.debug({ keys: Object.keys(settings) }, 'Simulator settings updated')
+    stateLogger.debug(
+      { keys: Object.keys(settings) },
+      'Simulator settings updated'
+    )
   }
 
   getSimulatorSettings(): Record<string, unknown> {
@@ -1066,7 +1070,10 @@ export class EmulatorState {
     }
 
     if (!botSettings) {
-      stateLogger.debug({ botId }, 'No bot-specific settings found, using global')
+      stateLogger.debug(
+        { botId },
+        'No bot-specific settings found, using global'
+      )
       return globalSettings
     }
 

@@ -273,10 +273,7 @@ function getBotConfigs() {
   const botsManifest = readBotsManifest()
   const isPackaged = app.isPackaged
 
-  electronLogger.info(
-    { botsManifest, isPackaged },
-    'getBotConfigs called'
-  )
+  electronLogger.info({ botsManifest, isPackaged }, 'getBotConfigs called')
 
   if (botsManifest.length === 0) {
     electronLogger.info('No bots in manifest')
@@ -375,10 +372,7 @@ function settingsToEnv(settings) {
   delete flatSettings.app_settings
 
   // Fields that should never be in global env - they're bot-specific
-  const NON_GLOBAL_FIELDS = new Set([
-    'bot_name',
-    'bot_personality',
-  ])
+  const NON_GLOBAL_FIELDS = new Set(['bot_name', 'bot_personality'])
 
   // Convert all settings to env vars using convention: snake_case -> UPPER_SNAKE_CASE
   for (const [key, value] of Object.entries(flatSettings)) {
@@ -836,12 +830,20 @@ function setupIpcHandlers() {
 
     // Check if API keys changed and clear model cache
     const oldSettings = loadSettings() || {}
-    const apiKeyFields = ['openai_api_key', 'anthropic_api_key', 'google_api_key', 'openrouter_api_key']
+    const apiKeyFields = [
+      'openai_api_key',
+      'anthropic_api_key',
+      'google_api_key',
+      'openrouter_api_key',
+    ]
     for (const field of apiKeyFields) {
       if (oldSettings[field] !== settings[field]) {
         const provider = field.replace('_api_key', '')
         clearModelCache(provider)
-        electronLogger.debug({ provider }, 'Cleared model cache due to API key change')
+        electronLogger.debug(
+          { provider },
+          'Cleared model cache due to API key change'
+        )
       }
     }
 
@@ -908,18 +910,27 @@ function setupIpcHandlers() {
       const botsResponse = await fetch(`${EMULATOR_URL}/api/simulator/bots`)
       if (botsResponse.ok) {
         const botsData = await botsResponse.json()
-        const bot = botsData.bots?.find(b => b.id === botId)
+        const bot = botsData.bots?.find((b) => b.id === botId)
         if (bot?.configPort) {
           configPort = bot.configPort
-          electronLogger.debug({ botId, configPort }, 'Found config port from emulator')
+          electronLogger.debug(
+            { botId, configPort },
+            'Found config port from emulator'
+          )
         }
       }
     } catch (error) {
-      electronLogger.debug({ error: error.message, botId }, 'Failed to query emulator for bot config port')
+      electronLogger.debug(
+        { error: error.message, botId },
+        'Failed to query emulator for bot config port'
+      )
     }
 
     if (!configPort) {
-      electronLogger.debug({ botId }, 'Bot config port not found - bot may not have registered yet')
+      electronLogger.debug(
+        { botId },
+        'Bot config port not found - bot may not have registered yet'
+      )
       return null
     }
 
@@ -931,16 +942,25 @@ function setupIpcHandlers() {
         const response = await fetch(`http://127.0.0.1:${configPort}/config`)
         if (response.ok) {
           const data = await response.json()
-          electronLogger.debug({ botId, configPort, attempt }, 'Bot config fetched successfully')
+          electronLogger.debug(
+            { botId, configPort, attempt },
+            'Bot config fetched successfully'
+          )
           return data
         }
-        electronLogger.debug({ status: response.status, attempt, botId }, 'Config server returned error')
+        electronLogger.debug(
+          { status: response.status, attempt, botId },
+          'Config server returned error'
+        )
       } catch (error) {
-        electronLogger.debug({ error: error.message, attempt, botId }, 'Config server not ready')
+        electronLogger.debug(
+          { error: error.message, attempt, botId },
+          'Config server not ready'
+        )
       }
 
       if (attempt < MAX_RETRIES) {
-        await new Promise(r => setTimeout(r, RETRY_DELAY))
+        await new Promise((r) => setTimeout(r, RETRY_DELAY))
       }
     }
 
