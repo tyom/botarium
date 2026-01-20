@@ -19,10 +19,6 @@
       "path": "packages/slack",
       "name": "Slack",
     },
-    {
-      "path": "packages/logger",
-      "name": "Logger",
-    },
   ],
   "settings": {},
   "tasks": {

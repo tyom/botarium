@@ -1,4 +1,4 @@
-import { createBotariumLogger } from '@botarium/logger'
+import { createBotariumLogger } from './botarium-logger'
 import type pino from 'pino'
 import { settings } from '../settings'
 
