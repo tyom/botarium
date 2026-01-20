@@ -2,6 +2,12 @@ import type { AllMiddlewareArgs, SlackEventMiddlewareArgs } from '@slack/bolt'
 import type { AppMentionEvent } from '@slack/types'
 {{#if isAi}}
 import type { WebClient } from '@slack/web-api'
+import {
+  addThinkingReaction,
+  completeReactions,
+  removeThinkingOnError,
+  type ReactionContext,
+} from '../../utils/reactions'
 {{/if}}
 import { responseHandler, type ThreadContext } from '../../response-handler'
 import { slackConfig } from '../../config/loader'
@@ -50,18 +56,17 @@ async function processMention(
   threadTs: string
 ) {
 {{#if isAi}}
-  const messageTs = event.ts
-  const channel = event.channel
+  const reactionCtx: ReactionContext = {
+    client,
+    channel: event.channel,
+    timestamp: event.ts,
+  }
 
 {{/if}}
   try {
 {{#if isAi}}
     // Add thinking reaction
-    await client.reactions.add({
-      channel,
-      timestamp: messageTs,
-      name: 'thinking_face',
-    }).catch(err => slackLogger.error({ err }, 'Failed to add thinking reaction'))
+    await addThinkingReaction(reactionCtx)
 
 {{/if}}
     const threadContext: ThreadContext = {
@@ -82,30 +87,13 @@ async function processMention(
 
 {{#if isAi}}
     // Remove thinking and add checkmark
-    await client.reactions.remove({
-      channel,
-      timestamp: messageTs,
-      name: 'thinking_face',
-    }).catch(err => slackLogger.error({ err }, 'Failed to remove thinking reaction'))
-    await client.reactions.add({
-      channel,
-      timestamp: messageTs,
-      name: 'white_check_mark',
-    }).catch(err => slackLogger.error({ err }, 'Failed to add checkmark reaction'))
+    await completeReactions(reactionCtx)
 {{/if}}
   } catch (error) {
     slackLogger.error({ error }, 'Error handling app_mention')
 {{#if isAi}}
     // Try to remove thinking reaction on error
-    try {
-      await client.reactions.remove({
-        channel,
-        timestamp: messageTs,
-        name: 'thinking_face',
-      })
-    } catch {
-      // Ignore reaction removal errors
-    }
+    await removeThinkingOnError(reactionCtx)
 {{/if}}
     await say({ text: 'Sorry, something went wrong!', thread_ts: threadTs })
   }

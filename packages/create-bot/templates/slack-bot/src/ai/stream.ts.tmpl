@@ -4,6 +4,7 @@
 import { streamText } from 'ai'
 import type { LanguageModelV3 } from '@ai-sdk/provider'
 import { slackLogger } from '../utils/logger'
+import { isAuthError, isRateLimitError, isQuotaError } from './error'
 
 export interface StreamOptions {
   model: LanguageModelV3
@@ -62,33 +63,20 @@ export async function* streamAIResponse(
 
   // Handle any error with user-friendly messages
   if (streamError) {
-    const err = streamError as Error & { status?: number; statusCode?: number }
-    const message = err.message || String(streamError)
-    const status = err.status || err.statusCode
-
-    if (
-      message.includes('API key') ||
-      message.includes('401') ||
-      message.includes('Unauthorized') ||
-      status === 401
-    ) {
+    if (isAuthError(streamError)) {
       slackLogger.error({ provider: model.provider }, 'Invalid API key')
       throw new Error('Invalid API key. Please check your API key in Settings.')
     }
-    if (
-      message.includes('rate limit') ||
-      message.includes('429') ||
-      status === 429
-    ) {
+    if (isRateLimitError(streamError)) {
       slackLogger.error({ provider: model.provider }, 'Rate limit exceeded')
       throw new Error('Rate limit exceeded. Please try again in a moment.')
     }
-    if (message.includes('insufficient_quota') || message.includes('billing')) {
+    if (isQuotaError(streamError)) {
       slackLogger.error({ provider: model.provider }, 'Billing/quota issue')
       throw new Error('Quota exceeded. Please check your billing settings.')
     }
 
-    slackLogger.error({ error: message }, 'AI error')
+    slackLogger.error({ error: streamError.message }, 'AI error')
     throw streamError
   }
 }

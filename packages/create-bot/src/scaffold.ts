@@ -87,6 +87,9 @@ function buildSkipRules(ctx: TemplateContext): SkipRules {
   fileExclusions.set('sqlite.ts', (c) => c.isPostgres)
   fileExclusions.set('postgres.ts', (c) => c.isSqlite)
 
+  // AI-dependent files (skip when AI is not enabled)
+  fileExclusions.set('reactions.ts', (c) => !c.isAi)
+
   return { directories, filePrefixes, fileExclusions }
 }
 

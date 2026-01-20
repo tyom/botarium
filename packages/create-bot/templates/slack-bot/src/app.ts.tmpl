@@ -1,6 +1,6 @@
 import { App, LogLevel } from '@slack/bolt'
 import { registerListeners } from './listeners/index'
-import { settings, isSimulatorMode, reloadSettings } from './settings'
+import { settings, isSimulatorMode{{#if isAi}}, reloadSettings{{/if}} } from './settings'
 import { startConfigServer } from './config/http-server'
 import { slackConfig, config } from './config/loader'
 import { appLogger, slackLogger } from './utils/logger'
@@ -118,6 +118,7 @@ async function registerWithSimulator(maxRetries = 10, retryDelayMs = 1000) {
         throw new Error(`HTTP ${response.status}: ${data.message || data.error}`)
       }
 
+{{#if isAi}}
       // Apply simulator settings to process.env (for API keys, etc.)
       if (data.settings) {
         const apiKeySettings = [
@@ -134,6 +135,7 @@ async function registerWithSimulator(maxRetries = 10, retryDelayMs = 1000) {
         // Reload settings to pick up the new values
         await reloadSettings()
       }
+{{/if}}
 
       slackLogger.info('Registered with simulator')
       return

@@ -2,19 +2,21 @@ import type { App } from '@slack/bolt'
 import type { GenericMessageEvent } from '@slack/types'
 {{#if isAi}}
 import type { WebClient } from '@slack/web-api'
+import {
+  shouldShowReactions,
+  addThinkingReaction,
+  completeReactions,
+  removeThinkingOnError,
+  type ReactionContext,
+} from '../../utils/reactions'
 {{/if}}
 import { responseHandler, type ThreadContext } from '../../response-handler'
 import { slackLogger } from '../../utils/logger'
-
 {{#if isAi}}
-// Non-AI commands that don't need thinking/done reactions
-const NON_AI_COMMANDS = ['ping']
-
-function isAIResponse(text: string): boolean {
-  return !NON_AI_COMMANDS.includes(text.toLowerCase().trim())
-}
-
+import { getUserFriendlyErrorMessage } from '../../ai/error'
 {{/if}}
+
+
 export function register(app: App) {
   // Handle direct messages
   app.event('message', async ({ event, client, say }) => {
@@ -61,20 +63,17 @@ async function processMessage(
   threadTs: string
 ) {
 {{#if isAi}}
-  const channel = messageEvent.channel
-  const messageTs = messageEvent.ts
-  const useReactions = isAIResponse(text)
+  const useReactions = shouldShowReactions(text)
+  const reactionCtx: ReactionContext | undefined = useReactions
+    ? { client, channel: messageEvent.channel, timestamp: messageEvent.ts }
+    : undefined
 
 {{/if}}
   try {
 {{#if isAi}}
     // Add thinking reaction for AI responses
-    if (useReactions) {
-      await client.reactions.add({
-        channel,
-        timestamp: messageTs,
-        name: 'thinking_face',
-      }).catch(err => slackLogger.error({ err }, 'Failed to add thinking reaction'))
+    if (reactionCtx) {
+      await addThinkingReaction(reactionCtx)
     }
 
 {{/if}}
@@ -106,17 +105,8 @@ async function processMessage(
 
 {{#if isAi}}
     // Remove thinking and add checkmark for AI responses
-    if (useReactions) {
-      await client.reactions.remove({
-        channel,
-        timestamp: messageTs,
-        name: 'thinking_face',
-      }).catch(err => slackLogger.error({ err }, 'Failed to remove thinking reaction'))
-      await client.reactions.add({
-        channel,
-        timestamp: messageTs,
-        name: 'white_check_mark',
-      }).catch(err => slackLogger.error({ err }, 'Failed to add checkmark reaction'))
+    if (reactionCtx) {
+      await completeReactions(reactionCtx)
     }
 {{/if}}
   } catch (error) {
@@ -125,24 +115,17 @@ async function processMessage(
 
 {{#if isAi}}
     // Try to remove thinking reaction on error
-    if (useReactions) {
-      await client.reactions.remove({
-        channel,
-        timestamp: messageTs,
-        name: 'thinking_face',
-      }).catch(() => {})
+    if (reactionCtx) {
+      await removeThinkingOnError(reactionCtx)
     }
 
 {{/if}}
     // Provide helpful error message based on error type
-    let errorMessage = 'Sorry, something went wrong!'
-    if (error instanceof Error) {
-      if (error.message.includes('API key') || error.message.includes('401') || error.message.includes('Unauthorized')) {
-        errorMessage = 'AI service authentication failed. Please check your API key in Settings.'
-      } else if (error.message.includes('rate limit') || error.message.includes('429')) {
-        errorMessage = 'AI service rate limit reached. Please try again in a moment.'
-      }
-    }
+{{#if isAi}}
+    const errorMessage = getUserFriendlyErrorMessage(error)
+{{else}}
+    const errorMessage = 'Sorry, something went wrong!'
+{{/if}}
 
     if (isThreadReply) {
       await say({ text: errorMessage, thread_ts: threadTs })

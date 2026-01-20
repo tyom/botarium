@@ -1,6 +1,6 @@
 import { z } from 'zod'
 {{#if isOpenai}}
-import { openai, createOpenAI } from '@ai-sdk/openai'
+import { openai } from '@ai-sdk/openai'
 {{/if}}
 {{#if isAnthropic}}
 import { anthropic } from '@ai-sdk/anthropic'
@@ -14,7 +14,6 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 
 // Local simulator mode (SLACK_API_URL set)
 export const isSimulatorMode = Boolean(process.env.SLACK_API_URL)
-const isLocalMode = isSimulatorMode
 
 const envSchema = z.object({
   // Bot Configuration
@@ -22,13 +21,13 @@ const envSchema = z.object({
   BOT_PERSONALITY: z.string().default('Helpful AI assistant'),
 
   // Slack Configuration (optional in local simulator mode)
-  SLACK_BOT_TOKEN: isLocalMode
+  SLACK_BOT_TOKEN: isSimulatorMode
     ? z.string().default('xoxb-local')
     : z.string().startsWith('xoxb-'),
-  SLACK_APP_TOKEN: isLocalMode
+  SLACK_APP_TOKEN: isSimulatorMode
     ? z.string().default('xapp-local')
     : z.string().startsWith('xapp-'),
-  SLACK_SIGNING_SECRET: isLocalMode
+  SLACK_SIGNING_SECRET: isSimulatorMode
     ? z.string().default('local')
     : z.string().min(1),
 {{#if isAi}}
@@ -36,22 +35,22 @@ const envSchema = z.object({
   // AI Configuration
   MODEL_DEFAULT: z.string().optional(),
 {{#if isOpenai}}
-  OPENAI_API_KEY: isLocalMode
+  OPENAI_API_KEY: isSimulatorMode
     ? z.string().optional()
     : z.string().min(1, 'OpenAI API key is required'),
 {{/if}}
 {{#if isAnthropic}}
-  ANTHROPIC_API_KEY: isLocalMode
+  ANTHROPIC_API_KEY: isSimulatorMode
     ? z.string().optional()
     : z.string().min(1, 'Anthropic API key is required'),
 {{/if}}
 {{#if isGoogle}}
-  GOOGLE_API_KEY: isLocalMode
+  GOOGLE_API_KEY: isSimulatorMode
     ? z.string().optional()
     : z.string().min(1, 'Google API key is required'),
 {{/if}}
 {{#if isOpenrouter}}
-  OPENROUTER_API_KEY: isLocalMode
+  OPENROUTER_API_KEY: isSimulatorMode
     ? z.string().optional()
     : z.string().min(1, 'OpenRouter API key is required'),
 {{/if}}

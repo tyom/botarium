@@ -1,6 +1,13 @@
 import type { AssistantUserMessageMiddleware } from '@slack/bolt'
 {{#if isAi}}
 import type { MessageElement } from '@slack/web-api/dist/types/response/ConversationsRepliesResponse'
+import {
+  shouldShowReactions,
+  addThinkingReaction,
+  completeReactions,
+  removeThinkingOnError,
+  type ReactionContext,
+} from '../../utils/reactions'
 {{else}}
 interface ThreadMessage {
   bot_id?: string
@@ -10,15 +17,7 @@ interface ThreadMessage {
 import { responseHandler, type ThreadContext } from '../../response-handler'
 import { slackLogger } from '../../utils/logger'
 
-{{#if isAi}}
-// Non-AI commands that don't need thinking/done reactions
-const NON_AI_COMMANDS = ['ping']
 
-function isAIResponse(text: string): boolean {
-  return !NON_AI_COMMANDS.includes(text.toLowerCase().trim())
-}
-
-{{/if}}
 export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
   client,
   message,
@@ -40,11 +39,11 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
   const { channel, thread_ts } = message
 {{#if isAi}}
   const messageTs = 'ts' in message ? (message.ts as string) : undefined
+  const useReactions = shouldShowReactions(message.text) && messageTs
+  const reactionCtx: ReactionContext | undefined =
+    useReactions ? { client, channel, timestamp: messageTs } : undefined
 {{/if}}
   const { userId, teamId } = context
-{{#if isAi}}
-  const useReactions = isAIResponse(message.text) && messageTs
-{{/if}}
 
   let streamer: ReturnType<typeof client.chatStream> | undefined
 
@@ -57,12 +56,8 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
 
 {{#if isAi}}
     // Add thinking reaction for AI responses
-    if (useReactions) {
-      await client.reactions.add({
-        channel,
-        timestamp: messageTs,
-        name: 'thinking_face',
-      }).catch(err => slackLogger.error({ err }, 'Failed to add thinking reaction'))
+    if (reactionCtx) {
+      await addThinkingReaction(reactionCtx)
     }
 
 {{/if}}
@@ -109,29 +104,16 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
 
 {{#if isAi}}
     // Remove thinking and add checkmark for AI responses
-    if (useReactions) {
-      await client.reactions.remove({
-        channel,
-        timestamp: messageTs,
-        name: 'thinking_face',
-      }).catch(err => slackLogger.error({ err }, 'Failed to remove thinking reaction'))
-      await client.reactions.add({
-        channel,
-        timestamp: messageTs,
-        name: 'white_check_mark',
-      }).catch(err => slackLogger.error({ err }, 'Failed to add checkmark reaction'))
+    if (reactionCtx) {
+      await completeReactions(reactionCtx)
     }
 {{/if}}
   } catch (error) {
     slackLogger.error({ error }, 'Error in userMessage handler')
 {{#if isAi}}
     // Try to remove thinking reaction on error
-    if (useReactions) {
-      await client.reactions.remove({
-        channel,
-        timestamp: messageTs,
-        name: 'thinking_face',
-      }).catch(() => {})
+    if (reactionCtx) {
+      await removeThinkingOnError(reactionCtx)
     }
 {{/if}}
     await say({ text: 'Sorry, something went wrong!' })
