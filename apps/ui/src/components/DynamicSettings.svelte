@@ -433,11 +433,26 @@
       if (result.valid) {
         apiKeyValidation[key] = { status: 'valid', validatedValue: value }
         // Refresh model tiers after successful validation
-        // Pass the current (unsaved) API key so it's used for fetching
+        // Build complete API keys map from formData merged with the newly validated key
+        const allApiKeys: Record<string, string> = {}
+        for (const [formKey, formValue] of Object.entries(formData)) {
+          if (formKey.endsWith('_api_key') && typeof formValue === 'string') {
+            allApiKeys[formKey] = formValue
+          }
+        }
+        allApiKeys[key] = value
         electronAPI.clearModelCache(provider)
-        electronAPI.getModelTiers({ [key]: value }).then((tiers) => {
-          dynamicModelTiers = tiers
-        })
+        electronAPI
+          .getModelTiers(allApiKeys)
+          .then((tiers) => {
+            dynamicModelTiers = tiers
+          })
+          .catch(() => {
+            apiKeyValidation[key] = {
+              status: 'invalid',
+              error: 'Failed to fetch model tiers',
+            }
+          })
       } else {
         apiKeyValidation[key] = { status: 'invalid', error: result.error }
       }

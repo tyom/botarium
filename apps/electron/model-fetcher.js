@@ -596,7 +596,12 @@ export async function validateApiKey(provider, apiKey) {
 
       case 'google': {
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+          'https://generativelanguage.googleapis.com/v1beta/models',
+          {
+            headers: {
+              'x-goog-api-key': apiKey,
+            },
+          }
         )
         if (response.ok) {
           return { valid: true }

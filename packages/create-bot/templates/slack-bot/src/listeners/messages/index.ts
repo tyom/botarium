@@ -144,6 +144,10 @@ async function processMessage(
       }
     }
 
-    await say({ text: errorMessage })
+    if (isThreadReply) {
+      await say({ text: errorMessage, thread_ts: threadTs })
+    } else {
+      await say({ text: errorMessage })
+    }
   }
 }
