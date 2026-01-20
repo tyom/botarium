@@ -1088,6 +1088,43 @@ export class EmulatorState {
       mergedSettings[envKey] = value
     }
 
+    // After merging bot settings, validate MODEL_DEFAULT against AI_PROVIDER
+    // This handles the case where provider changed but bot-specific model wasn't updated
+    const provider = mergedSettings.AI_PROVIDER as string | undefined
+    if (provider) {
+      const isModelCompatibleWithProvider = (modelId: string, prov: string): boolean => {
+        const hasSlash = modelId.includes('/')
+        // OpenRouter models contain "/", other providers don't
+        return prov === 'openrouter' ? hasSlash : !hasSlash
+      }
+
+      const DEFAULT_MODELS: Record<string, string> = {
+        openai: 'gpt-4o',
+        anthropic: 'claude-sonnet-4-5',
+        google: 'gemini-2.0-flash',
+        openrouter: 'anthropic/claude-sonnet-4',
+      }
+
+      const modelDefault = mergedSettings.MODEL_DEFAULT as string | undefined
+      if (modelDefault && DEFAULT_MODELS[provider]) {
+        if (!isModelCompatibleWithProvider(modelDefault, provider)) {
+          mergedSettings.MODEL_DEFAULT = DEFAULT_MODELS[provider]
+        }
+      } else if (!modelDefault && DEFAULT_MODELS[provider]) {
+        mergedSettings.MODEL_DEFAULT = DEFAULT_MODELS[provider]
+      }
+
+      // Apply same logic to MODEL_FAST and MODEL_THINKING
+      const modelFast = mergedSettings.MODEL_FAST as string | undefined
+      if (modelFast && !isModelCompatibleWithProvider(modelFast, provider)) {
+        delete mergedSettings.MODEL_FAST
+      }
+      const modelThinking = mergedSettings.MODEL_THINKING as string | undefined
+      if (modelThinking && !isModelCompatibleWithProvider(modelThinking, provider)) {
+        delete mergedSettings.MODEL_THINKING
+      }
+    }
+
     stateLogger.debug(
       { botId, overrideKeys: Object.keys(botSettings) },
       'Merged bot-specific settings'

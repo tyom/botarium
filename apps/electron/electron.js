@@ -402,9 +402,29 @@ function settingsToEnv(settings) {
     }
   }
 
-  // Fill in default model if not explicitly set
-  if (!env.MODEL_DEFAULT && provider && DEFAULT_MODELS[provider]) {
-    env.MODEL_DEFAULT = DEFAULT_MODELS[provider]
+  // Check if a model ID is compatible with the selected provider
+  // OpenRouter uses "org/model" format, others use simple names
+  const isModelCompatibleWithProvider = (modelId, prov) => {
+    if (!modelId || !prov) return false
+    const hasSlash = modelId.includes('/')
+    // OpenRouter models contain "/", other providers don't
+    return prov === 'openrouter' ? hasSlash : !hasSlash
+  }
+
+  // Reset model to provider default if not set or incompatible with current provider
+  // This handles the case where user switches providers (e.g., OpenRouter → OpenAI)
+  // and the old model ID format is incompatible with the new provider
+  if (provider && DEFAULT_MODELS[provider]) {
+    if (!env.MODEL_DEFAULT || !isModelCompatibleWithProvider(env.MODEL_DEFAULT, provider)) {
+      env.MODEL_DEFAULT = DEFAULT_MODELS[provider]
+    }
+    // Apply same logic to MODEL_FAST and MODEL_THINKING for consistency
+    if (env.MODEL_FAST && !isModelCompatibleWithProvider(env.MODEL_FAST, provider)) {
+      delete env.MODEL_FAST // Let the bot use its default
+    }
+    if (env.MODEL_THINKING && !isModelCompatibleWithProvider(env.MODEL_THINKING, provider)) {
+      delete env.MODEL_THINKING // Let the bot use its default
+    }
   }
 
   return env
