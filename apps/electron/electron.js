@@ -915,7 +915,7 @@ function setupIpcHandlers() {
     }
 
     if (!configPort) {
-      electronLogger.warn({ botId }, 'Bot config port not found - bot may not have registered yet')
+      electronLogger.debug({ botId }, 'Bot config port not found - bot may not have registered yet')
       return null
     }
 
@@ -940,7 +940,7 @@ function setupIpcHandlers() {
       }
     }
 
-    electronLogger.warn({ botId }, 'Bot config not available after retries')
+    electronLogger.debug({ botId }, 'Bot config not available after retries')
     return null
   })
 }

@@ -604,11 +604,11 @@ export class EmulatorState {
       }
     }
 
-    // Check for existing disconnected bot with the same id (preferred) or name (fallback)
+    // Check for existing disconnected/connecting bot with the same id (preferred) or name (fallback)
     // Using id is more reliable since names may not be unique
     const newBotId = appConfig.app?.id
     const existingBot = Array.from(this.connectedBots.values()).find((bot) => {
-      if (bot.status !== 'disconnected') return false
+      if (bot.status !== 'disconnected' && bot.status !== 'connecting') return false
 
       // Prefer matching by id if both have one
       if (newBotId && bot.appConfig.app?.id) {
@@ -741,25 +741,30 @@ export class EmulatorState {
    * This handles hot-reload case where bot reconnects while simulator is running.
    * Returns the reconnected bot if successful, undefined otherwise.
    */
-  tryReconnectBot(connectionId: string): ConnectedBot | undefined {
+  tryReconnectBot(_connectionId: string): ConnectedBot | undefined {
     // Find disconnected bots in memory
     const disconnectedBots = Array.from(this.connectedBots.values()).filter(
       (bot) => bot.status === 'disconnected'
     )
 
-    // If there's exactly one disconnected bot, reconnect it
+    // If there's exactly one disconnected bot, mark it as reconnecting
+    // Don't fully associate the connection yet - let registration do that
+    // This allows getUnassociatedConnectionId() to find the connection for registration
     if (disconnectedBots.length === 1) {
       const bot = disconnectedBots[0]
       if (bot) {
-        bot.connectionId = connectionId
-        bot.status = 'connected'
+        // Mark as 'connecting' - will become 'connected' after registration
+        // This prevents UI from fetching config with stale configPort
+        bot.status = 'connecting'
         bot.connectedAt = new Date()
-        this.connectionToBotId.set(connectionId, bot.id)
+        // Don't set connectionToBotId here - let registration handle it
+        // so getUnassociatedConnectionId() can find this connection
 
         stateLogger.info(
-          `Bot auto-reconnected: ${bot.appConfig.app.name} (${bot.id}) via connection ${connectionId}`
+          `Bot auto-reconnecting: ${bot.appConfig.app.name} (${bot.id}) - waiting for registration`
         )
-        this.emitEvent({ type: 'bot_connected', bot })
+        // Don't emit bot_connected here - wait for registration to update appConfig
+        // with new configPort before notifying UI
         return bot
       }
     }
