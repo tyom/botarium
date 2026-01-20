@@ -181,7 +181,7 @@ async function copyDirectory(
  * Clean JSON by removing trailing commas and reformatting.
  * Handles artifacts from Handlebars conditionals in JSON files.
  */
-function cleanJson(content: string): string {
+export function cleanJson(content: string): string {
   // Remove trailing commas before closing braces/brackets
   const cleaned = content.replace(/,(\s*[}\]])/g, '$1')
 
