@@ -1,10 +1,8 @@
 import type { Choice } from 'prompts'
 import {
   BOT_TEMPLATES,
-  AI_PROVIDERS,
   DB_ADAPTERS,
   type BotTemplate,
-  type AiProvider,
   type DbAdapter,
 } from './template'
 
@@ -16,14 +14,6 @@ import {
 // Template display info
 const TEMPLATE_DISPLAY: Record<BotTemplate, { title: string; description: string }> = {
   slack: { title: 'Slack', description: 'Slack bot using Bolt SDK' },
-}
-
-// AI provider display info
-const PROVIDER_DISPLAY: Record<AiProvider, { title: string }> = {
-  openai: { title: 'OpenAI' },
-  anthropic: { title: 'Anthropic' },
-  google: { title: 'Google' },
-  openrouter: { title: 'OpenRouter' },
 }
 
 // Database display info
@@ -45,13 +35,6 @@ export function getTemplateChoices(): Choice[] {
   }))
 }
 
-export function getProviderChoices(): Choice[] {
-  return AI_PROVIDERS.map((value) => ({
-    value,
-    title: PROVIDER_DISPLAY[value].title,
-  }))
-}
-
 export function getDatabaseChoices(): Choice[] {
   return DB_ADAPTERS.map((value) => ({
     value,
@@ -66,10 +49,6 @@ export function getDatabaseChoices(): Choice[] {
 
 export function isValidTemplate(value: string): value is BotTemplate {
   return (BOT_TEMPLATES as readonly string[]).includes(value)
-}
-
-export function isValidProvider(value: string): value is AiProvider {
-  return (AI_PROVIDERS as readonly string[]).includes(value)
 }
 
 export function isValidDatabase(value: string): value is DbAdapter {

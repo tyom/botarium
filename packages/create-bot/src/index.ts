@@ -29,7 +29,6 @@ export async function createBot(options: CreateBotOptions = {}): Promise<void> {
     name: options.name,
     template: options.template,
     useAi: options.useAi,
-    provider: options.provider,
     database: options.database,
   })
 
@@ -44,7 +43,6 @@ export async function createBot(options: CreateBotOptions = {}): Promise<void> {
     botName: selections.name,
     template: selections.template,
     useAi: selections.useAi,
-    aiProvider: selections.provider,
     dbAdapter: selections.database,
     overwrite: selections.overwrite,
   })
@@ -83,7 +81,6 @@ function printEnvVarInstructions(selections: UserSelections): void {
   const envVars = getRequiredEnvVars({
     template: selections.template,
     useAi: selections.useAi,
-    aiProvider: selections.provider,
     dbAdapter: selections.database,
   })
 
@@ -93,8 +90,8 @@ function printEnvVarInstructions(selections: UserSelections): void {
     printEnvVar(varName)
   }
 
-  if (envVars.aiVar) {
-    printEnvVar(envVars.aiVar)
+  for (const varName of envVars.aiVars) {
+    printEnvVar(varName)
   }
 
   for (const varName of envVars.dbVars) {

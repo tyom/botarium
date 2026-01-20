@@ -63,7 +63,6 @@ describe('createTemplateContext', () => {
     const ctx = createTemplateContext({
       botName: 'test-bot',
       useAi: true,
-      aiProvider: 'openai',
       dbAdapter: 'none',
     })
 
@@ -71,10 +70,6 @@ describe('createTemplateContext', () => {
     expect(ctx.botNamePascal).toBe('TestBot')
     expect(ctx.packageName).toBe('test-bot')
     expect(ctx.isAi).toBe(true)
-    expect(ctx.isOpenai).toBe(true)
-    expect(ctx.isAnthropic).toBe(false)
-    expect(ctx.isGoogle).toBe(false)
-    expect(ctx.isOpenrouter).toBe(false)
     expect(ctx.isDb).toBe(false)
   })
 
@@ -112,44 +107,7 @@ describe('createTemplateContext', () => {
 
     expect(ctx.isAi).toBe(false)
     expect(ctx.isDb).toBe(false)
-    expect(ctx.isOpenai).toBe(false)
     expect(ctx.isSqlite).toBe(false)
     expect(ctx.isPostgres).toBe(false)
-  })
-
-  test('sets correct provider flag for anthropic', () => {
-    const ctx = createTemplateContext({
-      botName: 'claude-bot',
-      useAi: true,
-      aiProvider: 'anthropic',
-      dbAdapter: 'none',
-    })
-
-    expect(ctx.isAnthropic).toBe(true)
-    expect(ctx.isOpenai).toBe(false)
-  })
-
-  test('sets correct provider flag for google', () => {
-    const ctx = createTemplateContext({
-      botName: 'gemini-bot',
-      useAi: true,
-      aiProvider: 'google',
-      dbAdapter: 'none',
-    })
-
-    expect(ctx.isGoogle).toBe(true)
-    expect(ctx.isOpenai).toBe(false)
-  })
-
-  test('sets correct provider flag for openrouter', () => {
-    const ctx = createTemplateContext({
-      botName: 'router-bot',
-      useAi: true,
-      aiProvider: 'openrouter',
-      dbAdapter: 'none',
-    })
-
-    expect(ctx.isOpenrouter).toBe(true)
-    expect(ctx.isOpenai).toBe(false)
   })
 })

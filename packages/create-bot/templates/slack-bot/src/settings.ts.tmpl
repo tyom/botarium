@@ -1,14 +1,8 @@
 import { z } from 'zod'
-{{#if isOpenai}}
+{{#if isAi}}
 import { openai } from '@ai-sdk/openai'
-{{/if}}
-{{#if isAnthropic}}
 import { anthropic } from '@ai-sdk/anthropic'
-{{/if}}
-{{#if isGoogle}}
 import { google } from '@ai-sdk/google'
-{{/if}}
-{{#if isOpenrouter}}
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 {{/if}}
 
@@ -33,27 +27,14 @@ const envSchema = z.object({
 {{#if isAi}}
 
   // AI Configuration
+  AI_PROVIDER: z.enum(['openai', 'anthropic', 'google', 'openrouter']).optional(),
   MODEL_DEFAULT: z.string().optional(),
-{{#if isOpenai}}
-  OPENAI_API_KEY: isSimulatorMode
-    ? z.string().optional()
-    : z.string().min(1, 'OpenAI API key is required'),
-{{/if}}
-{{#if isAnthropic}}
-  ANTHROPIC_API_KEY: isSimulatorMode
-    ? z.string().optional()
-    : z.string().min(1, 'Anthropic API key is required'),
-{{/if}}
-{{#if isGoogle}}
-  GOOGLE_API_KEY: isSimulatorMode
-    ? z.string().optional()
-    : z.string().min(1, 'Google API key is required'),
-{{/if}}
-{{#if isOpenrouter}}
-  OPENROUTER_API_KEY: isSimulatorMode
-    ? z.string().optional()
-    : z.string().min(1, 'OpenRouter API key is required'),
-{{/if}}
+  MODEL_FAST: z.string().optional(),
+  MODEL_THINKING: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  GOOGLE_API_KEY: z.string().optional(),
+  OPENROUTER_API_KEY: z.string().optional(),
 {{/if}}
 
   // Server
@@ -140,20 +121,29 @@ export const settings = loadSettings()
 {{/if}}
 {{#if isAi}}
 
+// Default models per provider
+const DEFAULT_MODELS: Record<string, string> = {
+  openai: 'gpt-4o',
+  anthropic: 'claude-sonnet-4-5',
+  google: 'gemini-2.0-flash',
+  openrouter: 'anthropic/claude-sonnet-4',
+}
+
 // AI Model helper
 export function getModel() {
-{{#if isOpenai}}
-  return openai(settings.MODEL_DEFAULT || 'gpt-4o')
-{{/if}}
-{{#if isAnthropic}}
-  return anthropic(settings.MODEL_DEFAULT || 'claude-sonnet-4-5')
-{{/if}}
-{{#if isGoogle}}
-  return google(settings.MODEL_DEFAULT || 'gemini-2.0-flash')
-{{/if}}
-{{#if isOpenrouter}}
-  const openrouter = createOpenRouter({ apiKey: settings.OPENROUTER_API_KEY })
-  return openrouter(settings.MODEL_DEFAULT || 'anthropic/claude-sonnet-4')
-{{/if}}
+  const provider = settings.AI_PROVIDER || 'openai'
+  const modelId = settings.MODEL_DEFAULT || DEFAULT_MODELS[provider] || 'gpt-4o'
+
+  switch (provider) {
+    case 'anthropic':
+      return anthropic(modelId)
+    case 'google':
+      return google(modelId)
+    case 'openrouter':
+      return createOpenRouter({ apiKey: settings.OPENROUTER_API_KEY })(modelId)
+    case 'openai':
+    default:
+      return openai(modelId)
+  }
 }
 {{/if}}

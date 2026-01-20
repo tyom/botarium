@@ -5,7 +5,6 @@ import {
   createTemplateContext,
   type TemplateContext,
   type BotTemplate,
-  type AiProvider,
   type DbAdapter,
 } from './utils/template'
 
@@ -47,7 +46,6 @@ export interface ScaffoldOptions {
   botName: string
   template: BotTemplate
   useAi: boolean
-  aiProvider?: AiProvider
   dbAdapter: DbAdapter
   targetDir?: string
   overwrite?: boolean
@@ -230,7 +228,6 @@ export async function scaffold(options: ScaffoldOptions): Promise<string> {
   const ctx = createTemplateContext({
     botName: options.botName,
     useAi: options.useAi,
-    aiProvider: options.aiProvider,
     dbAdapter: options.dbAdapter,
   })
   const rules = buildSkipRules(ctx)

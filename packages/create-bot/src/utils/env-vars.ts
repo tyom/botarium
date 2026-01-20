@@ -1,4 +1,4 @@
-import type { BotTemplate, AiProvider, DbAdapter } from './template'
+import type { BotTemplate, DbAdapter } from './template'
 
 /**
  * Environment variable configurations by template and feature.
@@ -9,13 +9,14 @@ const TEMPLATE_ENV_VARS: Record<BotTemplate, readonly string[]> = {
   slack: ['SLACK_BOT_TOKEN', 'SLACK_APP_TOKEN', 'SLACK_SIGNING_SECRET'],
 }
 
-// AI provider API key env var names
-const AI_PROVIDER_ENV_VARS: Record<AiProvider, string> = {
-  openai: 'OPENAI_API_KEY',
-  anthropic: 'ANTHROPIC_API_KEY',
-  google: 'GOOGLE_API_KEY',
-  openrouter: 'OPENROUTER_API_KEY',
-}
+// All AI-related env vars (provider selection + all API keys)
+const AI_ENV_VARS = [
+  'AI_PROVIDER',
+  'OPENAI_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'GOOGLE_API_KEY',
+  'OPENROUTER_API_KEY',
+] as const
 
 // Database adapter env vars
 const DB_ADAPTER_ENV_VARS: Partial<Record<DbAdapter, readonly string[]>> = {
@@ -24,7 +25,7 @@ const DB_ADAPTER_ENV_VARS: Partial<Record<DbAdapter, readonly string[]>> = {
 
 export interface EnvVarRequirements {
   templateVars: readonly string[]
-  aiVar: string | null
+  aiVars: readonly string[]
   dbVars: readonly string[]
   hasAny: boolean
 }
@@ -35,19 +36,18 @@ export interface EnvVarRequirements {
 export function getRequiredEnvVars(options: {
   template: BotTemplate
   useAi: boolean
-  aiProvider?: AiProvider
   dbAdapter: DbAdapter
 }): EnvVarRequirements {
-  const { template, useAi, aiProvider, dbAdapter } = options
+  const { template, useAi, dbAdapter } = options
 
   const templateVars = TEMPLATE_ENV_VARS[template] ?? []
-  const aiVar = useAi && aiProvider ? AI_PROVIDER_ENV_VARS[aiProvider] : null
+  const aiVars = useAi ? AI_ENV_VARS : []
   const dbVars = DB_ADAPTER_ENV_VARS[dbAdapter] ?? []
 
   return {
     templateVars,
-    aiVar,
+    aiVars,
     dbVars,
-    hasAny: templateVars.length > 0 || aiVar !== null || dbVars.length > 0,
+    hasAny: templateVars.length > 0 || aiVars.length > 0 || dbVars.length > 0,
   }
 }

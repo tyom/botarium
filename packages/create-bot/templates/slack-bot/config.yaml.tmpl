@@ -41,54 +41,47 @@ settings:
 
   # AI Provider
   ai_provider:
-    value: {{aiProvider}}
+    value: openai
     schema:
       type: select
       label: AI Provider
       group: ai
       required: true
       options:
-{{#if isOpenai}}
         - value: openai
           label: OpenAI
-{{/if}}
-{{#if isAnthropic}}
         - value: anthropic
           label: Anthropic
-{{/if}}
-{{#if isGoogle}}
         - value: google
           label: Google
-{{/if}}
+        - value: openrouter
+          label: OpenRouter
 
   # API Keys (secrets from env vars)
-{{#if isOpenai}}
   openai_api_key:
     env: OPENAI_API_KEY
     schema:
       type: secret
       label: OpenAI API Key
       group: ai
-      required: true
-{{/if}}
-{{#if isAnthropic}}
   anthropic_api_key:
     env: ANTHROPIC_API_KEY
     schema:
       type: secret
       label: Anthropic API Key
       group: ai
-      required: true
-{{/if}}
-{{#if isGoogle}}
   google_api_key:
     env: GOOGLE_API_KEY
     schema:
       type: secret
       label: Google API Key
       group: ai
-      required: true
-{{/if}}
+  openrouter_api_key:
+    env: OPENROUTER_API_KEY
+    schema:
+      type: secret
+      label: OpenRouter API Key
+      group: ai
 {{/if}}
 
 # Group definitions with display order

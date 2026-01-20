@@ -2,27 +2,23 @@ import prompts from 'prompts'
 import { validateBotNameForPrompts, checkTargetDirectory } from './utils/validate'
 import {
   BOT_TEMPLATES,
-  AI_PROVIDERS,
   DB_ADAPTERS,
   type BotTemplate,
-  type AiProvider,
   type DbAdapter,
 } from './utils/template'
 import {
   getTemplateChoices,
-  getProviderChoices,
   getDatabaseChoices,
   validateOption,
 } from './utils/prompt-options'
 
 // Re-export types for convenience
-export type { BotTemplate, AiProvider, DbAdapter }
+export type { BotTemplate, DbAdapter }
 
 export interface UserSelections {
   name: string
   template: BotTemplate
   useAi: boolean
-  provider?: AiProvider
   database: DbAdapter
   overwrite?: boolean
 }
@@ -31,7 +27,6 @@ export interface PartialSelections {
   name?: string
   template?: string
   useAi?: boolean
-  provider?: string
   database?: string
 }
 
@@ -69,17 +64,6 @@ function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {
     })
   }
 
-  if (!partial.provider) {
-    questions.push({
-      type: (_prev, values) =>
-        (values.useAi ?? partial.useAi) ? 'select' : null,
-      name: 'provider',
-      message: 'AI provider:',
-      choices: getProviderChoices(),
-      initial: 0,
-    })
-  }
-
   if (!partial.database) {
     questions.push({
       type: 'select',
@@ -102,15 +86,10 @@ function mergeAnswers(
   // Get raw values
   const rawName = partial.name || answers.name
   const rawTemplate = partial.template || answers.template
-  const rawProvider = partial.provider || answers.provider
   const rawDatabase = partial.database || answers.database
 
   // Validate required fields exist
   if (!rawName || !rawTemplate || !rawDatabase) {
-    return null
-  }
-
-  if (useAi && !rawProvider) {
     return null
   }
 
@@ -121,18 +100,10 @@ function mergeAnswers(
   const database = validateOption(rawDatabase, DB_ADAPTERS, 'database')
   if (!database) return null
 
-  let provider: AiProvider | undefined
-  if (useAi && rawProvider) {
-    const validatedProvider = validateOption(rawProvider, AI_PROVIDERS, 'provider')
-    if (!validatedProvider) return null
-    provider = validatedProvider
-  }
-
   return {
     name: rawName,
     template,
     useAi,
-    provider,
     database,
   }
 }

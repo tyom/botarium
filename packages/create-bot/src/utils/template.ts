@@ -11,17 +11,15 @@ export type AiProvider = (typeof AI_PROVIDERS)[number]
 export type DbAdapter = (typeof DB_ADAPTERS)[number]
 
 // Helper types for derived boolean flags
-type ProviderFlags = Record<`is${Capitalize<AiProvider>}`, boolean>
 type AdapterFlags = Record<`is${Capitalize<Exclude<DbAdapter, 'none'>>}`, boolean>
 
-export interface TemplateContext extends ProviderFlags, AdapterFlags {
+export interface TemplateContext extends AdapterFlags {
   // Bot configuration
   botName: string // e.g., "my-bot"
   botNamePascal: string // e.g., "MyBot"
   packageName: string // e.g., "my-bot"
 
   // Selections
-  aiProvider?: AiProvider
   dbAdapter: DbAdapter
 
   // Derived flags for conditionals
@@ -45,23 +43,17 @@ export function processTemplate(content: string, ctx: TemplateContext): string {
 export interface TemplateOptions {
   botName: string
   useAi: boolean
-  aiProvider?: AiProvider
   dbAdapter: DbAdapter
 }
 
 /**
  * Create template context from user selections.
- * Boolean flags are auto-derived from provider/adapter values.
+ * Boolean flags are auto-derived from adapter values.
  */
 export function createTemplateContext(
   options: TemplateOptions
 ): TemplateContext {
-  const { botName, useAi, aiProvider, dbAdapter } = options
-
-  // Auto-derive boolean flags for each provider
-  const providerFlags = Object.fromEntries(
-    AI_PROVIDERS.map((p) => [`is${capitalize(p)}`, aiProvider === p])
-  ) as Record<`is${Capitalize<AiProvider>}`, boolean>
+  const { botName, useAi, dbAdapter } = options
 
   // Auto-derive boolean flags for each adapter (except 'none')
   const adapterFlags = Object.fromEntries(
@@ -75,11 +67,9 @@ export function createTemplateContext(
     botName,
     botNamePascal: toPascalCase(botName),
     packageName: toPackageName(botName),
-    aiProvider,
     dbAdapter,
     isAi: useAi,
     isDb: dbAdapter !== 'none',
-    ...providerFlags,
     ...adapterFlags,
   }
 }
