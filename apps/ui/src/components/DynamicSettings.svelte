@@ -131,8 +131,13 @@
 
     // Use an async IIFE to handle the fetch
     ;(async () => {
+      // Capture key before await to detect stale fetches
+      const fetchKey = currentKey
       try {
         const botConfig = await fetchBotConfig(botId)
+
+        // Abort if a newer fetch has started (key changed during await)
+        if (lastFetchedKey !== fetchKey) return
 
         // Always include simulator settings, merged with bot config if available
         const simulatorSettings = SIMULATOR_SETTINGS_SCHEMA.settings as Record<
@@ -254,10 +259,16 @@
           }
         }
       } catch (error) {
-        console.error('Failed to fetch bot config:', error)
-        config = null
+        // Only apply error state if this fetch is still current
+        if (lastFetchedKey === fetchKey) {
+          console.error('Failed to fetch bot config:', error)
+          config = null
+        }
       } finally {
-        loading = false
+        // Only clear loading if this fetch is still current
+        if (lastFetchedKey === fetchKey) {
+          loading = false
+        }
       }
     })()
   })
