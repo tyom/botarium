@@ -2,7 +2,7 @@
  * Simulator state management using Svelte 5 runes
  */
 
-import { SvelteMap, SvelteSet } from 'svelte/reactivity'
+import { SvelteMap } from 'svelte/reactivity'
 import type {
   SimulatorMessage,
   SlashCommand,

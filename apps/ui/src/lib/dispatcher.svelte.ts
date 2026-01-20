@@ -452,7 +452,7 @@ async function sendMessageViaEmulator(
  * Check if the bot will respond to this message
  * Bot responds in DMs, threads (auto-response), or when mentioned in channels
  */
-function willBotRespond(text: string, threadTs?: string): boolean {
+function _willBotRespond(text: string, threadTs?: string): boolean {
   if (simulatorState.isDM) return true
 
   // Bot auto-responds in threads without needing mention

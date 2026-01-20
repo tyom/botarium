@@ -18,6 +18,9 @@ export default tseslint.config(
       '**/dist',
       'build',
       '**/build',
+      // Handlebars templates - not valid TypeScript
+      'packages/create-bot/templates/**',
+      'tmp/**',
     ],
   },
   {

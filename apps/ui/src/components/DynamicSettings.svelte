@@ -430,7 +430,7 @@
       } else {
         apiKeyValidation[key] = { status: 'invalid', error: result.error }
       }
-    } catch (error) {
+    } catch {
       apiKeyValidation[key] = { status: 'invalid', error: 'Validation failed' }
     }
   }
