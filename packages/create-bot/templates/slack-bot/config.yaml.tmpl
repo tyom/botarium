@@ -41,6 +41,7 @@ settings:
 
   # AI Provider
   ai_provider:
+    env: AI_PROVIDER
     value: openai
     schema:
       type: select
@@ -82,6 +83,16 @@ settings:
       type: secret
       label: OpenRouter API Key
       group: ai
+
+  model_default:
+    env: MODEL_DEFAULT
+    schema:
+      type: model_select
+      label: Default Model
+      description: Override the default model for this bot
+      group: ai
+      tier: default
+      provider_field: ai_provider
 {{/if}}
 
 # Group definitions with display order

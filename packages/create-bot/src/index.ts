@@ -66,9 +66,7 @@ function printNextSteps(targetDir: string, selections: UserSelections): void {
   printBlankLine()
 
   printStep(1, `cd ${relativePath}`)
-  printStep(2, 'Copy .env.example to .env and configure:')
-  printCommand('cp .env.example .env')
-  printBlankLine()
+  printStep(2, 'Configure .env with your credentials:')
 
   printEnvVarInstructions(selections)
 

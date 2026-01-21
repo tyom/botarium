@@ -77,6 +77,9 @@
     }
   > = $state({})
 
+  // Track which AI settings are overridden by environment variables
+  let aiEnvOverrides: Set<string> = $state(new Set())
+
   // Track previous initialValues to detect changes
   let prevInitialValues: Record<string, unknown> = {}
 
@@ -222,6 +225,13 @@
             },
             values: botConfig.values,
           }
+
+          // Capture environment variable overrides for AI settings
+          if (botConfig.envOverrides) {
+            aiEnvOverrides = new Set(botConfig.envOverrides)
+          } else {
+            aiEnvOverrides = new Set()
+          }
         } else {
           // No bot config - use simulator settings only
           config = {
@@ -232,22 +242,48 @@
             },
             values: {},
           }
+          aiEnvOverrides = new Set()
         }
 
         // Merge values with proper priority:
-        // 1. App-specific overrides (from appOverrides) - highest priority
-        // 2. Bot config defaults (from config.values)
+        // 1. App-specific overrides (from appOverrides) - only if explicitly different from bot's value
+        // 2. Bot config defaults (from config.values) - for bot-overridable settings
         // 3. Initial values (from initialValues) - lowest priority
         for (const key of Object.keys(config.schema.settings)) {
-          if (appOverrides[key] !== undefined) {
+          const schema = config.schema.settings[key]
+          const isBotOverridable = (
+            BOT_OVERRIDABLE_SETTINGS as readonly string[]
+          ).includes(key)
+          const botValue = config.values[key]
+          const overrideValue = appOverrides[key]
+          const globalValue = initialValues[key]
+
+          // When AI settings are env-overridden, use bot values directly for AI fields
+          // (don't apply inheritance or app overrides since user can't change them)
+          const isAiField = schema.type === 'model_select' ||
+            key === 'ai_provider' ||
+            key.endsWith('_api_key')
+          if (aiEnvOverrides.size > 0 && isAiField) {
+            formData[key] = botValue ?? ''
+            continue
+          }
+
+          if (showInheritedBadge && isBotOverridable && botValue !== undefined && botValue !== '') {
+            // In bot settings mode: bot's .env value is the baseline
+            // Only use override if it explicitly differs from both bot value AND global value
+            // (if override equals global, it was likely auto-saved, not intentionally set)
+            if (overrideValue !== undefined && overrideValue !== globalValue) {
+              formData[key] = overrideValue
+            } else {
+              formData[key] = botValue
+            }
+          } else if (overrideValue !== undefined) {
             // User's app-specific override takes priority
-            formData[key] = appOverrides[key]
-          } else if (
-            formData[key] === undefined &&
-            config.values[key] !== undefined
-          ) {
-            // Fall back to bot config value if formData doesn't have it
-            formData[key] = config.values[key]
+            formData[key] = overrideValue
+          } else if (botValue !== undefined && botValue !== '') {
+            if (formData[key] === undefined) {
+              formData[key] = botValue
+            }
           }
         }
 
@@ -306,7 +342,21 @@
   }
 
   // Check if field should be visible based on condition
-  function shouldShowField(schema: SettingSchema): boolean {
+  function shouldShowField(key: string, schema: SettingSchema): boolean {
+    // When AI settings are env-overridden:
+    if (hasAiEnvOverrides()) {
+      // Only show model_default (hide model_fast, model_thinking)
+      if (schema.type === 'model_select' && key !== 'model_default') {
+        return false
+      }
+      // Hide API key fields unless that specific key is also env-overridden
+      if (schema.type === 'secret' && key.endsWith('_api_key')) {
+        if (!isEnvOverridden(key)) {
+          return false
+        }
+      }
+    }
+
     if (!schema.condition) return true
     const dependsOnValue = formData[schema.condition.field]
     return dependsOnValue === schema.condition.equals
@@ -416,6 +466,16 @@
     return !isInherited(key)
   }
 
+  // Check if any AI setting is overridden by environment variables
+  function hasAiEnvOverrides(): boolean {
+    return aiEnvOverrides.size > 0
+  }
+
+  // Check if a specific field is overridden by an environment variable
+  function isEnvOverridden(key: string): boolean {
+    return aiEnvOverrides.has(key)
+  }
+
   // Clear override for a field (revert to inherited value)
   function clearOverride(key: string) {
     formData[key] = inheritedValues[key]
@@ -505,12 +565,12 @@
 {:else}
   {@const groupsWithVisibleFields = getSortedGroups().filter((g) => {
     const fields = getFieldsForGroup(g.id)
-    return fields.some(([_, schema]) => shouldShowField(schema))
+    return fields.some(([key, schema]) => shouldShowField(key, schema))
   })}
   {#each groupsWithVisibleFields as group, visibleGroupIndex (group.id)}
     {@const fields = getFieldsForGroup(group.id)}
-    {@const visibleFields = fields.filter(([_, schema]) =>
-      shouldShowField(schema)
+    {@const visibleFields = fields.filter(([key, schema]) =>
+      shouldShowField(key, schema)
     )}
 
     {#if visibleFields.length > 0}
@@ -577,32 +637,45 @@
   <div class="mb-4">
     {#if schema.type === 'select' && key === 'ai_provider'}
       <!-- Special handling for AI provider as tabs -->
+      {@const isDisabledByEnv = hasAiEnvOverrides()}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
-        {@render inheritedIndicator(key)}
+        {#if isEnvOverridden(key)}
+          <span class="text-xs text-(--text-muted) ml-1 italic">(from env)</span>
+        {:else}
+          {@render inheritedIndicator(key)}
+        {/if}
       </Label>
+      {#if isDisabledByEnv}
+        <p class="text-xs text-(--text-muted) mb-2 italic">Settings overridden from environment variables</p>
+      {/if}
       <Tabs.Root
         value={formData[key] as string}
         onValueChange={(v) => {
-          if (v) handleProviderChange(v)
+          if (v && !isDisabledByEnv) handleProviderChange(v)
         }}
-        class="w-full"
+        class="w-full {isDisabledByEnv ? 'opacity-60 pointer-events-none' : ''}"
       >
         <Tabs.List class="w-full grid grid-cols-4">
           {#each schema.options ?? [] as option (option.value)}
-            <Tabs.Trigger value={option.value}>{option.label}</Tabs.Trigger>
+            <Tabs.Trigger value={option.value} disabled={isDisabledByEnv}>{option.label}</Tabs.Trigger>
           {/each}
         </Tabs.List>
       </Tabs.Root>
     {:else if schema.type === 'secret'}
       {@const validationStatus = getValidationStatus(key)}
       {@const isApiKeyField = key.endsWith('_api_key')}
+      {@const isThisFieldEnvOverridden = isEnvOverridden(key)}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
-        {#if !isFieldRequired(schema)}
+        {#if isThisFieldEnvOverridden}
+          <span class="text-xs text-(--text-muted) ml-1 italic">(from env)</span>
+        {:else if !isFieldRequired(schema)}
           <span class="text-xs text-(--text-muted) ml-1">(optional)</span>
         {/if}
-        {@render inheritedIndicator(key)}
+        {#if !isThisFieldEnvOverridden}
+          {@render inheritedIndicator(key)}
+        {/if}
         <Button
           type="button"
           variant="link"
@@ -621,12 +694,13 @@
           placeholder={schema.placeholder ??
             `Enter ${schema.label.toLowerCase()}`}
           autocomplete="off"
-          class="h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) placeholder:text-(--text-muted) {isApiKeyField &&
+          disabled={isThisFieldEnvOverridden}
+          class="h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) placeholder:text-(--text-muted) disabled:opacity-50 disabled:cursor-not-allowed {isApiKeyField &&
           isElectron
             ? 'pr-10'
             : ''}"
         />
-        {#if isApiKeyField && isElectron && formData[key]}
+        {#if isApiKeyField && isElectron && formData[key] && !isThisFieldEnvOverridden}
           <button
             type="button"
             onclick={() => validateKey(key)}
@@ -740,23 +814,33 @@
       {@const models = getModelsForTier(tier)}
       {@const defaultModel = getDefaultModel(tier)}
       {@const hasApiKey = hasProviderApiKey()}
+      {@const isDisabledByEnv = hasAiEnvOverrides()}
+      {@const isThisFieldEnvOverridden = isEnvOverridden(key)}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
-        {@render inheritedIndicator(key)}
+        {#if isThisFieldEnvOverridden}
+          <span class="text-xs text-(--text-muted) ml-1 italic">(from env)</span>
+        {:else if !isDisabledByEnv}
+          {@render inheritedIndicator(key)}
+        {/if}
       </Label>
       {#if schema.description}
         <p class="text-xs text-(--text-muted) mb-2">{schema.description}</p>
       {/if}
       <Select.Root
         type="single"
-        value={(formData[key] as string) ?? ''}
+        value={isDisabledByEnv && !isThisFieldEnvOverridden ? '' : ((formData[key] as string) ?? '')}
         onValueChange={(v) => (formData[key] = v || undefined)}
-        disabled={!hasApiKey}
+        disabled={!hasApiKey || isDisabledByEnv}
       >
         <Select.Trigger
           class="w-full h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {#if hasApiKey}
+          {#if isDisabledByEnv && !isThisFieldEnvOverridden}
+            Default ({defaultModel})
+          {:else if isDisabledByEnv}
+            {(formData[key] as string) || `Default (${defaultModel})`}
+          {:else if hasApiKey}
             {(formData[key] as string) || `Default (${defaultModel})`}
           {:else}
             Enter API key to select model

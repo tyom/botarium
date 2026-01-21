@@ -120,17 +120,23 @@ async function registerWithSimulator(maxRetries = 10, retryDelayMs = 1000) {
 
 {{#if isAi}}
       // Apply simulator settings to process.env (for API keys, etc.)
+      // Only apply if the bot's .env file doesn't already have a value set
       if (data.settings) {
         const apiKeySettings = [
           'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GOOGLE_API_KEY',
           'OPENROUTER_API_KEY', 'AI_PROVIDER', 'MODEL_DEFAULT'
         ]
         for (const key of apiKeySettings) {
-          // Allow overwriting to support runtime settings changes
-          if (data.settings[key]) {
+          // Only apply simulator setting if bot's .env doesn't have this value
+          // This allows .env file to take precedence over simulator defaults
+          if (data.settings[key] && !process.env[key]) {
             process.env[key] = data.settings[key]
             slackLogger.debug(`Applied ${key} from simulator settings`)
           }
+        }
+        // Always apply _EMULATOR_INJECTED_VARS so bot can distinguish UI settings from .env overrides
+        if (data.settings._EMULATOR_INJECTED_VARS) {
+          process.env._EMULATOR_INJECTED_VARS = String(data.settings._EMULATOR_INJECTED_VARS)
         }
         // Reload settings to pick up the new values
         await reloadSettings()

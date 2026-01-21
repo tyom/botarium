@@ -63,6 +63,7 @@ export interface ConfigSchema {
 export interface BotConfig {
   schema: ConfigSchema
   values: Record<string, unknown>
+  envOverrides?: string[]
 }
 
 /**

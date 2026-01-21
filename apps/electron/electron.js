@@ -361,6 +361,10 @@ function settingsToEnv(settings) {
   // Use app's userData folder for writable storage (not the read-only app bundle)
   const dataDir = path.join(app.getPath('userData'), 'data')
 
+  // Track all vars injected by the emulator (from UI settings, not user's .env file)
+  // This allows bots to distinguish between UI-derived env vars and actual .env overrides
+  const injectedVars = []
+
   const env = {
     SLACK_API_URL: `http://localhost:${EMULATOR_PORT}/api`,
     DATA_DIR: dataDir,
@@ -384,6 +388,7 @@ function settingsToEnv(settings) {
     // Convert snake_case to UPPER_SNAKE_CASE
     const envKey = key.toUpperCase()
     env[envKey] = String(value)
+    injectedVars.push(envKey)
   }
 
   // Special handling: set provider-specific API key env var
@@ -399,6 +404,7 @@ function settingsToEnv(settings) {
     }
     if (keyMap[provider]) {
       env[keyMap[provider]] = apiKey
+      injectedVars.push(keyMap[provider])
     }
   }
 
@@ -417,6 +423,10 @@ function settingsToEnv(settings) {
   if (provider && DEFAULT_MODELS[provider]) {
     if (!env.MODEL_DEFAULT || !isModelCompatibleWithProvider(env.MODEL_DEFAULT, provider)) {
       env.MODEL_DEFAULT = DEFAULT_MODELS[provider]
+      // MODEL_DEFAULT might already be in injectedVars if it came from settings
+      if (!injectedVars.includes('MODEL_DEFAULT')) {
+        injectedVars.push('MODEL_DEFAULT')
+      }
     }
     // Apply same logic to MODEL_FAST and MODEL_THINKING for consistency
     if (env.MODEL_FAST && !isModelCompatibleWithProvider(env.MODEL_FAST, provider)) {
@@ -425,6 +435,11 @@ function settingsToEnv(settings) {
     if (env.MODEL_THINKING && !isModelCompatibleWithProvider(env.MODEL_THINKING, provider)) {
       delete env.MODEL_THINKING // Let the bot use its default
     }
+  }
+
+  // Pass the list of injected vars to the bot so it can exclude them from envOverrides
+  if (injectedVars.length > 0) {
+    env._EMULATOR_INJECTED_VARS = injectedVars.join(',')
   }
 
   return env

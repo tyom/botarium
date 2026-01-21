@@ -196,7 +196,7 @@ export const SIMULATOR_SETTINGS_SCHEMA = {
       label: 'AI Settings',
       order: 90,
       collapsible: true,
-      expanded: false,
+      expanded: true,
     },
     {
       id: 'advanced',

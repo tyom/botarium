@@ -202,6 +202,17 @@ function cleanupPackageJson(targetDir: string): void {
   }
 }
 
+/**
+ * Create .env from .env.example so the bot is ready to configure.
+ */
+function createEnvFile(targetDir: string): void {
+  const envExamplePath = path.join(targetDir, '.env.example')
+  const envPath = path.join(targetDir, '.env')
+  if (fs.existsSync(envExamplePath) && !fs.existsSync(envPath)) {
+    fs.copyFileSync(envExamplePath, envPath)
+  }
+}
+
 // ============================================================================
 // Main Export
 // ============================================================================
@@ -237,6 +248,9 @@ export async function scaffold(options: ScaffoldOptions): Promise<string> {
 
   // Clean up generated JSON
   cleanupPackageJson(targetDir)
+
+  // Create .env from .env.example
+  createEnvFile(targetDir)
 
   return targetDir
 }
