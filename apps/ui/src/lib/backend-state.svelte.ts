@@ -211,7 +211,9 @@ function createBackendState() {
   /** Update a single setting without restarting backend (for UI-only settings like log level) */
   async function updateSetting(key: string, value: unknown) {
     if (!settings) return
-    const newSettings = { ...settings, [key]: value }
+    // Create plain object snapshot for IPC (Svelte 5 $state creates proxies that can't be cloned)
+    const settingsSnapshot = $state.snapshot(settings)
+    const newSettings = { ...settingsSnapshot, [key]: value }
     const api = getElectronAPI()
     if (api) {
       await api.saveSettings(newSettings)
