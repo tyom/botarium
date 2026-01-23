@@ -75,6 +75,15 @@ async function loadSettings(): Promise<Settings> {
   // In simulator mode, fetch settings from emulator and merge with env
   const simulatorSettings = await fetchSimulatorSettings()
 
+  // If AI_PROVIDER is set in bot's own .env, don't use API keys from simulator
+  // User explicitly chose provider via .env, so they should also set the API key via .env
+  if (process.env.AI_PROVIDER) {
+    delete simulatorSettings.OPENAI_API_KEY
+    delete simulatorSettings.ANTHROPIC_API_KEY
+    delete simulatorSettings.GOOGLE_API_KEY
+    delete simulatorSettings.OPENROUTER_API_KEY
+  }
+
   // Merge: env vars take precedence over simulator settings
   const mergedEnv = { ...simulatorSettings, ...process.env }
 

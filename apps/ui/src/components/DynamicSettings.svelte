@@ -249,6 +249,12 @@
         // 1. App-specific overrides (from appOverrides) - only if explicitly different from bot's value
         // 2. Bot config defaults (from config.values) - for bot-overridable settings
         // 3. Initial values (from initialValues) - lowest priority
+
+        // Determine effective provider first (needed for model inheritance check)
+        const globalProvider = initialValues.ai_provider as string | undefined
+        const overrideProvider = appOverrides.ai_provider as string | undefined
+        const effectiveProvider = overrideProvider ?? globalProvider
+
         for (const key of Object.keys(config.schema.settings)) {
           const schema = config.schema.settings[key]
           const isBotOverridable = (
@@ -258,23 +264,43 @@
           const overrideValue = appOverrides[key]
           const globalValue = initialValues[key]
 
-          // When AI settings are env-overridden, use bot values directly for AI fields
-          // (don't apply inheritance or app overrides since user can't change them)
-          const isAiField = schema.type === 'model_select' ||
-            key === 'ai_provider' ||
-            key.endsWith('_api_key')
-          if (aiEnvOverrides.size > 0 && isAiField) {
+          // When this specific field is env-overridden, use bot value directly
+          // (skip inheritance logic since user can't change env-controlled fields)
+          if (aiEnvOverrides.has(key)) {
             formData[key] = botValue ?? ''
             continue
           }
 
-          if (showInheritedBadge && isBotOverridable && botValue !== undefined && botValue !== '') {
-            // In bot settings mode: bot's .env value is the baseline
-            // Only use override if it explicitly differs from both bot value AND global value
-            // (if override equals global, it was likely auto-saved, not intentionally set)
-            if (overrideValue !== undefined && overrideValue !== globalValue) {
+          // API key field but provider is env-overridden - don't inherit from global
+          // User explicitly chose provider via .env, so they should also set key via .env
+          // Since we already handled aiEnvOverrides.has(key) above, reaching here means
+          // the API key was NOT set in user's .env (was emulator-injected from global settings)
+          const isApiKeyField = key.endsWith('_api_key')
+          const providerIsEnvOverridden = aiEnvOverrides.has('ai_provider')
+
+          if (isApiKeyField && providerIsEnvOverridden) {
+            // Don't show emulator-injected value - user should set their own key
+            formData[key] = ''
+            continue
+          }
+
+          // Model values are provider-specific - don't inherit from global if provider differs
+          const isModelField = schema.type === 'model_select'
+          const providerMatchesGlobal = effectiveProvider === globalProvider
+
+          if (showInheritedBadge && isBotOverridable) {
+            // In bot settings mode: show override if explicitly set, otherwise show global
+            if (overrideValue !== undefined && overrideValue !== '' && overrideValue !== globalValue) {
+              // Explicit override exists and differs from global - show it
               formData[key] = overrideValue
-            } else {
+            } else if (isModelField && !providerMatchesGlobal) {
+              // Model field but provider differs from global - don't inherit, leave undefined
+              // This will show "Default (xxx)" in the dropdown based on the new provider
+            } else if (globalValue !== undefined && globalValue !== '') {
+              // No override or override matches global - show global (inherited)
+              formData[key] = globalValue
+            } else if (botValue !== undefined && botValue !== '') {
+              // Fallback to bot's own value only if global is not set
               formData[key] = botValue
             }
           } else if (overrideValue !== undefined) {
@@ -343,20 +369,6 @@
 
   // Check if field should be visible based on condition
   function shouldShowField(key: string, schema: SettingSchema): boolean {
-    // When AI settings are env-overridden:
-    if (hasAiEnvOverrides()) {
-      // Only show model_default (hide model_fast, model_thinking)
-      if (schema.type === 'model_select' && key !== 'model_default') {
-        return false
-      }
-      // Hide API key fields unless that specific key is also env-overridden
-      if (schema.type === 'secret' && key.endsWith('_api_key')) {
-        if (!isEnvOverridden(key)) {
-          return false
-        }
-      }
-    }
-
     if (!schema.condition) return true
     const dependsOnValue = formData[schema.condition.field]
     return dependsOnValue === schema.condition.equals
@@ -419,11 +431,12 @@
 
   // Handle provider change - reset model selections
   function handleProviderChange(newProvider: string) {
-    formData.ai_provider = newProvider
-    // Reset model selections since they're provider-specific
+    // Reset model selections BEFORE changing provider
+    // (provider change triggers re-keying which re-renders fields immediately)
     formData.model_fast = undefined
     formData.model_default = undefined
     formData.model_thinking = undefined
+    formData.ai_provider = newProvider
   }
 
   // Check if a field value is inherited (same as global value)
@@ -442,6 +455,24 @@
 
     const currentValue = formData[key]
     const inheritedValue = inheritedValues[key]
+
+    // For model fields, check if the value is valid for the current provider
+    // If not valid, it's not truly "inherited" - it's a stale value from a different provider
+    const schema = config?.schema.settings[key]
+    if (schema?.type === 'model_select') {
+      // When provider is env-controlled, model fields can't be "inherited" from global
+      // because global settings are for a different provider
+      if (aiEnvOverrides.has('ai_provider')) {
+        return false
+      }
+
+      const tier = schema.tier ?? 'default'
+      const models = getModelsForTier(tier)
+      if (currentValue && !models.includes(currentValue as string)) {
+        return false // Value is from a different provider, not valid inheritance
+      }
+    }
+
     // Treat undefined/empty as inherited if global is also undefined/empty
     if (currentValue === undefined || currentValue === '') {
       return inheritedValue === undefined || inheritedValue === ''
@@ -452,6 +483,16 @@
   // Check if a field has an override (different from global value)
   function hasOverride(key: string): boolean {
     if (!showInheritedBadge) return false
+
+    // Env-controlled fields can't be reset (must be changed in .env)
+    if (isEnvOverridden(key)) return false
+
+    // Model fields can't be reset when provider is env-controlled
+    // (global settings are for a different provider, so reset doesn't make sense)
+    const isModelField = ['model_fast', 'model_default', 'model_thinking'].includes(key)
+    if (isModelField && aiEnvOverrides.has('ai_provider')) {
+      return false
+    }
 
     // Only simulator settings and bot-overridable settings can have overrides
     // Bot-specific settings (like bot_name, bot_personality) don't have a global value to reset to
@@ -466,14 +507,18 @@
     return !isInherited(key)
   }
 
-  // Check if any AI setting is overridden by environment variables
-  function hasAiEnvOverrides(): boolean {
-    return aiEnvOverrides.size > 0
-  }
-
   // Check if a specific field is overridden by an environment variable
+  // Also returns true for API key fields when their provider is env-controlled
   function isEnvOverridden(key: string): boolean {
-    return aiEnvOverrides.has(key)
+    if (aiEnvOverrides.has(key)) return true
+
+    // API key fields are effectively env-controlled when provider is env-controlled
+    // (user must set API key via .env when provider is set via .env)
+    if (key.endsWith('_api_key') && aiEnvOverrides.has('ai_provider')) {
+      return true
+    }
+
+    return false
   }
 
   // Clear override for a field (revert to inherited value)
@@ -611,7 +656,7 @@
 {/if}
 
 {#snippet groupFields(fields: [string, SettingSchema][])}
-  {#each fields as [key, schema] (key)}
+  {#each fields as [key, schema] (`${key}-${formData.ai_provider}`)}
     {@render field(key, schema)}
   {/each}
 {/snippet}
@@ -637,7 +682,7 @@
   <div class="mb-4">
     {#if schema.type === 'select' && key === 'ai_provider'}
       <!-- Special handling for AI provider as tabs -->
-      {@const isDisabledByEnv = hasAiEnvOverrides()}
+      {@const isDisabledByEnv = isEnvOverridden(key)}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
         {#if isEnvOverridden(key)}
@@ -647,7 +692,7 @@
         {/if}
       </Label>
       {#if isDisabledByEnv}
-        <p class="text-xs text-(--text-muted) mb-2 italic">Settings overridden from environment variables</p>
+        <p class="text-xs text-(--text-muted) mb-2 italic">Set via environment variable</p>
       {/if}
       <Tabs.Root
         value={formData[key] as string}
@@ -814,13 +859,15 @@
       {@const models = getModelsForTier(tier)}
       {@const defaultModel = getDefaultModel(tier)}
       {@const hasApiKey = hasProviderApiKey()}
-      {@const isDisabledByEnv = hasAiEnvOverrides()}
       {@const isThisFieldEnvOverridden = isEnvOverridden(key)}
+      {@const currentValue = formData[key] as string | undefined}
+      {@const isValidForProvider = !currentValue || models.includes(currentValue)}
+      {@const effectiveValue = isValidForProvider ? (currentValue ?? '') : ''}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
         {#if isThisFieldEnvOverridden}
           <span class="text-xs text-(--text-muted) ml-1 italic">(from env)</span>
-        {:else if !isDisabledByEnv}
+        {:else}
           {@render inheritedIndicator(key)}
         {/if}
       </Label>
@@ -829,19 +876,17 @@
       {/if}
       <Select.Root
         type="single"
-        value={isDisabledByEnv && !isThisFieldEnvOverridden ? '' : ((formData[key] as string) ?? '')}
+        value={effectiveValue}
         onValueChange={(v) => (formData[key] = v || undefined)}
-        disabled={!hasApiKey || isDisabledByEnv}
+        disabled={!hasApiKey || isThisFieldEnvOverridden}
       >
         <Select.Trigger
           class="w-full h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {#if isDisabledByEnv && !isThisFieldEnvOverridden}
-            Default ({defaultModel})
-          {:else if isDisabledByEnv}
-            {(formData[key] as string) || `Default (${defaultModel})`}
+          {#if isThisFieldEnvOverridden}
+            {effectiveValue || `Default (${defaultModel})`}
           {:else if hasApiKey}
-            {(formData[key] as string) || `Default (${defaultModel})`}
+            {effectiveValue || `Default (${defaultModel})`}
           {:else}
             Enter API key to select model
           {/if}
