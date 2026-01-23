@@ -120,24 +120,33 @@ async function registerWithSimulator(maxRetries = 10, retryDelayMs = 1000) {
 
 {{#if isAi}}
       // Apply simulator settings to process.env (for API keys, etc.)
-      // Only apply if the bot's .env file doesn't already have a value set
       if (data.settings) {
-        const apiKeySettings = [
+        // Track which vars were previously injected by emulator
+        const previouslyInjected = new Set(
+          (process.env._EMULATOR_INJECTED_VARS || '').split(',').filter(Boolean)
+        )
+
+        // Track which vars we actually apply (not skipped due to .env values)
+        const actuallyInjected: string[] = []
+
+        const settingsToApply = [
           'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GOOGLE_API_KEY',
-          'OPENROUTER_API_KEY', 'AI_PROVIDER', 'MODEL_DEFAULT'
+          'OPENROUTER_API_KEY', 'AI_PROVIDER', 'MODEL_DEFAULT',
+          'MODEL_FAST', 'MODEL_THINKING'
         ]
-        for (const key of apiKeySettings) {
-          // Only apply simulator setting if bot's .env doesn't have this value
-          // This allows .env file to take precedence over simulator defaults
-          if (data.settings[key] && !process.env[key]) {
+        for (const key of settingsToApply) {
+          if (data.settings[key] === undefined) continue
+
+          // Apply if: no existing value, OR value was previously injected (not from .env)
+          const canApply = !process.env[key] || previouslyInjected.has(key)
+          if (canApply) {
             process.env[key] = data.settings[key]
+            actuallyInjected.push(key)
             slackLogger.debug(`Applied ${key} from simulator settings`)
           }
         }
-        // Always apply _EMULATOR_INJECTED_VARS so bot can distinguish UI settings from .env overrides
-        if (data.settings._EMULATOR_INJECTED_VARS) {
-          process.env._EMULATOR_INJECTED_VARS = String(data.settings._EMULATOR_INJECTED_VARS)
-        }
+        // Only mark vars as injected if they were actually applied (not overridden by .env)
+        process.env._EMULATOR_INJECTED_VARS = actuallyInjected.join(',')
         // Reload settings to pick up the new values
         await reloadSettings()
       }
