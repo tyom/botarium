@@ -11,7 +11,7 @@ import {
 } from './utils/template'
 import {
   getTemplateChoices,
-  getDatabaseChoices,
+  getAiMemoryChoices,
   validateOption,
 } from './utils/prompt-options'
 
@@ -69,11 +69,15 @@ function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {
   }
 
   if (!partial.database) {
+    // Only show AI memory option when AI is enabled
     questions.push({
-      type: 'select',
+      type: (_prev, answers) => {
+        const aiEnabled = partial.useAi ?? answers.useAi
+        return aiEnabled ? 'select' : null // null skips the question
+      },
       name: 'database',
-      message: 'Database:',
-      choices: getDatabaseChoices(),
+      message: 'Enable AI Memory?',
+      choices: getAiMemoryChoices(),
       initial: 0,
     })
   }
@@ -90,7 +94,7 @@ function mergeAnswers(
   // Get raw values
   const rawName = partial.name || answers.name
   const rawTemplate = partial.template || answers.template
-  const rawDatabase = partial.database || answers.database
+  const rawDatabase = partial.database || answers.database || 'none' // Default to 'none' when skipped
 
   // Validate required fields exist
   if (!rawName || !rawTemplate || !rawDatabase) {

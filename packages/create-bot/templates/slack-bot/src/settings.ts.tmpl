@@ -13,6 +13,11 @@ const envSchema = z.object({
   // Bot Configuration
   BOT_NAME: z.string().default('{{botName}}'),
   BOT_PERSONALITY: z.string().default('Helpful AI assistant'),
+{{#if isSqlite}}
+
+  // Data Storage
+  DATA_DIR: z.string().default('./data'),
+{{/if}}
 
   // Slack Configuration (optional in local simulator mode)
   SLACK_BOT_TOKEN: isSimulatorMode

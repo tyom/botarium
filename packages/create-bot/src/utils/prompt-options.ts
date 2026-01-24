@@ -49,6 +49,13 @@ export function getDatabaseChoices(): Choice[] {
   }))
 }
 
+export function getAiMemoryChoices(): Choice[] {
+  return [
+    { value: 'sqlite', title: 'Yes', description: 'Remember facts and preferences across conversations' },
+    { value: 'none', title: 'No' },
+  ]
+}
+
 /**
  * Validation helpers that work with the source of truth arrays.
  */

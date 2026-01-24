@@ -7,6 +7,10 @@
 import { getModel } from './settings'
 import { streamAIResponse } from './ai/stream'
 {{/if}}
+{{#if isDb}}
+import { buildMemoryContext } from './memory'
+import { getPreferences, buildPreferencesContext } from './preferences'
+{{/if}}
 
 export interface ThreadContext {
   channelId: string
@@ -29,6 +33,17 @@ export interface ResponseHandler {
   systemPrompt?: string
   suggestedPrompts?: SuggestedPrompt[]
 }
+{{#if isDb}}
+
+async function buildEnhancedSystemPrompt(basePrompt: string, context: ThreadContext): Promise<string> {
+  const [memoryContext, preferences] = await Promise.all([
+    buildMemoryContext({ userId: context.userId, teamId: context.teamId }),
+    getPreferences({ userId: context.userId, teamId: context.teamId }),
+  ])
+  const preferencesContext = buildPreferencesContext(preferences)
+  return [basePrompt, memoryContext, preferencesContext].filter(Boolean).join('\n\n')
+}
+{{/if}}
 
 export const responseHandler: ResponseHandler = {
   systemPrompt: '{{#if isAi}}You are a helpful assistant. Be concise and friendly.{{else}}You are a helpful assistant.{{/if}}',
@@ -56,11 +71,16 @@ export const responseHandler: ResponseHandler = {
 
     // Add current message
     messages.push({ role: 'user', content: message })
+{{#if isDb}}
+
+    // Build enhanced system prompt with memory and preferences
+    const systemPrompt = await buildEnhancedSystemPrompt(this.systemPrompt ?? '', context)
+{{/if}}
 
     // Stream response from AI
     yield* streamAIResponse({
       model: getModel(),
-      system: this.systemPrompt,
+      system: {{#if isDb}}systemPrompt{{else}}this.systemPrompt{{/if}},
       messages,
     })
 {{else}}
