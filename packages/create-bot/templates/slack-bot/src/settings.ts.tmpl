@@ -154,7 +154,7 @@ export function getModel() {
     case 'google':
       return google(modelId)
     case 'openrouter':
-      return createOpenRouter({ apiKey: settings.OPENROUTER_API_KEY })(modelId)
+      return createOpenRouter({ apiKey: settings.OPENROUTER_API_KEY! })(modelId)
     case 'openai':
     default:
       return openai(modelId)

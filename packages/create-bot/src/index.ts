@@ -58,7 +58,7 @@ export async function createBot(options: CreateBotOptions = {}): Promise<void> {
 }
 
 function printNextSteps(targetDir: string, selections: UserSelections): void {
-  const relativePath = path.relative(process.cwd(), targetDir)
+  const relativePath = path.relative(process.cwd(), targetDir) || '.'
 
   printSuccess(`Success! Created ${selections.name} at ${relativePath}`)
 
