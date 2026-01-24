@@ -190,18 +190,9 @@ function categorizeOpenRouterModels(modelIds) {
   for (const id of modelIds) {
     const lower = id.toLowerCase()
 
-    // Fast tier: mini, flash, haiku, instant, lite models
-    if (
-      lower.includes('mini') ||
-      lower.includes('flash') ||
-      lower.includes('haiku') ||
-      lower.includes('instant') ||
-      lower.includes('lite')
-    ) {
-      tiers.fast.push(id)
-    }
     // Thinking tier: opus, o1, o3, thinking, deep models
-    else if (
+    // Check before fast tier to correctly classify o1-mini, o3-mini as thinking
+    if (
       lower.includes('opus') ||
       lower.includes('/o1') ||
       lower.includes('/o3') ||
@@ -209,6 +200,16 @@ function categorizeOpenRouterModels(modelIds) {
       lower.includes('deep')
     ) {
       tiers.thinking.push(id)
+    }
+    // Fast tier: mini, flash, haiku, instant, lite models
+    else if (
+      lower.includes('mini') ||
+      lower.includes('flash') ||
+      lower.includes('haiku') ||
+      lower.includes('instant') ||
+      lower.includes('lite')
+    ) {
+      tiers.fast.push(id)
     }
     // Default tier: general-purpose models (sonnet, gpt-4o, pro, etc.)
     else if (
