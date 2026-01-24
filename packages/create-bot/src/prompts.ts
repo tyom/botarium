@@ -31,6 +31,7 @@ export interface PartialSelections {
   template?: string
   useAi?: boolean
   database?: string
+  provider?: string
 }
 
 function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {

@@ -257,6 +257,7 @@
 
         for (const key of Object.keys(config.schema.settings)) {
           const schema = config.schema.settings[key]
+          if (!schema) continue
           const isBotOverridable = (
             BOT_OVERRIDABLE_SETTINGS as readonly string[]
           ).includes(key)

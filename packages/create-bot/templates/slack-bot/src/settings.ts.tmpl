@@ -149,14 +149,15 @@ export function getModel() {
   }
 
   // Validate required API key for the selected provider
-  const apiKeyMap: Record<string, { key: string | undefined; name: string }> = {
+  const apiKeyMap = {
     openai: { key: settings.OPENAI_API_KEY, name: 'OPENAI_API_KEY' },
     anthropic: { key: settings.ANTHROPIC_API_KEY, name: 'ANTHROPIC_API_KEY' },
     google: { key: settings.GOOGLE_API_KEY, name: 'GOOGLE_API_KEY' },
     openrouter: { key: settings.OPENROUTER_API_KEY, name: 'OPENROUTER_API_KEY' },
-  }
+  } satisfies Record<string, { key: string | undefined; name: string }>
 
-  const apiKeyInfo = apiKeyMap[provider] ?? apiKeyMap.openai
+  const apiKeyInfo =
+    apiKeyMap[provider as keyof typeof apiKeyMap] ?? apiKeyMap.openai
   if (!apiKeyInfo.key) {
     throw new Error(`Missing ${apiKeyInfo.name} for provider "${provider}". Set ${apiKeyInfo.name} in your environment.`)
   }

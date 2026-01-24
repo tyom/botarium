@@ -204,14 +204,18 @@ async function main() {
   registerListeners(app)
 
   // Add WebSocket event logging for diagnostics (simulator mode only)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const receiver = (app as any).receiver as { client?: { on?: Function } }
+  // Bolt doesn't expose receiver.client types, so we use unknown + type guard
+  const receiver = (app as unknown as { receiver?: { client?: unknown } })
+    .receiver
+  const wsClient = receiver?.client as
+    | { on?: (event: string, handler: (arg?: unknown) => void) => void }
+    | undefined
 
-  if (isSimulatorMode && receiver?.client?.on) {
-    receiver.client.on('connecting', () =>
+  if (isSimulatorMode && wsClient?.on) {
+    wsClient.on('connecting', () =>
       slackLogger.debug('WebSocket connecting...')
     )
-    receiver.client.on('connected', async () => {
+    wsClient.on('connected', async () => {
       slackLogger.info('WebSocket connected')
 
       if (hasConnectedOnce) {
@@ -228,10 +232,10 @@ async function main() {
       }
       hasConnectedOnce = true
     })
-    receiver.client.on('disconnected', () =>
+    wsClient.on('disconnected', () =>
       slackLogger.warn('WebSocket disconnected')
     )
-    receiver.client.on('error', (err: Error) =>
+    wsClient.on('error', (err) =>
       slackLogger.error({ err }, 'WebSocket error')
     )
   }
@@ -261,7 +265,7 @@ async function main() {
     appLogger.info('Shutting down...')
     await app.stop()
     if (configServer) {
-      configServer.close()
+      configServer.stop()
     }
     process.exit(0)
   }
