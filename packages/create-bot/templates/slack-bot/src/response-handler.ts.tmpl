@@ -4,12 +4,11 @@
  * This is the main file to customize bot responses.
  */
 {{#if isAi}}
-import { getModel } from './settings'
+import { getModel, settings } from './settings'
 import { streamAIResponse } from './ai/stream'
 {{/if}}
 {{#if isDb}}
-import { buildMemoryContext } from './memory'
-import { getPreferences, buildPreferencesContext } from './preferences'
+import { buildMemoryContext, extractAndSaveMemory } from './memory'
 {{/if}}
 
 export interface ThreadContext {
@@ -36,12 +35,11 @@ export interface ResponseHandler {
 {{#if isDb}}
 
 async function buildEnhancedSystemPrompt(basePrompt: string, context: ThreadContext): Promise<string> {
-  const [memoryContext, preferences] = await Promise.all([
-    buildMemoryContext({ userId: context.userId, teamId: context.teamId }),
-    getPreferences({ userId: context.userId, teamId: context.teamId }),
-  ])
-  const preferencesContext = buildPreferencesContext(preferences)
-  return [basePrompt, memoryContext, preferencesContext].filter(Boolean).join('\n\n')
+  const memoryContext = await buildMemoryContext({
+    userId: context.userId,
+    teamId: context.teamId,
+  })
+  return [basePrompt, memoryContext].filter(Boolean).join('\n\n')
 }
 {{/if}}
 
@@ -61,8 +59,16 @@ export const responseHandler: ResponseHandler = {
     }
 {{#if isAi}}
 
+    const model = getModel()
+
+    // Apply history limit (0 = no history, capped at 100)
+    const historyLimit = Math.min(settings.CONTEXT_HISTORY_LIMIT ?? 20, 100)
+    const limitedHistory = historyLimit > 0
+      ? context.history.slice(-historyLimit)
+      : []
+
     // Build messages from history
-    const messages = context.history
+    const messages = limitedHistory
       .filter(m => m.content.trim())
       .map(m => ({
         role: m.role as 'user' | 'assistant',
@@ -73,16 +79,29 @@ export const responseHandler: ResponseHandler = {
     messages.push({ role: 'user', content: message })
 {{#if isDb}}
 
-    // Build enhanced system prompt with memory and preferences
+    // Build enhanced system prompt with memory
     const systemPrompt = await buildEnhancedSystemPrompt(this.systemPrompt ?? '', context)
 {{/if}}
 
     // Stream response from AI
     yield* streamAIResponse({
-      model: getModel(),
+      model,
       system: {{#if isDb}}systemPrompt{{else}}this.systemPrompt{{/if}},
       messages,
     })
+{{#if isDb}}
+
+    // Extract and save any memories from the user's message (fire and forget)
+    extractAndSaveMemory({
+      model,
+      message,
+      history: context.history,
+      userId: context.userId,
+      teamId: context.teamId,
+      sourceChannel: context.channelId,
+      sourceThread: context.threadTs,
+    })
+{{/if}}
 {{else}}
 
     // Echo response - replace with your logic

@@ -14,6 +14,22 @@ if (!existsSync(dataDir)) {
 }
 
 const sqlite = new Database(dbPath)
+
+// Create table if not exists
+sqlite.run(`
+  CREATE TABLE IF NOT EXISTS memory (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    team_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    content TEXT NOT NULL,
+    type TEXT NOT NULL,
+    category TEXT,
+    source_channel TEXT,
+    source_thread TEXT,
+    created_at INTEGER
+  )
+`)
+
 export const db = drizzle(sqlite, { schema })
 
 export { schema }

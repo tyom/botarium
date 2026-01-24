@@ -93,6 +93,17 @@ settings:
       group: ai
       tier: default
       provider_field: ai_provider
+
+  context_history_limit:
+    env: CONTEXT_HISTORY_LIMIT
+    value: 20
+    schema:
+      type: number
+      label: Context History Limit
+      description: Maximum messages to include in AI context (0 = none, max 100)
+      group: ai
+      min: 0
+      max: 100
 {{/if}}
 
 # Group definitions with display order
