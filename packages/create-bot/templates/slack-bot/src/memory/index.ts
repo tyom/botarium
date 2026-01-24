@@ -23,10 +23,15 @@ export interface GetMemoryOptions {
 }
 
 export async function saveMemory(options: SaveMemoryOptions): Promise<void> {
+  const normalizedContent = (options.content ?? '').trim()
+  if (!normalizedContent) {
+    return
+  }
+
   await db.insert(schema.memory).values({
     teamId: options.teamId,
     userId: options.userId,
-    content: options.content,
+    content: normalizedContent,
     type: options.type,
     category: options.category,
     sourceChannel: options.sourceChannel,
