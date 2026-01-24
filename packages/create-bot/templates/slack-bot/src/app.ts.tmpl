@@ -12,7 +12,8 @@ const SIMULATOR_APP_TOKEN = `xapp-${config.simulator.id}`
 // Track connection state for reconnection handling
 let hasConnectedOnce = false
 
-// Config server port (set when server starts)
+// Config server (set when server starts in simulator mode)
+let configServer: ReturnType<typeof startConfigServer>
 let configServerPort: number | undefined
 
 /**
@@ -184,9 +185,9 @@ async function main() {
 
   // Start config server for simulator (uses random port)
   if (isSimulatorMode) {
-    const server = startConfigServer()
-    if (server) {
-      configServerPort = server.port
+    configServer = startConfigServer()
+    if (configServer) {
+      configServerPort = configServer.port
     }
   }
 
@@ -250,6 +251,9 @@ async function main() {
   const shutdown = async () => {
     appLogger.info('Shutting down...')
     await app.stop()
+    if (configServer) {
+      configServer.close()
+    }
     process.exit(0)
   }
 
