@@ -17,7 +17,8 @@ const { values, positionals } = parseArgs({
 })
 
 // Resolve --ai / --no-ai flags
-const useAi = values.ai === true ? true : values['no-ai'] === true ? false : undefined
+const useAi =
+  values.ai === true ? true : values['no-ai'] === true ? false : undefined
 
 if (values.help) {
   console.log(`
