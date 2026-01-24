@@ -12,6 +12,7 @@ import {
 interface ThreadMessage {
   bot_id?: string
   text?: string
+  ts?: string
 }
 {{/if}}
 import { responseHandler, type ThreadContext } from '../../response-handler'
@@ -37,8 +38,8 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
   }
 
   const { channel, thread_ts } = message
-{{#if isAi}}
   const messageTs = 'ts' in message ? (message.ts as string) : undefined
+{{#if isAi}}
   const useReactions = shouldShowReactions(message.text) && messageTs
   const reactionCtx: ReactionContext | undefined =
     useReactions ? { client, channel, timestamp: messageTs } : undefined
@@ -69,15 +70,21 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
     })
 
     // Build thread context for the response handler
-    const history =
+    // Filter out the current message to prevent duplication
 {{#if isAi}}
-      thread.messages?.map((m: MessageElement) => ({
+    const threadMessages = (thread.messages ?? []).filter(
+      (m: MessageElement) => m.ts !== messageTs
+    )
+    const history = threadMessages.map((m: MessageElement) => ({
 {{else}}
-      thread.messages?.map((m: ThreadMessage) => ({
+    const threadMessages = (thread.messages ?? []).filter(
+      (m: ThreadMessage) => m.ts !== messageTs
+    )
+    const history = threadMessages.map((m: ThreadMessage) => ({
 {{/if}}
         role: (m.bot_id ? 'assistant' : 'user') as 'user' | 'assistant',
         content: m.text || '',
-      })) ?? []
+      }))
 
     const threadContext: ThreadContext = {
       channelId: channel,
