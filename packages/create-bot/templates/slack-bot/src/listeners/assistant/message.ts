@@ -116,7 +116,7 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
       await removeThinkingOnError(reactionCtx)
     }
 {{/if}}
-    await say({ text: 'Sorry, something went wrong!' })
+    await say({ text: 'Sorry, something went wrong!', thread_ts })
   } finally {
     if (streamer) {
       await streamer.stop().catch(() => {})
