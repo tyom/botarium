@@ -147,12 +147,21 @@ async function registerWithSimulator(maxRetries = 10, retryDelayMs = 1000) {
           'MODEL_FAST', 'MODEL_THINKING'
         ]
         for (const key of settingsToApply) {
-          if (data.settings[key] === undefined) continue
+          const valueFromEmulator = data.settings[key]
+
+          // If key was previously injected but is now removed, delete it
+          if (valueFromEmulator === undefined) {
+            if (previouslyInjected.has(key)) {
+              delete process.env[key]
+              slackLogger.debug(`Removed ${key} (no longer in simulator settings)`)
+            }
+            continue
+          }
 
           // Apply if: no existing value, OR value was previously injected (not from .env)
           const canApply = !process.env[key] || previouslyInjected.has(key)
           if (canApply) {
-            process.env[key] = data.settings[key]
+            process.env[key] = valueFromEmulator
             actuallyInjected.push(key)
             slackLogger.debug(`Applied ${key} from simulator settings`)
           }
