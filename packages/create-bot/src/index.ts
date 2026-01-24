@@ -1,5 +1,9 @@
 import path from 'path'
-import { promptForSelections, type PartialSelections, type UserSelections } from './prompts'
+import {
+  promptForSelections,
+  type PartialSelections,
+  type UserSelections,
+} from './prompts'
 import { scaffold } from './scaffold'
 import { installDependenciesWithOutput } from './utils/install'
 import {

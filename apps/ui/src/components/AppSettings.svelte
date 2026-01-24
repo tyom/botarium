@@ -100,7 +100,9 @@
             const isOpenRouter = currentProvider === 'openrouter'
             const modelHasSlash = modelStr.includes('/')
             // OpenRouter models have format "provider/model", others don't
-            const isValidForProvider = isOpenRouter ? modelHasSlash : !modelHasSlash
+            const isValidForProvider = isOpenRouter
+              ? modelHasSlash
+              : !modelHasSlash
             if (!isValidForProvider) {
               // Clear invalid model values (from a different provider)
               // Save empty string to explicitly clear any previous override

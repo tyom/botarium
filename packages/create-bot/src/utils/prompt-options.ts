@@ -12,12 +12,18 @@ import {
  */
 
 // Template display info
-const TEMPLATE_DISPLAY: Record<BotTemplate, { title: string; description: string }> = {
+const TEMPLATE_DISPLAY: Record<
+  BotTemplate,
+  { title: string; description: string }
+> = {
   slack: { title: 'Slack', description: 'Slack bot using Bolt SDK' },
 }
 
 // Database display info
-const DATABASE_DISPLAY: Record<DbAdapter, { title: string; description?: string }> = {
+const DATABASE_DISPLAY: Record<
+  DbAdapter,
+  { title: string; description?: string }
+> = {
   none: { title: 'None' },
   sqlite: { title: 'SQLite', description: 'Recommended for getting started' },
   postgres: { title: 'PostgreSQL' },

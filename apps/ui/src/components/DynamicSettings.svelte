@@ -290,7 +290,11 @@
 
           if (showInheritedBadge && isBotOverridable) {
             // In bot settings mode: show override if explicitly set, otherwise show global
-            if (overrideValue !== undefined && overrideValue !== '' && overrideValue !== globalValue) {
+            if (
+              overrideValue !== undefined &&
+              overrideValue !== '' &&
+              overrideValue !== globalValue
+            ) {
               // Explicit override exists and differs from global - show it
               formData[key] = overrideValue
             } else if (isModelField && !providerMatchesGlobal) {
@@ -489,7 +493,11 @@
 
     // Model fields can't be reset when provider is env-controlled
     // (global settings are for a different provider, so reset doesn't make sense)
-    const isModelField = ['model_fast', 'model_default', 'model_thinking'].includes(key)
+    const isModelField = [
+      'model_fast',
+      'model_default',
+      'model_thinking',
+    ].includes(key)
     if (isModelField && aiEnvOverrides.has('ai_provider')) {
       return false
     }
@@ -571,10 +579,18 @@
             }
           })
       } else {
-        apiKeyValidation[key] = { status: 'invalid', error: result.error, validatedValue: undefined }
+        apiKeyValidation[key] = {
+          status: 'invalid',
+          error: result.error,
+          validatedValue: undefined,
+        }
       }
     } catch {
-      apiKeyValidation[key] = { status: 'invalid', error: 'Validation failed', validatedValue: undefined }
+      apiKeyValidation[key] = {
+        status: 'invalid',
+        error: 'Validation failed',
+        validatedValue: undefined,
+      }
     }
   }
 
@@ -686,13 +702,16 @@
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
         {#if isEnvOverridden(key)}
-          <span class="text-xs text-(--text-muted) ml-1 italic">(from env)</span>
+          <span class="text-xs text-(--text-muted) ml-1 italic">(from env)</span
+          >
         {:else}
           {@render inheritedIndicator(key)}
         {/if}
       </Label>
       {#if isDisabledByEnv}
-        <p class="text-xs text-(--text-muted) mb-2 italic">Set via environment variable</p>
+        <p class="text-xs text-(--text-muted) mb-2 italic">
+          Set via environment variable
+        </p>
       {/if}
       <Tabs.Root
         value={formData[key] as string}
@@ -703,7 +722,9 @@
       >
         <Tabs.List class="w-full grid grid-cols-4">
           {#each schema.options ?? [] as option (option.value)}
-            <Tabs.Trigger value={option.value} disabled={isDisabledByEnv}>{option.label}</Tabs.Trigger>
+            <Tabs.Trigger value={option.value} disabled={isDisabledByEnv}
+              >{option.label}</Tabs.Trigger
+            >
           {/each}
         </Tabs.List>
       </Tabs.Root>
@@ -714,7 +735,8 @@
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
         {#if isThisFieldEnvOverridden}
-          <span class="text-xs text-(--text-muted) ml-1 italic">(from env)</span>
+          <span class="text-xs text-(--text-muted) ml-1 italic">(from env)</span
+          >
         {:else if !isFieldRequired(schema)}
           <span class="text-xs text-(--text-muted) ml-1">(optional)</span>
         {/if}
@@ -861,12 +883,14 @@
       {@const hasApiKey = hasProviderApiKey()}
       {@const isThisFieldEnvOverridden = isEnvOverridden(key)}
       {@const currentValue = formData[key] as string | undefined}
-      {@const isValidForProvider = !currentValue || models.includes(currentValue)}
+      {@const isValidForProvider =
+        !currentValue || models.includes(currentValue)}
       {@const effectiveValue = isValidForProvider ? (currentValue ?? '') : ''}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
         {#if isThisFieldEnvOverridden}
-          <span class="text-xs text-(--text-muted) ml-1 italic">(from env)</span>
+          <span class="text-xs text-(--text-muted) ml-1 italic">(from env)</span
+          >
         {:else}
           {@render inheritedIndicator(key)}
         {/if}

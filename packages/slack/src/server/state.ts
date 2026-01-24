@@ -1092,7 +1092,10 @@ export class EmulatorState {
     // This handles the case where provider changed but bot-specific model wasn't updated
     const provider = mergedSettings.AI_PROVIDER as string | undefined
     if (provider) {
-      const isModelCompatibleWithProvider = (modelId: string, prov: string): boolean => {
+      const isModelCompatibleWithProvider = (
+        modelId: string,
+        prov: string
+      ): boolean => {
         const hasSlash = modelId.includes('/')
         // OpenRouter models contain "/", other providers don't
         return prov === 'openrouter' ? hasSlash : !hasSlash
@@ -1120,7 +1123,10 @@ export class EmulatorState {
         delete mergedSettings.MODEL_FAST
       }
       const modelThinking = mergedSettings.MODEL_THINKING as string | undefined
-      if (modelThinking && !isModelCompatibleWithProvider(modelThinking, provider)) {
+      if (
+        modelThinking &&
+        !isModelCompatibleWithProvider(modelThinking, provider)
+      ) {
         delete mergedSettings.MODEL_THINKING
       }
     }

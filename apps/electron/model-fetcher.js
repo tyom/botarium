@@ -332,8 +332,8 @@ async function fetchGoogleModels(apiKey) {
       'https://generativelanguage.googleapis.com/v1beta/models',
       {
         headers: {
-          'x-goog-api-key': apiKey
-        }
+          'x-goog-api-key': apiKey,
+        },
       }
     )
 

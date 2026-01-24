@@ -2,7 +2,12 @@ import Handlebars from 'handlebars'
 
 // Single source of truth for available options
 export const BOT_TEMPLATES = ['slack'] as const
-export const AI_PROVIDERS = ['openai', 'anthropic', 'google', 'openrouter'] as const
+export const AI_PROVIDERS = [
+  'openai',
+  'anthropic',
+  'google',
+  'openrouter',
+] as const
 export const DB_ADAPTERS = ['none', 'sqlite', 'postgres'] as const
 
 // Derive types from const arrays
@@ -11,7 +16,10 @@ export type AiProvider = (typeof AI_PROVIDERS)[number]
 export type DbAdapter = (typeof DB_ADAPTERS)[number]
 
 // Helper types for derived boolean flags
-type AdapterFlags = Record<`is${Capitalize<Exclude<DbAdapter, 'none'>>}`, boolean>
+type AdapterFlags = Record<
+  `is${Capitalize<Exclude<DbAdapter, 'none'>>}`,
+  boolean
+>
 
 export interface TemplateContext extends AdapterFlags {
   // Bot configuration

@@ -1,5 +1,8 @@
 import prompts from 'prompts'
-import { validateBotNameForPrompts, checkTargetDirectory } from './utils/validate'
+import {
+  validateBotNameForPrompts,
+  checkTargetDirectory,
+} from './utils/validate'
 import {
   BOT_TEMPLATES,
   DB_ADAPTERS,
