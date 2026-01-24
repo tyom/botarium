@@ -26,11 +26,14 @@ export async function appMention({ event, client, say }: AppMentionArgs) {
   )
 
   // Strip bot mention from message text
-  const text = event.text
-    .replace(/<@[A-Z0-9]+(\|[^>]*)?>/g, '')
-    .replace(new RegExp(`@?${escapeRegExp(slackConfig.app.name)}`, 'gi'), '')
-    .replace(new RegExp(`@?${escapeRegExp(slackConfig.app.id ?? '')}`, 'gi'), '')
-    .trim()
+  let text = event.text.replace(/<@[A-Z0-9]+(\|[^>]*)?>/g, '')
+  if (slackConfig.app.name) {
+    text = text.replace(new RegExp(`@?${escapeRegExp(slackConfig.app.name)}`, 'gi'), '')
+  }
+  if (slackConfig.app.id) {
+    text = text.replace(new RegExp(`@?${escapeRegExp(slackConfig.app.id)}`, 'gi'), '')
+  }
+  text = text.trim()
 
   const threadTs = event.thread_ts || event.ts
 
