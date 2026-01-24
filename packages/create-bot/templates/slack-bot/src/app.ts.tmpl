@@ -16,8 +16,9 @@ let hasConnectedOnce = false
 let configServerPort: number | undefined
 
 /**
- * Poll the emulator's health endpoint to verify a WebSocket connection exists.
- * This ensures registration happens only after the WebSocket is tracked.
+ * Poll the emulator's health endpoint to verify this bot's WebSocket connection exists.
+ * Captures the initial connected_bots count and waits until it increases,
+ * ensuring this specific bot's connection is tracked (not just any bot).
  */
 async function waitForWebSocketConnection(
   apiUrl: string,
@@ -26,13 +27,23 @@ async function waitForWebSocketConnection(
   const startTime = Date.now()
   const baseUrl = apiUrl.replace(/\/api$/, '')
 
+  // Capture initial connected_bots count before this bot connects
+  let initialConnectedBots: number | null = null
+
   while (Date.now() - startTime < timeoutMs) {
     try {
       const response = await fetch(`${baseUrl}/health`)
       if (response.ok) {
         const data = (await response.json()) as { connected_bots?: number }
-        // Health endpoint returns connected_bots which tracks WebSocket connections
-        if (data.connected_bots && data.connected_bots > 0) {
+        const currentCount = data.connected_bots ?? 0
+
+        // On first successful fetch, capture the initial count
+        if (initialConnectedBots === null) {
+          initialConnectedBots = currentCount
+        }
+
+        // Wait until connected_bots increases beyond the initial count
+        if (currentCount > initialConnectedBots) {
           return true
         }
       }
