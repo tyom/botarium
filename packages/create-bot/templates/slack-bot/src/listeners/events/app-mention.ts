@@ -83,6 +83,11 @@ async function processMention(
       response += chunk
     }
 
+    // Guard against empty responses
+    if (response.trim().length === 0) {
+      response = "Sorry, I couldn't generate a response right now."
+    }
+
     await say({ text: response, thread_ts: threadTs })
 
 {{#if isAi}}
