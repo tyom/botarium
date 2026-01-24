@@ -489,7 +489,12 @@ async function getModelTiersForProvider(provider, apiKey) {
   }
 
   // Use fallback if fetch failed or returned empty tiers
-  if (!tiers || (tiers.fast.length === 0 && tiers.default.length === 0)) {
+  if (
+    !tiers ||
+    (tiers.fast.length === 0 &&
+      tiers.default.length === 0 &&
+      tiers.thinking.length === 0)
+  ) {
     electronLogger.debug({ provider }, 'Fetch failed or empty, using fallback')
     tiers = FALLBACK_MODEL_TIERS[provider] || {
       fast: [],
