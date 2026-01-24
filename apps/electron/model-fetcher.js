@@ -19,7 +19,7 @@ const FALLBACK_MODEL_TIERS = {
   openai: {
     fast: ['gpt-5-mini', 'gpt-4o-mini'],
     default: ['gpt-5.2', 'gpt-4o', 'gpt-4o-mini'],
-    thinking: ['o3', 'o3-mini'],
+    thinking: ['o3', 'o3-mini', 'o1'],
   },
   anthropic: {
     fast: ['claude-haiku-4-5'],
