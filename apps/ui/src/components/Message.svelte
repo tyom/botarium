@@ -9,7 +9,12 @@
     ImageIcon,
   } from '@lucide/svelte'
   import type { SimulatorMessage } from '../lib/types'
-  import { getMessageShortcut, simulatorState } from '../lib/state.svelte'
+  import {
+    getMessageShortcut,
+    simulatorState,
+    isBotUserId,
+    getBotByUserId,
+  } from '../lib/state.svelte'
   import { updateFileExpanded } from '../lib/dispatcher.svelte'
   import { formatTimestamp, formatRelativeTime } from '../lib/time'
   import * as ContextMenu from '$lib/components/ui/context-menu'
@@ -46,12 +51,15 @@
   let menuButton = $state<HTMLButtonElement | null>(null)
   let imageExpanded = $derived(message.file?.isExpanded ?? true)
 
-  let isBot = $derived(message.user === simulatorState.botUserId)
+  let isBot = $derived(isBotUserId(message.user))
   let hasImage = $derived(message.file?.mimetype?.startsWith('image/') ?? false)
   let messageShortcut = $derived(getMessageShortcut())
-  let displayName = $derived(
-    isBot ? simulatorState.botName : simulatorState.simulatedUserName || 'You'
-  )
+  let displayName = $derived.by(() => {
+    if (!isBot) return simulatorState.simulatedUserName || 'You'
+    // Get bot name from connected bots
+    const bot = getBotByUserId(message.user)
+    return bot?.name ?? simulatorState.botName
+  })
   let avatarLetter = $derived(displayName.charAt(0).toUpperCase())
   let timestamp = $derived(formatTimestamp(message.ts))
   let formattedText = $derived.by(() => {
@@ -233,7 +241,7 @@
         {/if}
         {#if message.reactions.size > 0}
           <div class="flex gap-1 mt-1 flex-wrap">
-            {#each Array.from(message.reactions.entries()) as [reaction, count]}
+            {#each Array.from(message.reactions.entries()) as [reaction, count] (reaction)}
               <span
                 class="inline-flex items-center gap-1 bg-slack-reaction border border-slack-reaction-border rounded-xl px-2 py-0.5 text-xs text-slack-text-secondary"
                 >{getEmoji(reaction)} {count}</span

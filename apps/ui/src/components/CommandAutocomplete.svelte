@@ -30,7 +30,7 @@
     >
       Commands matching "{filter || '/'}"
     </div>
-    {#each filteredCommands as cmd, i}
+    {#each filteredCommands as cmd, i (cmd.command)}
       <button
         class="w-full px-3 py-2 text-left transition-colors flex items-start gap-3 {i ===
         selectedIndex

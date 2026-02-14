@@ -14,7 +14,7 @@
 </script>
 
 <div class="flex flex-wrap items-center gap-2 text-xs text-slack-text-muted">
-  {#each block.elements as el}
+  {#each block.elements as el, i (i)}
     {#if 'text' in el}
       <span>{@html renderMrkdwn(el as SlackViewTextObject)}</span>
     {:else if el.type === 'image'}

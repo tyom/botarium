@@ -39,7 +39,7 @@
     <div class="flex items-center">
       {#if tabs && tabs.length > 0}
         <div class="flex gap-1">
-          {#each tabs as tab}
+          {#each tabs as tab (tab.id)}
             <button
               class="panel-tab"
               data-active={activeTab === tab.id}

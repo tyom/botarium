@@ -31,7 +31,7 @@ interface PendingAck {
 }
 
 // Heartbeat configuration
-const HEARTBEAT_INTERVAL_MS = 30_000 // Send ping every 30 seconds
+const HEARTBEAT_INTERVAL_MS = 15_000 // Send ping every 15 seconds (must be < Slack SDK's 30s timeout)
 const HEARTBEAT_TIMEOUT_MS = 10_000 // Mark as dead if no pong within 10 seconds
 
 export class SocketModeServer {
@@ -90,7 +90,10 @@ export class SocketModeServer {
       } else {
         // Send ping to check if connection is still alive
         try {
-          conn.ws.ping()
+          const bytesSent = conn.ws.ping(Buffer.from('ping'))
+          socketModeLogger.debug(
+            `Heartbeat ping to ${connectionId}, bytes: ${bytesSent}`
+          )
         } catch (err) {
           socketModeLogger.warn(
             { err, connectionId },
@@ -181,6 +184,19 @@ export class SocketModeServer {
     }
 
     ws.send(JSON.stringify(hello))
+
+    // Send immediate ping to reset client's ping timeout
+    // This prevents race conditions where the client times out
+    // before the first interval-based ping arrives
+    try {
+      // Send ping with data payload - some WebSocket clients need this
+      const bytesSent = ws.ping(Buffer.from('ping'))
+      socketModeLogger.info(
+        `Sent immediate ping to ${connectionId}, bytes: ${bytesSent}`
+      )
+    } catch (err) {
+      socketModeLogger.warn({ err }, 'Failed to send immediate ping')
+    }
   }
 
   handleMessage(
@@ -191,6 +207,12 @@ export class SocketModeServer {
 
     try {
       const data = JSON.parse(message.toString()) as SocketModeAck
+
+      // Log all incoming messages for debugging
+      socketModeLogger.debug(
+        { envelope_id: data.envelope_id },
+        'Received WebSocket message'
+      )
 
       // Handle acknowledgments from bot
       if (data.envelope_id) {
@@ -282,7 +304,7 @@ export class SocketModeServer {
   // Event Dispatching
   // ==========================================================================
 
-  async dispatchEvent(event: SlackEvent): Promise<void> {
+  async dispatchEvent(event: SlackEvent, targetBotId?: string): Promise<void> {
     if (this.connections.size === 0) {
       socketModeLogger.warn(
         `No bots connected, event not dispatched: ${event.type}`
@@ -307,9 +329,76 @@ export class SocketModeServer {
 
     const message = JSON.stringify(envelope)
 
-    // Send to all connected bots
+    // Determine target connections
+    // For DM channels (D_{botId}), only send to that specific bot
+    // For targeted dispatch (e.g., app_mention), only send to the specified bot
+    // For regular channels, send to all bots
+    let targetConnections: SocketConnection[] = []
+    const channel = event.channel
+
+    if (channel && channel.startsWith('D_')) {
+      // Extract botId from channel (e.g., "D_simple" -> "simple")
+      const botId = channel.substring(2)
+      const bot = this.state.getBot(botId)
+      const allBots = this.state.getBots()
+
+      socketModeLogger.info(
+        {
+          channel,
+          botId,
+          botFound: !!bot,
+          botStatus: bot?.status,
+          allBotIds: allBots.map((b) => b.id),
+          connectionCount: this.connections.size,
+        },
+        'DM dispatch lookup'
+      )
+
+      if (bot && bot.status === 'connected') {
+        const conn = this.connections.get(bot.connectionId)
+        if (conn) {
+          targetConnections = [conn]
+          socketModeLogger.info(
+            `DM event targeting bot: ${bot.appConfig.app.name} (${botId})`
+          )
+        } else {
+          socketModeLogger.warn(
+            `Bot ${botId} found but no connection for connectionId: ${bot.connectionId}`
+          )
+        }
+      }
+
+      if (targetConnections.length === 0) {
+        socketModeLogger.warn(
+          `Bot not found or not connected for DM channel: ${channel}`
+        )
+        return
+      }
+    } else if (targetBotId) {
+      // Targeted dispatch (e.g., app_mention for specific bot)
+      const bot = this.state.getBot(targetBotId)
+      if (bot && bot.status === 'connected') {
+        const conn = this.connections.get(bot.connectionId)
+        if (conn) {
+          targetConnections = [conn]
+          socketModeLogger.info(
+            `Targeted event for bot: ${bot.appConfig.app.name} (${targetBotId})`
+          )
+        }
+      }
+      if (targetConnections.length === 0) {
+        socketModeLogger.warn(
+          `Target bot not found or not connected: ${targetBotId}`
+        )
+        return
+      }
+    } else {
+      // Send to all connected bots for regular channels
+      targetConnections = Array.from(this.connections.values())
+    }
+
     const sendPromises: Promise<void>[] = []
-    for (const conn of this.connections.values()) {
+    for (const conn of targetConnections) {
       sendPromises.push(this.sendWithAck(conn, envelope.envelope_id, message))
     }
 
@@ -322,7 +411,7 @@ export class SocketModeServer {
         ),
       ])
       socketModeLogger.debug(
-        `Event dispatched to ${this.connections.size} bot(s): ${event.type}`
+        `Event dispatched to ${targetConnections.length} bot(s): ${event.type}`
       )
     } catch (err) {
       socketModeLogger.error({ err }, 'Failed to dispatch event')
@@ -374,6 +463,10 @@ export class SocketModeServer {
     ts: string,
     threadTs?: string
   ): Promise<void> {
+    socketModeLogger.info(
+      { channel, user, textLength: text.length },
+      'dispatchMessageEvent called'
+    )
     const isIM = this.state.isDirectMessage(channel)
 
     const event: SlackEvent = {
@@ -394,7 +487,8 @@ export class SocketModeServer {
     user: string,
     text: string,
     ts: string,
-    threadTs?: string
+    threadTs?: string,
+    targetBotId?: string
   ): Promise<void> {
     const event: SlackEvent = {
       type: 'app_mention',
@@ -406,7 +500,7 @@ export class SocketModeServer {
       channel_type: 'channel',
     }
 
-    await this.dispatchEvent(event)
+    await this.dispatchEvent(event, targetBotId)
   }
 
   async dispatchSlashCommand(payload: SlashCommandPayload): Promise<void> {
@@ -564,6 +658,28 @@ export class SocketModeServer {
       connectionId: conn.connectionId,
       connectedAt: conn.connectedAt,
     }))
+  }
+
+  /**
+   * Disconnect all bot connections. Used when settings change to force bots to restart
+   * and pick up new settings. Bots running with --watch will auto-restart.
+   */
+  disconnectAllBots(reason = 'Settings changed'): void {
+    socketModeLogger.info(`Disconnecting all bots: ${reason}`)
+    for (const conn of this.connections.values()) {
+      try {
+        conn.ws.close(1012, reason) // 1012 = Service Restart
+      } catch {
+        // Ignore close errors
+      }
+    }
+
+    // Clear pending acks to avoid timeout warnings and unblock waiters
+    for (const pending of this.pendingAcks.values()) {
+      clearTimeout(pending.timeout)
+      pending.resolve()
+    }
+    this.pendingAcks.clear()
   }
 
   /**

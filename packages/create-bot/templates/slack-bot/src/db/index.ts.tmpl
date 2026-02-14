@@ -1,60 +1,35 @@
-import type { MemoryRepository } from './repository'
+import { drizzle } from 'drizzle-orm/bun-sqlite'
+import { Database } from 'bun:sqlite'
+import { existsSync, mkdirSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { settings } from '../settings'
-import { dbLogger } from '../utils/logger'
+import * as schema from './schema'
 
-export type { Memory, MemorySource, SearchParams } from './types'
-export type { MemoryRepository } from './repository'
+const dbPath = join(settings.DATA_DIR, 'bot.sqlite')
 
-class RepositoryManager {
-  private repository: MemoryRepository | null = null
-  private initializingPromise: Promise<MemoryRepository> | null = null
-
-  async createRepository(): Promise<MemoryRepository> {
-{{~#if isSqlite}}
-    const { SQLiteAdapter } = await import('./adapters/sqlite')
-    dbLogger.info('Using SQLite adapter')
-    return new SQLiteAdapter()
-{{~/if}}
-{{~#if isPostgres}}
-    const { PostgresAdapter } = await import('./adapters/postgres')
-    dbLogger.info('Using Postgres adapter')
-    return new PostgresAdapter()
-{{~/if}}
-  }
-
-  async get(): Promise<MemoryRepository> {
-    if (this.repository) {
-      return this.repository
-    }
-
-    if (this.initializingPromise) {
-      return this.initializingPromise
-    }
-
-    this.initializingPromise = (async () => {
-      const repo = await this.createRepository()
-      await repo.initialize()
-      this.repository = repo
-      this.initializingPromise = null
-      return repo
-    })()
-
-    return this.initializingPromise
-  }
-
-  async close(): Promise<void> {
-    if (this.initializingPromise) {
-      await this.initializingPromise
-    }
-
-    if (this.repository) {
-      await this.repository.close()
-      this.repository = null
-    }
-  }
+// Ensure data directory exists
+const dataDir = dirname(dbPath)
+if (!existsSync(dataDir)) {
+  mkdirSync(dataDir, { recursive: true })
 }
 
-const manager = new RepositoryManager()
+const sqlite = new Database(dbPath)
 
-export const getRepository = () => manager.get()
-export const closeRepository = () => manager.close()
+// Create table if not exists
+sqlite.run(`
+  CREATE TABLE IF NOT EXISTS memory (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    team_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    content TEXT NOT NULL,
+    type TEXT NOT NULL,
+    category TEXT,
+    source_channel TEXT,
+    source_thread TEXT,
+    created_at INTEGER
+  )
+`)
+
+export const db = drizzle(sqlite, { schema })
+
+export { schema }

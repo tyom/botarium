@@ -8,9 +8,7 @@
  * - Group definitions for UI organization
  */
 
-// Config server runs on bot port + 1 (default: 3001)
-export const DEFAULT_CONFIG_PORT = 3001
-export const CONFIG_API_URL = `http://localhost:${DEFAULT_CONFIG_PORT}`
+import { getElectronAPI, isElectron } from './electron-api'
 
 // Schema field types
 export type FieldType =
@@ -37,7 +35,6 @@ export interface SettingSchema {
   label: string
   description?: string
   group: string
-  scope?: 'global' | 'app' // defaults to 'global'
   required?: boolean
   required_when?: FieldCondition
   condition?: FieldCondition
@@ -53,7 +50,8 @@ export interface GroupDefinition {
   id: string
   label: string
   order: number
-  collapsed?: boolean
+  collapsible?: boolean // Whether the section can be collapsed/expanded
+  expanded?: boolean // Whether the section starts expanded (default: true)
 }
 
 export interface ConfigSchema {
@@ -65,33 +63,37 @@ export interface ConfigSchema {
 export interface BotConfig {
   schema: ConfigSchema
   values: Record<string, unknown>
+  envOverrides?: string[]
 }
 
 /**
  * Fetch bot configuration from the /config endpoint
+ * Uses IPC in Electron to fetch through main process (which queries the emulator for the config port)
+ * @param botId - The bot identifier to fetch config for
  */
-export async function fetchBotConfig(): Promise<BotConfig | null> {
-  try {
-    const response = await fetch(`${CONFIG_API_URL}/config`)
-    if (!response.ok) {
-      console.error(`Failed to fetch config: HTTP ${response.status}`)
-      return null
-    }
-    return await response.json()
-  } catch (error) {
-    console.error('Failed to fetch bot config:', error)
+export async function fetchBotConfig(
+  botId?: string
+): Promise<BotConfig | null> {
+  if (!botId) {
+    console.warn('fetchBotConfig: botId is required')
     return null
   }
-}
 
-/**
- * Check if the config server is available
- */
-export async function isConfigServerAvailable(): Promise<boolean> {
+  if (!isElectron) {
+    console.warn('fetchBotConfig: only supported in Electron mode')
+    return null
+  }
+
+  const api = getElectronAPI()
+  if (!api) {
+    console.warn('fetchBotConfig: Electron API not available')
+    return null
+  }
+
   try {
-    const response = await fetch(`${CONFIG_API_URL}/health`)
-    return response.ok
-  } catch {
-    return false
+    return (await api.fetchBotConfig(botId)) as BotConfig | null
+  } catch (error) {
+    console.warn('fetchBotConfig: failed to fetch config', error)
+    return null
   }
 }

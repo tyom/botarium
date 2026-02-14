@@ -2,7 +2,7 @@
  * Simulator state management using Svelte 5 runes
  */
 
-import { SvelteMap, SvelteSet } from 'svelte/reactivity'
+import { SvelteMap } from 'svelte/reactivity'
 import type {
   SimulatorMessage,
   SlashCommand,
@@ -162,7 +162,10 @@ export function getCurrentMessages(): SimulatorMessage[] {
 // Get channel display name
 export function getChannelDisplayName(): string {
   if (simulatorState.isDM) {
-    return simulatorState.botName
+    // Extract bot ID from channel ID "D_{botId}"
+    const botId = simulatorState.currentChannel.slice(2)
+    const bot = simulatorState.connectedBots.get(botId)
+    return bot?.name ?? simulatorState.botName
   }
   return '#' + simulatorState.currentChannel.replace(/^C_/, '').toLowerCase()
 }
@@ -184,7 +187,18 @@ export function parseHash(hash: string): {
   const channelId = parts[0]
   const threadTs = parts[1] || null
 
-  if (!channelId || !CHANNELS.some((c) => c.id === channelId)) {
+  if (!channelId) {
+    return { channelId: null, threadTs: null }
+  }
+
+  // DM channels are valid if they match the pattern D_{botId}
+  // (actual bot existence is validated at runtime when navigating)
+  if (channelId.startsWith('D_')) {
+    return { channelId, threadTs }
+  }
+
+  // Regular channels must exist in CHANNELS array
+  if (!CHANNELS.some((c) => c.id === channelId)) {
     return { channelId: null, threadTs: null }
   }
 
@@ -468,4 +482,39 @@ export function markBotDisconnected(botId: string): void {
   if (bot) {
     simulatorState.connectedBots.set(botId, { ...bot, status: 'disconnected' })
   }
+}
+
+// Check if a user ID belongs to a bot
+// Bot user IDs follow the format U_{botId} (e.g., U_simple, U_my-bot)
+export function isBotUserId(userId: string): boolean {
+  // Legacy format check
+  if (userId === BOT_USER_ID) return true
+
+  // New multi-bot format: U_{botId}
+  if (userId.startsWith('U_')) {
+    const botId = userId.slice(2)
+    // Check if this botId exists in connected bots
+    if (simulatorState.connectedBots.has(botId)) return true
+    // Also check if it's a valid DM channel bot (for messages from disconnected bots)
+    // DM channels follow D_{botId} pattern, so any U_{something} could be a bot
+    return true // For display purposes, treat any U_ prefix as a bot
+  }
+
+  return false
+}
+
+// Get bot info by user ID
+// Returns the bot info if the user ID belongs to a registered bot
+export function getBotByUserId(userId: string): ConnectedBotInfo | undefined {
+  if (userId === BOT_USER_ID) {
+    // Legacy: return first connected bot or undefined
+    return Array.from(simulatorState.connectedBots.values())[0]
+  }
+
+  if (userId.startsWith('U_')) {
+    const botId = userId.slice(2)
+    return simulatorState.connectedBots.get(botId)
+  }
+
+  return undefined
 }

@@ -6,7 +6,15 @@
   import IconButton from './IconButton.svelte'
   import DynamicSettings from './DynamicSettings.svelte'
   import { clearAllMessages } from '../lib/dispatcher.svelte'
-  import { clearMessages } from '../lib/state.svelte'
+  import { clearMessages, simulatorState } from '../lib/state.svelte'
+
+  // Get first connected bot ID for fetching config schema
+  // (any bot works since we only need the schema for global settings)
+  const firstBotId = $derived(
+    simulatorState.connectedBots.size > 0
+      ? Array.from(simulatorState.connectedBots.keys())[0]
+      : undefined
+  )
 
   interface Props {
     settings: Record<string, unknown>
@@ -102,9 +110,9 @@
     bind:this={dialogEl}
     onclick={handleDialogClick}
     onclose={handleDialogClose}
-    class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0 p-0 border-none rounded-xl bg-(--main-bg) text-(--text-primary) max-w-[480px] w-[calc(100%-2rem)] max-h-[85vh] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop:bg-black/60"
+    class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 m-0 p-0 border-none rounded-xl bg-(--main-bg) text-(--text-primary) max-w-[480px] w-[calc(100%-2rem)] h-[65vh] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop:bg-black/60"
   >
-    <form onsubmit={handleSubmit} class="flex flex-col h-full max-h-[85vh]">
+    <form onsubmit={handleSubmit} class="flex flex-col h-full">
       <!-- Header -->
       <header
         class="flex justify-between items-center px-5 py-4 border-b border-(--border-color) shrink-0"
@@ -119,11 +127,12 @@
       </header>
 
       <!-- Scrollable content -->
-      <div class="p-5 overflow-y-auto flex-1 min-h-0 max-h-140">
+      <div class="p-5 overflow-y-auto flex-1 min-h-0">
         <DynamicSettings
           initialValues={settings}
           bind:formData
           filterScope="global"
+          botId={firstBotId}
         >
           {#snippet advancedContent()}
             <!-- Delete All Data section -->
@@ -207,6 +216,7 @@
           initialValues={settings}
           bind:formData
           filterScope="global"
+          botId={firstBotId}
         />
 
         {#if error}

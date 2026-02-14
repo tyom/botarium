@@ -32,7 +32,6 @@ export interface Channel {
 export const CHANNELS: Channel[] = [
   { id: 'C_GENERAL', name: 'general', type: 'channel' },
   { id: 'C_RANDOM', name: 'random', type: 'channel' },
-  { id: 'D_USER', name: 'Bot', type: 'dm' }, // Display name comes from app config
 ]
 
 export const BOT_USER_ID = 'U_BOT'

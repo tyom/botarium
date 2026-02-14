@@ -12,11 +12,10 @@ export interface ConfigResponse {
   schema: {
     settings: Record<string, SettingSchema>
     groups: GroupDefinition[]
-{{~#if isAi}}
     model_tiers: Record<string, Record<string, string[]>>
-{{~/if}}
   }
   values: Record<string, unknown>
+  envOverrides: string[]
 }
 
 /**
@@ -25,15 +24,28 @@ export interface ConfigResponse {
 function getConfigResponse(): ConfigResponse {
   const values: Record<string, unknown> = {}
   const settingsSchema: Record<string, SettingSchema> = {}
+  const envOverrides: string[] = []
+
+  // Get list of vars injected by emulator (not user-set in .env)
+  const injectedVars = new Set(
+    (process.env._EMULATOR_INJECTED_VARS || '').split(',').filter(Boolean)
+  )
 
   for (const [key, def] of Object.entries(config.settings)) {
     // Always include schema
     settingsSchema[key] = def.schema
 
+    // Track which settings have values set via environment variables
+    // Exclude vars that were auto-injected by the emulator (not from user's .env)
+    if (def.env && process.env[def.env] && !injectedVars.has(def.env)) {
+      envOverrides.push(key)
+    }
+
     // Include values for non-secrets
-    // For secrets, include empty string as placeholder
+    // For secrets, include value only if set via env var (for env override display)
     if (def.schema.type === 'secret') {
-      values[key] = ''
+      // Only expose secret value if it comes from env (for env override indicator)
+      values[key] = def.env && process.env[def.env] ? process.env[def.env] : ''
     } else if (def.env) {
       // Value comes from env var
       values[key] = process.env[def.env] ?? def.value ?? ''
@@ -46,22 +58,22 @@ function getConfigResponse(): ConfigResponse {
     schema: {
       settings: settingsSchema,
       groups: config.groups,
-{{~#if isAi}}
-      model_tiers: config.model_tiers,
-{{~/if}}
+      model_tiers: {},
     },
     values,
+    envOverrides,
   }
 }
 
 /**
- * Start the config HTTP server
- * Returns null if the server fails to start (non-fatal)
+ * Start the config HTTP server on a random available port
+ * Returns the server instance with its actual port, or null if failed
  */
-export function startConfigServer(port: number) {
+export function startConfigServer() {
   try {
     const server = Bun.serve({
-      port,
+      port: 0, // Let OS pick an available port
+      hostname: '127.0.0.1', // Explicit IPv4 for Electron compatibility
       async fetch(req) {
         const url = new URL(req.url)
 
@@ -90,10 +102,10 @@ export function startConfigServer(port: number) {
       },
     })
 
-    appLogger.info({ port }, 'Config server started')
+    appLogger.info({ port: server.port }, 'Config server started')
     return server
   } catch (error) {
-    appLogger.warn({ port, error }, 'Failed to start config server (non-fatal)')
+    appLogger.warn({ error }, 'Failed to start config server (non-fatal)')
     return null
   }
 }

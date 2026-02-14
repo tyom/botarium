@@ -55,6 +55,9 @@ export class EmulatorState {
     { filename: string; length: number; data?: Buffer }
   > = new Map()
 
+  // Global simulator settings (pushed from Electron, provided to connecting bots)
+  private simulatorSettings: Record<string, unknown> = {}
+
   constructor(config: WorkspaceConfig = DEFAULT_WORKSPACE_CONFIG) {
     this.config = config
     this.initializeWorkspace()
@@ -290,6 +293,26 @@ export class EmulatorState {
     return this.config.bot
   }
 
+  /**
+   * Get bot info for a specific registered bot by its app ID.
+   * Returns a Slack-compatible bot identity with user_id derived from the app ID.
+   */
+  getBotInfoById(
+    botId: string
+  ): { id: string; name: string; display_name: string } | undefined {
+    const bot = this.connectedBots.get(botId)
+    if (!bot) return undefined
+
+    const appConfig = bot.appConfig
+    return {
+      // Generate a consistent user ID from the app ID (e.g., "my-bot" -> "U_my-bot")
+      // Fall back to botId for legacy bots that may not have appConfig.app.id
+      id: `U_${appConfig.app.id || botId}`,
+      name: appConfig.app.name,
+      display_name: appConfig.app.name,
+    }
+  }
+
   // ==========================================================================
   // User Operations
   // ==========================================================================
@@ -315,6 +338,10 @@ export class EmulatorState {
   }
 
   isDirectMessage(channelId: string): boolean {
+    // Dynamic DM channels follow pattern D_{botId}
+    if (channelId.startsWith('D_')) {
+      return true
+    }
     const channel = this.channels.get(channelId)
     return channel?.is_im ?? false
   }
@@ -577,11 +604,12 @@ export class EmulatorState {
       }
     }
 
-    // Check for existing disconnected bot with the same id (preferred) or name (fallback)
+    // Check for existing disconnected/connecting bot with the same id (preferred) or name (fallback)
     // Using id is more reliable since names may not be unique
     const newBotId = appConfig.app?.id
     const existingBot = Array.from(this.connectedBots.values()).find((bot) => {
-      if (bot.status !== 'disconnected') return false
+      if (bot.status !== 'disconnected' && bot.status !== 'connecting')
+        return false
 
       // Prefer matching by id if both have one
       if (newBotId && bot.appConfig.app?.id) {
@@ -608,7 +636,8 @@ export class EmulatorState {
       )
     } else {
       // Create new bot entry
-      botId = crypto.randomUUID()
+      // Use the app.id from config if available, otherwise generate a UUID
+      botId = newBotId || crypto.randomUUID()
       bot = {
         id: botId,
         connectionId,
@@ -713,25 +742,30 @@ export class EmulatorState {
    * This handles hot-reload case where bot reconnects while simulator is running.
    * Returns the reconnected bot if successful, undefined otherwise.
    */
-  tryReconnectBot(connectionId: string): ConnectedBot | undefined {
+  tryReconnectBot(_connectionId: string): ConnectedBot | undefined {
     // Find disconnected bots in memory
     const disconnectedBots = Array.from(this.connectedBots.values()).filter(
       (bot) => bot.status === 'disconnected'
     )
 
-    // If there's exactly one disconnected bot, reconnect it
+    // If there's exactly one disconnected bot, mark it as reconnecting
+    // Don't fully associate the connection yet - let registration do that
+    // This allows getUnassociatedConnectionId() to find the connection for registration
     if (disconnectedBots.length === 1) {
       const bot = disconnectedBots[0]
       if (bot) {
-        bot.connectionId = connectionId
-        bot.status = 'connected'
+        // Mark as 'connecting' - will become 'connected' after registration
+        // This prevents UI from fetching config with stale configPort
+        bot.status = 'connecting'
         bot.connectedAt = new Date()
-        this.connectionToBotId.set(connectionId, bot.id)
+        // Don't set connectionToBotId here - let registration handle it
+        // so getUnassociatedConnectionId() can find this connection
 
         stateLogger.info(
-          `Bot auto-reconnected: ${bot.appConfig.app.name} (${bot.id}) via connection ${connectionId}`
+          `Bot auto-reconnecting: ${bot.appConfig.app.name} (${bot.id}) - waiting for registration`
         )
-        this.emitEvent({ type: 'bot_connected', bot })
+        // Don't emit bot_connected here - wait for registration to update appConfig
+        // with new configPort before notifying UI
         return bot
       }
     }
@@ -983,6 +1017,125 @@ export class EmulatorState {
         this.messages.set(message.channel, [message])
       }
     }
+  }
+
+  // ==========================================================================
+  // Simulator Settings (pushed from Electron, provided to connecting bots)
+  // ==========================================================================
+
+  setSimulatorSettings(settings: Record<string, unknown>): void {
+    this.simulatorSettings = settings
+    stateLogger.debug(
+      { keys: Object.keys(settings) },
+      'Simulator settings updated'
+    )
+  }
+
+  getSimulatorSettings(): Record<string, unknown> {
+    return this.simulatorSettings
+  }
+
+  /**
+   * Get settings merged with bot-specific overrides
+   * Bot-specific settings from _app_settings[botId] take precedence
+   */
+  getSettingsForBot(botId: string): Record<string, unknown> {
+    // Fields that should never be inherited from global settings
+    // These are bot-specific and should only come from the bot's own config
+    const NON_INHERITABLE_FIELDS = new Set([
+      'BOT_NAME',
+      'BOT_PERSONALITY',
+      'bot_name',
+      'bot_personality',
+    ])
+
+    const appSettings = this.simulatorSettings._app_settings as
+      | Record<string, Record<string, unknown>>
+      | undefined
+
+    stateLogger.debug(
+      { botId, availableKeys: appSettings ? Object.keys(appSettings) : [] },
+      'Looking up bot-specific settings'
+    )
+
+    const botSettings = appSettings?.[botId]
+
+    // Filter out non-inheritable fields from global settings
+    const { _app_settings, ...rawGlobalSettings } = this.simulatorSettings
+    const globalSettings: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(rawGlobalSettings)) {
+      if (!NON_INHERITABLE_FIELDS.has(key)) {
+        globalSettings[key] = value
+      }
+    }
+
+    if (!botSettings) {
+      stateLogger.debug(
+        { botId },
+        'No bot-specific settings found, using global'
+      )
+      return globalSettings
+    }
+
+    // Merge: global settings + bot-specific overrides (converted to uppercase)
+    const mergedSettings = { ...globalSettings }
+
+    // Bot settings are stored in snake_case, convert to UPPER_SNAKE_CASE
+    for (const [key, value] of Object.entries(botSettings)) {
+      if (key.startsWith('_')) continue
+      if (value === undefined || value === null || value === '') continue
+      const envKey = key.toUpperCase()
+      mergedSettings[envKey] = value
+    }
+
+    // After merging bot settings, validate MODEL_DEFAULT against AI_PROVIDER
+    // This handles the case where provider changed but bot-specific model wasn't updated
+    const provider = mergedSettings.AI_PROVIDER as string | undefined
+    if (provider) {
+      const isModelCompatibleWithProvider = (
+        modelId: string,
+        prov: string
+      ): boolean => {
+        const hasSlash = modelId.includes('/')
+        // OpenRouter models contain "/", other providers don't
+        return prov === 'openrouter' ? hasSlash : !hasSlash
+      }
+
+      const DEFAULT_MODELS: Record<string, string> = {
+        openai: 'gpt-4o',
+        anthropic: 'claude-sonnet-4-5',
+        google: 'gemini-2.0-flash',
+        openrouter: 'anthropic/claude-sonnet-4',
+      }
+
+      const modelDefault = mergedSettings.MODEL_DEFAULT as string | undefined
+      if (modelDefault && DEFAULT_MODELS[provider]) {
+        if (!isModelCompatibleWithProvider(modelDefault, provider)) {
+          mergedSettings.MODEL_DEFAULT = DEFAULT_MODELS[provider]
+        }
+      } else if (!modelDefault && DEFAULT_MODELS[provider]) {
+        mergedSettings.MODEL_DEFAULT = DEFAULT_MODELS[provider]
+      }
+
+      // Apply same logic to MODEL_FAST and MODEL_THINKING
+      const modelFast = mergedSettings.MODEL_FAST as string | undefined
+      if (modelFast && !isModelCompatibleWithProvider(modelFast, provider)) {
+        delete mergedSettings.MODEL_FAST
+      }
+      const modelThinking = mergedSettings.MODEL_THINKING as string | undefined
+      if (
+        modelThinking &&
+        !isModelCompatibleWithProvider(modelThinking, provider)
+      ) {
+        delete mergedSettings.MODEL_THINKING
+      }
+    }
+
+    stateLogger.debug(
+      { botId, overrideKeys: Object.keys(botSettings) },
+      'Merged bot-specific settings'
+    )
+    return mergedSettings
   }
 
   close(): void {

@@ -20,8 +20,8 @@
       "name": "Slack",
     },
     {
-      "path": "packages/logger",
-      "name": "Logger",
+      "path": "packages/create-bot",
+      "name": "Create Bot",
     },
   ],
   "settings": {},
@@ -53,10 +53,13 @@
       {
         "label": "Dev Electron",
         "detail": "Electron app with embedded emulator",
-        "command": "bun run --filter @botarium/electron dev:electron",
+        "command": "bun dev",
         "icon": {
           "id": "device-desktop",
           "color": "terminal.ansiMagenta",
+        },
+        "options": {
+          "cwd": "${workspaceFolder}/apps/electron",
         },
         "type": "shell",
         "problemMatcher": ["$tsc"],

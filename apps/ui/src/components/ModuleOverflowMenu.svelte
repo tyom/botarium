@@ -59,7 +59,7 @@
     <div
       class="absolute top-full left-0 mt-1 min-w-32 max-h-48 overflow-y-auto bg-(--main-bg) border border-(--border-color) rounded-md shadow-lg z-100"
     >
-      {#each modules as { module, count }}
+      {#each modules as { module, count } (module)}
         <button
           class="flex items-center w-full gap-2 px-2.5 py-1.5 bg-transparent border-none text-left text-xs text-(--text-primary) hover:bg-(--sidebar-hover) transition-colors cursor-pointer"
           onclick={(e) => handleItemClick(module, e)}

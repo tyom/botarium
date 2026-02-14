@@ -16,7 +16,7 @@
 </script>
 
 <div class="flex flex-wrap gap-2">
-  {#each block.elements as element}
+  {#each block.elements as element, i (i)}
     {#if element.type === 'button'}
       <Button element={element as SlackButtonElement} onClick={onAction} />
     {:else if element.type === 'static_select'}

@@ -24,7 +24,7 @@
     {/if}
     {#if block.fields}
       <div class="grid grid-cols-2 gap-2 mt-2">
-        {#each block.fields as field}
+        {#each block.fields as field, i (i)}
           <p class="text-slack-text text-sm">
             {@html renderMrkdwn(field)}
           </p>

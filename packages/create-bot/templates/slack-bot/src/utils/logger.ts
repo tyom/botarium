@@ -1,13 +1,8 @@
-import pino from 'pino'
+import { createBotariumLogger } from './botarium-logger'
+import type pino from 'pino'
 import { settings } from '../settings'
 
-export const logger = pino({
-  level: settings.LOG_LEVEL,
-  transport:
-    process.env.NODE_ENV !== 'production'
-      ? { target: 'pino-pretty' }
-      : undefined,
-})
+export const logger = createBotariumLogger({ level: settings.LOG_LEVEL })
 
 export type ModuleName =
   | 'App'

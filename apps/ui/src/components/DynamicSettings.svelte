@@ -1,37 +1,59 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
   import * as Select from '$lib/components/ui/select'
   import * as Tabs from '$lib/components/ui/tabs'
   import { Input } from '$lib/components/ui/input'
   import { Button } from '$lib/components/ui/button'
   import { Label } from '$lib/components/ui/label'
-  import { ChevronDown, ChevronRight } from '@lucide/svelte'
+  import {
+    ChevronDown,
+    ChevronRight,
+    Check,
+    Ban,
+    LoaderCircle,
+  } from '@lucide/svelte'
   import {
     fetchBotConfig,
     type BotConfig,
     type SettingSchema,
     type GroupDefinition,
   } from '../lib/config-client'
-  import { SIMULATOR_SETTINGS_SCHEMA } from '../lib/simulator-settings'
+  import { isElectron, getElectronAPI } from '../lib/electron-api'
+  import {
+    SIMULATOR_SETTINGS_SCHEMA,
+    MODEL_TIERS,
+    BOT_OVERRIDABLE_SETTINGS,
+  } from '../lib/simulator-settings'
 
   import type { Snippet } from 'svelte'
 
   interface Props {
     /** Initial form values */
     initialValues: Record<string, unknown>
+    /** App-specific overrides (for app settings mode) */
+    appOverrides?: Record<string, unknown>
     /** Bindable form data - updated as user edits */
     formData?: Record<string, unknown>
     /** Filter fields by scope: 'global', 'app', or 'all' (default) */
     filterScope?: 'global' | 'app' | 'all'
     /** Additional content to render inside the advanced group */
     advancedContent?: Snippet
+    /** Bot ID to fetch config for (required in Electron mode) */
+    botId?: string
+    /** Global/inherited values to compare against (for showing inherited badge) */
+    inheritedValues?: Record<string, unknown>
+    /** Enable inherited/override indication */
+    showInheritedBadge?: boolean
   }
 
   let {
     initialValues,
+    appOverrides = {},
     formData = $bindable({}),
     filterScope = 'all',
     advancedContent,
+    botId,
+    inheritedValues = {},
+    showInheritedBadge = false,
   }: Props = $props()
 
   let config: BotConfig | null = $state(null)
@@ -39,79 +61,283 @@
   let showSecrets: Record<string, boolean> = $state({})
   let collapsedGroups: Record<string, boolean> = $state({})
 
-  // Initialize form data once from initial values
-  let initialized = false
-  $effect.pre(() => {
-    if (!initialized) {
-      formData = { ...initialValues }
-      initialized = true
+  // Dynamic model tiers fetched from provider APIs (Electron only)
+  let dynamicModelTiers: Record<
+    string,
+    { fast: string[]; default: string[]; thinking: string[] }
+  > | null = $state(null)
+
+  // API key validation state: { fieldKey: { status: 'idle' | 'validating' | 'valid' | 'invalid', error?: string, validatedValue?: string } }
+  let apiKeyValidation: Record<
+    string,
+    {
+      status: 'idle' | 'validating' | 'valid' | 'invalid'
+      error?: string
+      validatedValue?: string
     }
+  > = $state({})
+
+  // Track which AI settings are overridden by environment variables
+  let aiEnvOverrides: Set<string> = $state(new Set())
+
+  // Track previous initialValues to detect changes
+  let prevInitialValues: Record<string, unknown> = {}
+
+  // Initialize form data from initial values
+  // Re-sync if initialValues changes (e.g., async loading)
+  $effect.pre(() => {
+    for (const [key, value] of Object.entries(initialValues)) {
+      const prevValue = prevInitialValues[key]
+      const currentFormValue = formData[key]
+
+      // Update formData if:
+      // 1. formData doesn't have this key yet, OR
+      // 2. initialValues changed AND formData still has the old initialValue (not user-modified)
+      if (
+        currentFormValue === undefined ||
+        (prevValue !== value && currentFormValue === prevValue)
+      ) {
+        formData[key] = value
+      }
+    }
+    prevInitialValues = { ...initialValues }
   })
 
-  onMount(async () => {
-    const botConfig = await fetchBotConfig()
+  // Track the key of the last fetched config to avoid duplicate fetches and detect bot changes
+  let lastFetchedKey: string | null = $state(null)
 
-    // Always include simulator settings, merged with bot config if available
-    const simulatorSettings = SIMULATOR_SETTINGS_SCHEMA.settings as Record<
-      string,
-      SettingSchema
-    >
-    const simulatorGroups =
-      SIMULATOR_SETTINGS_SCHEMA.groups as GroupDefinition[]
+  // Fetch dynamic model tiers from provider APIs (Electron only)
+  $effect(() => {
+    if (!isElectron) return
 
-    if (botConfig) {
-      // Merge bot config with simulator settings
-      // Simulator settings come first (lower order), bot settings second
-      const mergedSettings = {
-        ...simulatorSettings,
-        ...botConfig.schema.settings,
+    const electronAPI = getElectronAPI()
+    if (!electronAPI) return
+
+    electronAPI
+      .getModelTiers()
+      .then((tiers) => {
+        dynamicModelTiers = tiers
+      })
+      .catch((error) => {
+        console.warn('Failed to fetch dynamic model tiers:', error)
+      })
+  })
+
+  // Fetch config reactively when botId becomes available (or immediately in web mode)
+  $effect(() => {
+    // In Electron mode, use botId as the key; in web mode, use a constant
+    const currentKey = isElectron ? botId : 'web'
+    // Skip if no key available or already fetched for this key
+    if (!currentKey || lastFetchedKey === currentKey) return
+
+    lastFetchedKey = currentKey
+
+    // Use an async IIFE to handle the fetch
+    ;(async () => {
+      // Capture key before await to detect stale fetches
+      const fetchKey = currentKey
+      try {
+        const botConfig = await fetchBotConfig(botId)
+
+        // Abort if a newer fetch has started (key changed during await)
+        if (lastFetchedKey !== fetchKey) return
+
+        // Always include simulator settings, merged with bot config if available
+        const simulatorSettings = SIMULATOR_SETTINGS_SCHEMA.settings as Record<
+          string,
+          SettingSchema
+        >
+        const simulatorGroups =
+          SIMULATOR_SETTINGS_SCHEMA.groups as GroupDefinition[]
+
+        if (botConfig) {
+          // Merge bot config with simulator settings
+          // For bot-overridable settings (ai_provider, api keys, models), use simulator schema
+          // to ensure all options are available. For other bot settings, use bot's schema.
+          const mergedSettings: Record<string, SettingSchema> = {
+            ...simulatorSettings,
+          }
+          for (const [key, schema] of Object.entries(
+            botConfig.schema.settings
+          )) {
+            const isBotOverridable = (
+              BOT_OVERRIDABLE_SETTINGS as readonly string[]
+            ).includes(key)
+            if (!isBotOverridable) {
+              // Bot-specific setting - use bot's schema
+              mergedSettings[key] = schema
+            }
+            // For bot-overridable settings, keep the simulator's schema (with full options)
+          }
+
+          // Merge groups: simulator groups provide base, bot can override expanded only in bot settings mode
+          const simulatorGroupMap = new Map(
+            simulatorGroups.map((g) => [g.id, g])
+          )
+          const mergedGroups: GroupDefinition[] = []
+          const seenGroupIds = new Set<string>()
+
+          // First, add bot groups (use simulator's definition, bot can override expanded in bot settings mode)
+          for (const botGroup of botConfig.schema.groups) {
+            const simGroup = simulatorGroupMap.get(botGroup.id)
+            if (simGroup) {
+              // Use simulator's definition; only allow bot's expanded override in bot settings mode
+              const expanded =
+                showInheritedBadge && botGroup.expanded !== undefined
+                  ? botGroup.expanded
+                  : simGroup.expanded
+              mergedGroups.push({
+                ...simGroup,
+                expanded,
+              })
+            } else {
+              mergedGroups.push(botGroup)
+            }
+            seenGroupIds.add(botGroup.id)
+          }
+
+          // Then add any simulator groups not in bot config
+          for (const simGroup of simulatorGroups) {
+            if (!seenGroupIds.has(simGroup.id)) {
+              mergedGroups.push(simGroup)
+            }
+          }
+
+          // Deep merge model_tiers per provider to preserve default tiers
+          const mergedModelTiers: Record<string, Record<string, string[]>> = {
+            ...MODEL_TIERS,
+          }
+          const botModelTiers = botConfig.schema.model_tiers
+          if (botModelTiers) {
+            for (const provider of Object.keys(botModelTiers)) {
+              mergedModelTiers[provider] = {
+                ...MODEL_TIERS[provider],
+                ...botModelTiers[provider],
+              }
+            }
+          }
+
+          config = {
+            schema: {
+              settings: mergedSettings,
+              groups: mergedGroups,
+              model_tiers: mergedModelTiers,
+            },
+            values: botConfig.values,
+          }
+
+          // Capture environment variable overrides for AI settings
+          if (botConfig.envOverrides) {
+            aiEnvOverrides = new Set(botConfig.envOverrides)
+          } else {
+            aiEnvOverrides = new Set()
+          }
+        } else {
+          // No bot config - use simulator settings only
+          config = {
+            schema: {
+              settings: simulatorSettings,
+              groups: simulatorGroups,
+              model_tiers: MODEL_TIERS,
+            },
+            values: {},
+          }
+          aiEnvOverrides = new Set()
+        }
+
+        // Merge values with proper priority:
+        // 1. App-specific overrides (from appOverrides) - only if explicitly different from bot's value
+        // 2. Bot config defaults (from config.values) - for bot-overridable settings
+        // 3. Initial values (from initialValues) - lowest priority
+
+        // Determine effective provider first (needed for model inheritance check)
+        const globalProvider = initialValues.ai_provider as string | undefined
+        const overrideProvider = appOverrides.ai_provider as string | undefined
+        const effectiveProvider = overrideProvider ?? globalProvider
+
+        for (const key of Object.keys(config.schema.settings)) {
+          const schema = config.schema.settings[key]
+          if (!schema) continue
+          const isBotOverridable = (
+            BOT_OVERRIDABLE_SETTINGS as readonly string[]
+          ).includes(key)
+          const botValue = config.values[key]
+          const overrideValue = appOverrides[key]
+          const globalValue = initialValues[key]
+
+          // When this specific field is env-overridden, use bot value directly
+          // (skip inheritance logic since user can't change env-controlled fields)
+          if (aiEnvOverrides.has(key)) {
+            formData[key] = botValue ?? ''
+            continue
+          }
+
+          // API key field but provider is env-overridden - don't inherit from global
+          // User explicitly chose provider via .env, so they should also set key via .env
+          // Since we already handled aiEnvOverrides.has(key) above, reaching here means
+          // the API key was NOT set in user's .env (was emulator-injected from global settings)
+          const isApiKeyField = key.endsWith('_api_key')
+          const providerIsEnvOverridden = aiEnvOverrides.has('ai_provider')
+
+          if (isApiKeyField && providerIsEnvOverridden) {
+            // Don't show emulator-injected value - user should set their own key
+            formData[key] = ''
+            continue
+          }
+
+          // Model values are provider-specific - don't inherit from global if provider differs
+          const isModelField = schema.type === 'model_select'
+          const providerMatchesGlobal = effectiveProvider === globalProvider
+
+          if (showInheritedBadge && isBotOverridable) {
+            // In bot settings mode: show override if explicitly set, otherwise show global
+            if (
+              overrideValue !== undefined &&
+              overrideValue !== '' &&
+              overrideValue !== globalValue
+            ) {
+              // Explicit override exists and differs from global - show it
+              formData[key] = overrideValue
+            } else if (isModelField && !providerMatchesGlobal) {
+              // Model field but provider differs from global - don't inherit, leave undefined
+              // This will show "Default (xxx)" in the dropdown based on the new provider
+            } else if (globalValue !== undefined && globalValue !== '') {
+              // No override or override matches global - show global (inherited)
+              formData[key] = globalValue
+            } else if (botValue !== undefined && botValue !== '') {
+              // Fallback to bot's own value only if global is not set
+              formData[key] = botValue
+            }
+          } else if (overrideValue !== undefined) {
+            // User's app-specific override takes priority
+            formData[key] = overrideValue
+          } else if (botValue !== undefined && botValue !== '') {
+            if (formData[key] === undefined) {
+              formData[key] = botValue
+            }
+          }
+        }
+
+        // Initialize collapsed state from group definitions
+        // collapsible: true makes it collapsible, expanded controls initial state (default: true)
+        for (const group of config.schema.groups) {
+          if (group.collapsible) {
+            collapsedGroups[group.id] = group.expanded === false
+          }
+        }
+      } catch (error) {
+        // Only apply error state if this fetch is still current
+        if (lastFetchedKey === fetchKey) {
+          console.error('Failed to fetch bot config:', error)
+          config = null
+        }
+      } finally {
+        // Only clear loading if this fetch is still current
+        if (lastFetchedKey === fetchKey) {
+          loading = false
+        }
       }
-
-      // Merge groups, avoiding duplicates (bot groups take precedence)
-      const botGroupIds = new Set(botConfig.schema.groups.map((g) => g.id))
-      const uniqueSimulatorGroups = simulatorGroups.filter(
-        (g) => !botGroupIds.has(g.id)
-      )
-      const mergedGroups = [
-        ...uniqueSimulatorGroups,
-        ...botConfig.schema.groups,
-      ]
-
-      config = {
-        schema: {
-          settings: mergedSettings,
-          groups: mergedGroups,
-          model_tiers: botConfig.schema.model_tiers,
-        },
-        values: botConfig.values,
-      }
-    } else {
-      // No bot config - use simulator settings only
-      config = {
-        schema: {
-          settings: simulatorSettings,
-          groups: simulatorGroups,
-          model_tiers: {},
-        },
-        values: {},
-      }
-    }
-
-    // Merge config defaults with initial values
-    for (const [key, _] of Object.entries(config.schema.settings)) {
-      if (formData[key] === undefined && config.values[key] !== undefined) {
-        formData[key] = config.values[key]
-      }
-    }
-
-    // Initialize collapsed state from group definitions
-    for (const group of config.schema.groups) {
-      if (group.collapsed) {
-        collapsedGroups[group.id] = true
-      }
-    }
-
-    loading = false
+    })()
   })
 
   // Get sorted groups
@@ -121,25 +347,33 @@
   }
 
   // Get fields for a group, filtered by scope
-  // Global fields: ai_provider, *_api_key, and 'advanced' group
-  // All other fields are app-scoped by default
+  // - 'global' shows simulator settings only (defined in SIMULATOR_SETTINGS_SCHEMA)
+  // - 'app' shows bot-specific fields only (not in simulator settings)
+  // - 'all' shows everything (but when showInheritedBadge is true, excludes non-overridable simulator settings)
   function getFieldsForGroup(groupId: string): [string, SettingSchema][] {
     if (!config) return []
     return Object.entries(config.schema.settings).filter(([key, schema]) => {
       const matchesGroup = schema.group === groupId
-      // Determine field scope: global for provider/API keys/advanced, app for everything else
-      const isGlobalField =
-        key === 'ai_provider' ||
-        key.endsWith('_api_key') ||
-        schema.group === 'advanced'
-      const fieldScope = schema.scope ?? (isGlobalField ? 'global' : 'app')
-      const matchesScope = filterScope === 'all' || fieldScope === filterScope
-      return matchesGroup && matchesScope
+      const isSimulatorSetting = key in SIMULATOR_SETTINGS_SCHEMA.settings
+      const isBotOverridable = (
+        BOT_OVERRIDABLE_SETTINGS as readonly string[]
+      ).includes(key)
+
+      if (filterScope === 'global') return matchesGroup && isSimulatorSetting
+
+      if (filterScope === 'app') return matchesGroup && !isSimulatorSetting
+
+      // 'all' mode: show everything, but when in bot settings mode (showInheritedBadge),
+      // exclude simulator settings that aren't bot-overridable
+      if (showInheritedBadge && isSimulatorSetting && !isBotOverridable) {
+        return false
+      }
+      return matchesGroup
     })
   }
 
   // Check if field should be visible based on condition
-  function shouldShowField(schema: SettingSchema): boolean {
+  function shouldShowField(key: string, schema: SettingSchema): boolean {
     if (!schema.condition) return true
     const dependsOnValue = formData[schema.condition.field]
     return dependsOnValue === schema.condition.equals
@@ -154,16 +388,42 @@
   }
 
   // Get models for a tier based on current provider
+  // Priority: dynamic API → bot config → hardcoded fallback
   function getModelsForTier(tier: string): string[] {
-    if (!config) return []
     const provider = formData.ai_provider as string
-    return config.schema.model_tiers[provider]?.[tier] ?? []
+    if (!provider) return []
+
+    type TierKey = 'fast' | 'default' | 'thinking'
+    const tierKey = tier as TierKey
+
+    // Priority 1: Dynamic model tiers from API (Electron only)
+    const dynamicTiers = dynamicModelTiers?.[provider]
+    if (dynamicTiers?.[tierKey]?.length) {
+      return dynamicTiers[tierKey]
+    }
+
+    // Priority 2: Bot config model_tiers
+    if (config?.schema.model_tiers[provider]?.[tier]?.length) {
+      return config.schema.model_tiers[provider][tier]
+    }
+
+    // Priority 3: Hardcoded fallback
+    return MODEL_TIERS[provider]?.[tier] ?? []
   }
 
   // Get default model for a tier (first in list)
   function getDefaultModel(tier: string): string {
     const models = getModelsForTier(tier)
     return models[0] ?? ''
+  }
+
+  // Check if current provider has an API key configured
+  function hasProviderApiKey(): boolean {
+    const provider = formData.ai_provider as string
+    if (!provider) return false
+    const keyField = `${provider}_api_key`
+    const key = formData[keyField] as string | undefined
+    return !!key && key.length > 0
   }
 
   function toggleSecret(key: string) {
@@ -176,11 +436,182 @@
 
   // Handle provider change - reset model selections
   function handleProviderChange(newProvider: string) {
-    formData.ai_provider = newProvider
-    // Reset model selections since they're provider-specific
+    // Reset model selections BEFORE changing provider
+    // (provider change triggers re-keying which re-renders fields immediately)
     formData.model_fast = undefined
     formData.model_default = undefined
     formData.model_thinking = undefined
+    formData.ai_provider = newProvider
+  }
+
+  // Check if a field value is inherited (same as global value)
+  function isInherited(key: string): boolean {
+    if (!showInheritedBadge) return false
+
+    // Only simulator settings and bot-overridable settings can be inherited from global
+    // Bot-specific settings (like bot_name, bot_personality) are never inherited
+    const isSimulatorSetting = key in SIMULATOR_SETTINGS_SCHEMA.settings
+    const isBotOverridable = (
+      BOT_OVERRIDABLE_SETTINGS as readonly string[]
+    ).includes(key)
+    if (!isSimulatorSetting && !isBotOverridable) {
+      return false // Bot-specific fields can't be inherited from global settings
+    }
+
+    const currentValue = formData[key]
+    const inheritedValue = inheritedValues[key]
+
+    // For model fields, check if the value is valid for the current provider
+    // If not valid, it's not truly "inherited" - it's a stale value from a different provider
+    const schema = config?.schema.settings[key]
+    if (schema?.type === 'model_select') {
+      // When provider is env-controlled, model fields can't be "inherited" from global
+      // because global settings are for a different provider
+      if (aiEnvOverrides.has('ai_provider')) {
+        return false
+      }
+
+      const tier = schema.tier ?? 'default'
+      const models = getModelsForTier(tier)
+      if (currentValue && !models.includes(currentValue as string)) {
+        return false // Value is from a different provider, not valid inheritance
+      }
+    }
+
+    // Treat undefined/empty as inherited if global is also undefined/empty
+    if (currentValue === undefined || currentValue === '') {
+      return inheritedValue === undefined || inheritedValue === ''
+    }
+    return currentValue === inheritedValue
+  }
+
+  // Check if a field has an override (different from global value)
+  function hasOverride(key: string): boolean {
+    if (!showInheritedBadge) return false
+
+    // Env-controlled fields can't be reset (must be changed in .env)
+    if (isEnvOverridden(key)) return false
+
+    // Model fields can't be reset when provider is env-controlled
+    // (global settings are for a different provider, so reset doesn't make sense)
+    const isModelField = [
+      'model_fast',
+      'model_default',
+      'model_thinking',
+    ].includes(key)
+    if (isModelField && aiEnvOverrides.has('ai_provider')) {
+      return false
+    }
+
+    // Only simulator settings and bot-overridable settings can have overrides
+    // Bot-specific settings (like bot_name, bot_personality) don't have a global value to reset to
+    const isSimulatorSetting = key in SIMULATOR_SETTINGS_SCHEMA.settings
+    const isBotOverridable = (
+      BOT_OVERRIDABLE_SETTINGS as readonly string[]
+    ).includes(key)
+    if (!isSimulatorSetting && !isBotOverridable) {
+      return false
+    }
+
+    return !isInherited(key)
+  }
+
+  // Check if a specific field is overridden by an environment variable
+  // Also returns true for API key fields when their provider is env-controlled
+  function isEnvOverridden(key: string): boolean {
+    if (aiEnvOverrides.has(key)) return true
+
+    // API key fields are effectively env-controlled when provider is env-controlled
+    // (user must set API key via .env when provider is set via .env)
+    if (key.endsWith('_api_key') && aiEnvOverrides.has('ai_provider')) {
+      return true
+    }
+
+    return false
+  }
+
+  // Clear override for a field (revert to inherited value)
+  function clearOverride(key: string) {
+    formData[key] = inheritedValues[key]
+  }
+
+  // Validate an API key
+  async function validateKey(key: string) {
+    if (!isElectron) return
+
+    const electronAPI = getElectronAPI()
+    if (!electronAPI) return
+
+    const value = formData[key] as string
+    if (!value || value.trim() === '') {
+      apiKeyValidation[key] = { status: 'invalid', error: 'API key is empty' }
+      return
+    }
+
+    // Extract provider from key name (e.g., 'openai_api_key' -> 'openai')
+    const provider = key.replace('_api_key', '')
+
+    apiKeyValidation[key] = { status: 'validating' }
+
+    try {
+      const result = await electronAPI.validateApiKey(provider, value)
+      if (result.valid) {
+        apiKeyValidation[key] = { status: 'valid', validatedValue: value }
+        // Refresh model tiers after successful validation
+        // Build complete API keys map from formData merged with the newly validated key
+        const allApiKeys: Record<string, string> = {}
+        for (const [formKey, formValue] of Object.entries(formData)) {
+          if (formKey.endsWith('_api_key') && typeof formValue === 'string') {
+            allApiKeys[formKey] = formValue
+          }
+        }
+        allApiKeys[key] = value
+        await electronAPI.clearModelCache(provider)
+        electronAPI
+          .getModelTiers(allApiKeys)
+          .then((tiers) => {
+            dynamicModelTiers = tiers
+          })
+          .catch(() => {
+            apiKeyValidation[key] = {
+              status: 'invalid',
+              error: 'Failed to fetch model tiers',
+              validatedValue: undefined,
+            }
+          })
+      } else {
+        apiKeyValidation[key] = {
+          status: 'invalid',
+          error: result.error,
+          validatedValue: undefined,
+        }
+      }
+    } catch {
+      apiKeyValidation[key] = {
+        status: 'invalid',
+        error: 'Validation failed',
+        validatedValue: undefined,
+      }
+    }
+  }
+
+  // Get validation status for a field, resetting if value changed
+  function getValidationStatus(
+    key: string
+  ): 'idle' | 'validating' | 'valid' | 'invalid' {
+    const validation = apiKeyValidation[key]
+    if (!validation) return 'idle'
+
+    // Reset to idle if value changed since validation
+    const currentValue = formData[key] as string
+    if (
+      validation.validatedValue &&
+      validation.validatedValue !== currentValue
+    ) {
+      return 'idle'
+    }
+
+    return validation.status
   }
 </script>
 
@@ -196,12 +627,12 @@
 {:else}
   {@const groupsWithVisibleFields = getSortedGroups().filter((g) => {
     const fields = getFieldsForGroup(g.id)
-    return fields.some(([_, schema]) => shouldShowField(schema))
+    return fields.some(([key, schema]) => shouldShowField(key, schema))
   })}
-  {#each groupsWithVisibleFields as group, visibleGroupIndex}
+  {#each groupsWithVisibleFields as group, visibleGroupIndex (group.id)}
     {@const fields = getFieldsForGroup(group.id)}
-    {@const visibleFields = fields.filter(([_, schema]) =>
-      shouldShowField(schema)
+    {@const visibleFields = fields.filter(([key, schema]) =>
+      shouldShowField(key, schema)
     )}
 
     {#if visibleFields.length > 0}
@@ -209,7 +640,7 @@
         <div class="h-px bg-(--border-color) my-5"></div>
       {/if}
 
-      {#if group.collapsed !== undefined}
+      {#if group.collapsible}
         <!-- Collapsible group -->
         <div class="mb-4">
           <button
@@ -242,33 +673,76 @@
 {/if}
 
 {#snippet groupFields(fields: [string, SettingSchema][])}
-  {#each fields as [key, schema]}
+  {#each fields as [key, schema] (`${key}-${formData.ai_provider}`)}
     {@render field(key, schema)}
   {/each}
+{/snippet}
+
+{#snippet inheritedIndicator(key: string)}
+  {#if showInheritedBadge}
+    {#if isInherited(key)}
+      <span class="text-xs text-(--text-muted) ml-1 italic">(inherited)</span>
+    {:else if hasOverride(key)}
+      <Button
+        type="button"
+        variant="link"
+        class="h-auto p-0 text-xs ml-1 text-(--accent-color)"
+        onclick={() => clearOverride(key)}
+      >
+        Reset
+      </Button>
+    {/if}
+  {/if}
 {/snippet}
 
 {#snippet field(key: string, schema: SettingSchema)}
   <div class="mb-4">
     {#if schema.type === 'select' && key === 'ai_provider'}
       <!-- Special handling for AI provider as tabs -->
+      {@const isDisabledByEnv = isEnvOverridden(key)}
+      <Label for={key} class="mb-1.5 text-(--text-secondary)">
+        {schema.label}
+        {#if isEnvOverridden(key)}
+          <span class="text-xs text-(--text-muted) ml-1 italic">(from env)</span
+          >
+        {:else}
+          {@render inheritedIndicator(key)}
+        {/if}
+      </Label>
+      {#if isDisabledByEnv}
+        <p class="text-xs text-(--text-muted) mb-2 italic">
+          Set via environment variable
+        </p>
+      {/if}
       <Tabs.Root
         value={formData[key] as string}
         onValueChange={(v) => {
-          if (v) handleProviderChange(v)
+          if (v && !isDisabledByEnv) handleProviderChange(v)
         }}
-        class="w-full"
+        class="w-full {isDisabledByEnv ? 'opacity-60 pointer-events-none' : ''}"
       >
-        <Tabs.List class="w-full grid grid-cols-3">
-          {#each schema.options ?? [] as option}
-            <Tabs.Trigger value={option.value}>{option.label}</Tabs.Trigger>
+        <Tabs.List class="w-full grid grid-cols-4">
+          {#each schema.options ?? [] as option (option.value)}
+            <Tabs.Trigger value={option.value} disabled={isDisabledByEnv}
+              >{option.label}</Tabs.Trigger
+            >
           {/each}
         </Tabs.List>
       </Tabs.Root>
     {:else if schema.type === 'secret'}
+      {@const validationStatus = getValidationStatus(key)}
+      {@const isApiKeyField = key.endsWith('_api_key')}
+      {@const isThisFieldEnvOverridden = isEnvOverridden(key)}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
-        {#if !isFieldRequired(schema)}
+        {#if isThisFieldEnvOverridden}
+          <span class="text-xs text-(--text-muted) ml-1 italic">(from env)</span
+          >
+        {:else if !isFieldRequired(schema)}
           <span class="text-xs text-(--text-muted) ml-1">(optional)</span>
+        {/if}
+        {#if !isThisFieldEnvOverridden}
+          {@render inheritedIndicator(key)}
         {/if}
         <Button
           type="button"
@@ -279,22 +753,55 @@
           {showSecrets[key] ? 'Hide' : 'Show'}
         </Button>
       </Label>
-      <Input
-        id={key}
-        type={showSecrets[key] ? 'text' : 'password'}
-        value={(formData[key] as string) ?? ''}
-        oninput={(e) => (formData[key] = e.currentTarget.value)}
-        placeholder={schema.placeholder ??
-          `Enter ${schema.label.toLowerCase()}`}
-        autocomplete="off"
-        class="h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) placeholder:text-(--text-muted)"
-      />
+      <div class="relative">
+        <Input
+          id={key}
+          type={showSecrets[key] ? 'text' : 'password'}
+          value={(formData[key] as string) ?? ''}
+          oninput={(e) => (formData[key] = e.currentTarget.value)}
+          placeholder={schema.placeholder ??
+            `Enter ${schema.label.toLowerCase()}`}
+          autocomplete="off"
+          disabled={isThisFieldEnvOverridden}
+          class="h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) placeholder:text-(--text-muted) disabled:opacity-50 disabled:cursor-not-allowed {isApiKeyField &&
+          isElectron
+            ? 'pr-10'
+            : ''}"
+        />
+        {#if isApiKeyField && isElectron && formData[key] && !isThisFieldEnvOverridden}
+          <button
+            type="button"
+            onclick={() => validateKey(key)}
+            disabled={validationStatus === 'validating'}
+            class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-(--sidebar-hover) disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title={validationStatus === 'valid'
+              ? 'API key is valid'
+              : validationStatus === 'invalid'
+                ? apiKeyValidation[key]?.error
+                : 'Validate API key'}
+          >
+            {#if validationStatus === 'validating'}
+              <LoaderCircle class="size-4 text-(--text-muted) animate-spin" />
+            {:else if validationStatus === 'valid'}
+              <Check class="size-4 text-green-500" />
+            {:else if validationStatus === 'invalid'}
+              <Ban class="size-4 text-red-500" />
+            {:else}
+              <Check class="size-4 text-(--text-muted)" />
+            {/if}
+          </button>
+        {/if}
+      </div>
+      {#if validationStatus === 'invalid' && apiKeyValidation[key]?.error}
+        <p class="text-xs text-red-500 mt-1">{apiKeyValidation[key].error}</p>
+      {/if}
     {:else if schema.type === 'string'}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
         {#if !isFieldRequired(schema)}
           <span class="text-xs text-(--text-muted)">(optional)</span>
         {/if}
+        {@render inheritedIndicator(key)}
       </Label>
       <Input
         id={key}
@@ -311,6 +818,7 @@
     {:else if schema.type === 'text'}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
+        {@render inheritedIndicator(key)}
       </Label>
       <textarea
         id={key}
@@ -326,6 +834,7 @@
     {:else if schema.type === 'number'}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
+        {@render inheritedIndicator(key)}
       </Label>
       <Input
         id={key}
@@ -342,6 +851,7 @@
     {:else if schema.type === 'select'}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
+        {@render inheritedIndicator(key)}
       </Label>
       <Select.Root
         type="single"
@@ -358,7 +868,7 @@
           portalProps={{ disabled: true }}
           class="bg-(--main-bg) border-(--border-color)"
         >
-          {#each schema.options ?? [] as option}
+          {#each schema.options ?? [] as option (option.value)}
             <Select.Item
               value={option.value}
               label={option.label}
@@ -371,32 +881,53 @@
       {@const tier = schema.tier ?? 'default'}
       {@const models = getModelsForTier(tier)}
       {@const defaultModel = getDefaultModel(tier)}
+      {@const hasApiKey = hasProviderApiKey()}
+      {@const isThisFieldEnvOverridden = isEnvOverridden(key)}
+      {@const currentValue = formData[key] as string | undefined}
+      {@const isValidForProvider =
+        !currentValue || models.includes(currentValue)}
+      {@const effectiveValue = isValidForProvider ? (currentValue ?? '') : ''}
       <Label for={key} class="mb-1.5 text-(--text-secondary)">
         {schema.label}
+        {#if isThisFieldEnvOverridden}
+          <span class="text-xs text-(--text-muted) ml-1 italic">(from env)</span
+          >
+        {:else}
+          {@render inheritedIndicator(key)}
+        {/if}
       </Label>
       {#if schema.description}
         <p class="text-xs text-(--text-muted) mb-2">{schema.description}</p>
       {/if}
       <Select.Root
         type="single"
-        value={(formData[key] as string) ?? ''}
+        value={effectiveValue}
         onValueChange={(v) => (formData[key] = v || undefined)}
+        disabled={!hasApiKey || isThisFieldEnvOverridden}
       >
         <Select.Trigger
-          class="w-full h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary)"
+          class="w-full h-10 bg-(--input-bg) border-(--input-border) text-(--text-primary) disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {(formData[key] as string) || `Default (${defaultModel})`}
+          {#if isThisFieldEnvOverridden}
+            {effectiveValue || `Default (${defaultModel})`}
+          {:else if hasApiKey}
+            {effectiveValue || `Default (${defaultModel})`}
+          {:else}
+            Enter API key to select model
+          {/if}
         </Select.Trigger>
         <Select.Content
           portalProps={{ disabled: true }}
-          class="bg-(--main-bg) border-(--border-color)"
+          side="top"
+          avoidCollisions={true}
+          class="bg-(--main-bg) border-(--border-color) max-h-60 overflow-y-auto"
         >
           <Select.Item
             value=""
             label={`Default (${defaultModel})`}
             class="text-(--text-primary) data-highlighted:bg-(--sidebar-hover)"
           />
-          {#each models.slice(1) as model}
+          {#each models.slice(1) as model (model)}
             <Select.Item
               value={model}
               label={model}

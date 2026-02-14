@@ -25,6 +25,22 @@ export interface ElectronAPI {
   // Logs panel menu communication
   onToggleLogsPanel: (callback: (visible: boolean) => void) => () => void
   notifyLogsPanelState: (visible: boolean) => void
+
+  // Bot config (proxied through main process to avoid CSP issues)
+  fetchBotConfig: (botId: string) => Promise<unknown | null>
+
+  // Dynamic model tiers - fetch from provider APIs
+  // Optional apiKeys parameter overrides saved settings (useful for validation before saving)
+  getModelTiers: (
+    apiKeys?: Record<string, string>
+  ) => Promise<
+    Record<string, { fast: string[]; default: string[]; thinking: string[] }>
+  >
+  clearModelCache: (provider?: string) => Promise<void>
+  validateApiKey: (
+    provider: string,
+    apiKey: string
+  ) => Promise<{ valid: boolean; error?: string }>
 }
 
 /**

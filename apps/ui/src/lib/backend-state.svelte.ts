@@ -195,8 +195,10 @@ function createBackendState() {
     const api = getElectronAPI()
     if (api) {
       // Electron mode: save via IPC
+      // Set backendReady to false BEFORE the IPC call to avoid race condition
+      // (backend:ready event might fire during the saveSettings call)
+      backendReady = false
       await api.saveSettings(newSettings)
-      backendReady = false // Will be set true when backend:ready event fires
     } else {
       // Web mode: save to localStorage
       saveSettingsToStorage(newSettings)
@@ -209,7 +211,9 @@ function createBackendState() {
   /** Update a single setting without restarting backend (for UI-only settings like log level) */
   async function updateSetting(key: string, value: unknown) {
     if (!settings) return
-    const newSettings = { ...settings, [key]: value }
+    // Create plain object snapshot for IPC (Svelte 5 $state creates proxies that can't be cloned)
+    const settingsSnapshot = $state.snapshot(settings)
+    const newSettings = { ...settingsSnapshot, [key]: value }
     const api = getElectronAPI()
     if (api) {
       await api.saveSettings(newSettings)
@@ -241,12 +245,16 @@ function createBackendState() {
   ) {
     if (!settings) return
 
-    const allAppSettings = (settings.app_settings ?? {}) as Record<
+    // Create plain object copy to avoid reactive proxy serialization issues
+    const settingsSnapshot = JSON.parse(
+      JSON.stringify(settings)
+    ) as typeof settings
+    const allAppSettings = (settingsSnapshot.app_settings ?? {}) as Record<
       string,
       Record<string, unknown>
     >
     const newSettings = {
-      ...settings,
+      ...settingsSnapshot,
       app_settings: {
         ...allAppSettings,
         [appId]: appSettings,

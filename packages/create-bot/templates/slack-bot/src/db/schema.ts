@@ -1,43 +1,16 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
-import {
-  pgTable,
-  serial,
-  text as pgText,
-  jsonb,
-  timestamp,
-} from 'drizzle-orm/pg-core'
 
-// SQLite schema
-export const memoriesSqlite = sqliteTable('memories', {
+export const memory = sqliteTable('memory', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  category: text('category').notNull(),
-  key: text('key').notNull(),
+  teamId: text('team_id').notNull(),
+  userId: text('user_id').notNull(),
   content: text('content').notNull(),
-  tags: text('tags'),
-  source: text('source'),
-  createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
+  type: text('type').notNull(), // 'fact', 'preference', etc.
+  category: text('category'),
+  sourceChannel: text('source_channel'),
+  sourceThread: text('source_thread'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).$defaultFn(() => new Date()),
 })
 
-// PostgreSQL schema
-export const memoriesPostgres = pgTable('memories', {
-  id: serial('id').primaryKey(),
-  category: pgText('category').notNull(),
-  key: pgText('key').notNull(),
-  content: pgText('content').notNull(),
-  tags: jsonb('tags').$type<string[]>(),
-  source: jsonb('source').$type<{
-    channelId: string
-    userId: string
-    threadTs?: string
-  }>(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-})
-
-export type MemorySqlite = typeof memoriesSqlite.$inferSelect
-export type MemoryPostgres = typeof memoriesPostgres.$inferSelect
+export type Memory = typeof memory.$inferSelect
+export type NewMemory = typeof memory.$inferInsert

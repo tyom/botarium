@@ -1,26 +1,38 @@
 import Handlebars from 'handlebars'
 
-export type AiProvider = 'openai' | 'anthropic' | 'google'
-export type DbAdapter = 'none' | 'sqlite' | 'postgres'
+// Single source of truth for available options
+export const BOT_TEMPLATES = ['slack'] as const
+export const AI_PROVIDERS = [
+  'openai',
+  'anthropic',
+  'google',
+  'openrouter',
+] as const
+export const DB_ADAPTERS = ['none', 'sqlite', 'postgres'] as const
 
-export interface TemplateContext {
+// Derive types from const arrays
+export type BotTemplate = (typeof BOT_TEMPLATES)[number]
+export type AiProvider = (typeof AI_PROVIDERS)[number]
+export type DbAdapter = (typeof DB_ADAPTERS)[number]
+
+// Helper types for derived boolean flags
+type AdapterFlags = Record<
+  `is${Capitalize<Exclude<DbAdapter, 'none'>>}`,
+  boolean
+>
+
+export interface TemplateContext extends AdapterFlags {
   // Bot configuration
   botName: string // e.g., "my-bot"
   botNamePascal: string // e.g., "MyBot"
   packageName: string // e.g., "my-bot"
 
   // Selections
-  aiProvider?: AiProvider
   dbAdapter: DbAdapter
 
   // Derived flags for conditionals
   isAi: boolean
-  isOpenai: boolean
-  isAnthropic: boolean
-  isGoogle: boolean
   isDb: boolean
-  isSqlite: boolean
-  isPostgres: boolean
 }
 
 /**
@@ -39,32 +51,39 @@ export function processTemplate(content: string, ctx: TemplateContext): string {
 export interface TemplateOptions {
   botName: string
   useAi: boolean
-  aiProvider?: AiProvider
   dbAdapter: DbAdapter
 }
 
 /**
  * Create template context from user selections.
+ * Boolean flags are auto-derived from adapter values.
  */
 export function createTemplateContext(
   options: TemplateOptions
 ): TemplateContext {
-  const { botName, useAi, aiProvider, dbAdapter } = options
+  const { botName, useAi, dbAdapter } = options
+
+  // Auto-derive boolean flags for each adapter (except 'none')
+  const adapterFlags = Object.fromEntries(
+    DB_ADAPTERS.filter((a) => a !== 'none').map((a) => [
+      `is${capitalize(a)}`,
+      dbAdapter === a,
+    ])
+  ) as Record<`is${Capitalize<Exclude<DbAdapter, 'none'>>}`, boolean>
 
   return {
     botName,
     botNamePascal: toPascalCase(botName),
     packageName: toPackageName(botName),
-    aiProvider,
     dbAdapter,
     isAi: useAi,
-    isOpenai: aiProvider === 'openai',
-    isAnthropic: aiProvider === 'anthropic',
-    isGoogle: aiProvider === 'google',
     isDb: dbAdapter !== 'none',
-    isSqlite: dbAdapter === 'sqlite',
-    isPostgres: dbAdapter === 'postgres',
+    ...adapterFlags,
   }
+}
+
+function capitalize<T extends string>(str: T): Capitalize<T> {
+  return (str.charAt(0).toUpperCase() + str.slice(1)) as Capitalize<T>
 }
 
 export function toPascalCase(str: string): string {
