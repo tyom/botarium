@@ -143,6 +143,7 @@
   } {
     for (let i = 0; i < blocks.length; i++) {
       const block = blocks[i]
+      if (!block) continue
       const blockId = block.block_id || `block_${i}`
 
       // Check section accessory
@@ -288,13 +289,13 @@
         {#if hasBlocks}
           <div class="mt-1">
             <BlockKitRenderer
-              blocks={message.blocks}
+              blocks={message.blocks ?? []}
               onAction={handleMessageBlockAction}
             />
           </div>
           {#if message.text}
             <div
-              class="mrkdwn message-text text-slack-text leading-[1.46] wrap-break-word whitespace-pre-wrap text-sm text-slack-text-muted mt-1"
+              class="mrkdwn message-text text-slack-text-muted leading-[1.46] wrap-break-word whitespace-pre-wrap text-sm mt-1"
             >
               {@html formattedText}
             </div>
