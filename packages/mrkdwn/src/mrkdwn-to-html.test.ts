@@ -172,4 +172,10 @@ describe('mrkdwnToHtml', () => {
       '<ul><li><strong>bold item</strong></li><li><em>italic item</em></li></ul>',
     )
   })
+
+  it('renders task list checkboxes with line breaks', () => {
+    expect(mrkdwnToHtml('☑ Done\n☐ Not done\n☐ Also not done')).toBe(
+      '☑ Done<br>☐ Not done<br>☐ Also not done',
+    )
+  })
 })

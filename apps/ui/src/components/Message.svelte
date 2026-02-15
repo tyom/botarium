@@ -84,8 +84,8 @@
     // Use unified renderMrkdwn for core mrkdwn-to-HTML conversion
     let html = renderMrkdwn({ type: 'mrkdwn', text })
 
-    // Post-processing: paragraph gaps (safe to add after sanitization)
-    html = html.replace(/<br><br>/g, '<br><br><span class="p-gap"></span>')
+    // Post-processing: paragraph gaps (replace double-br with block-level gap)
+    html = html.replace(/<br><br>/g, '<span class="p-gap"></span>')
 
     // Wrap @mentions in highlight span AFTER markdown processing
     const escapedUserName = userName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -424,10 +424,6 @@
 
 <style>
   /* Message-specific styles for dynamic content (mrkdwn styles are in app.css) */
-  .message-text :global(br + br) {
-    display: none;
-  }
-
   .message-text :global(.p-gap) {
     display: block;
     height: 0.8em;
