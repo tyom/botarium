@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { SlackCheckboxesElement, SlackOption } from '../../../lib/types'
   import { renderMrkdwn } from '../context'
+  import ConfirmDialog from './ConfirmDialog.svelte'
 
   interface Props {
     element: SlackCheckboxesElement
@@ -9,6 +10,9 @@
   }
 
   let { element, selectedOptions, onChange }: Props = $props()
+
+  let showingConfirm = $state(false)
+  let pendingAction: (() => void) | null = $state(null)
 
   function isSelected(option: SlackOption): boolean {
     // Check current selections first (undefined = no interaction, [] = user cleared all)
@@ -39,7 +43,24 @@
       // Remove option
       newSelected = current.filter((o) => o.value !== option.value)
     }
-    onChange?.(newSelected)
+
+    if (element.confirm) {
+      pendingAction = () => onChange?.(newSelected)
+      showingConfirm = true
+    } else {
+      onChange?.(newSelected)
+    }
+  }
+
+  function handleConfirm() {
+    pendingAction?.()
+    pendingAction = null
+    showingConfirm = false
+  }
+
+  function handleDeny() {
+    pendingAction = null
+    showingConfirm = false
   }
 </script>
 
@@ -58,3 +79,7 @@
     </label>
   {/each}
 </div>
+
+{#if showingConfirm && element.confirm}
+  <ConfirmDialog confirm={element.confirm} onConfirm={handleConfirm} onDeny={handleDeny} />
+{/if}

@@ -5,6 +5,7 @@
     SlackOverflowOption,
   } from '../../../lib/types'
   import { renderText } from '../context'
+  import ConfirmDialog from './ConfirmDialog.svelte'
 
   interface Props {
     element: SlackOverflowElement
@@ -14,6 +15,8 @@
   let { element, onSelect }: Props = $props()
 
   let isOpen = $state(false)
+  let showingConfirm = $state(false)
+  let pendingAction: (() => void) | null = $state(null)
   let containerRef: HTMLDivElement
 
   function toggle(e: MouseEvent) {
@@ -23,10 +26,31 @@
 
   function handleSelect(option: SlackOverflowOption) {
     isOpen = false
-    if (option.url) {
-      window.open(option.url, '_blank')
+    if (element.confirm) {
+      pendingAction = () => {
+        if (option.url) {
+          window.open(option.url, '_blank')
+        }
+        onSelect?.(option)
+      }
+      showingConfirm = true
+    } else {
+      if (option.url) {
+        window.open(option.url, '_blank')
+      }
+      onSelect?.(option)
     }
-    onSelect?.(option)
+  }
+
+  function handleConfirm() {
+    pendingAction?.()
+    pendingAction = null
+    showingConfirm = false
+  }
+
+  function handleDeny() {
+    pendingAction = null
+    showingConfirm = false
   }
 
   function handleClickOutside(event: MouseEvent) {
@@ -74,3 +98,7 @@
     </div>
   {/if}
 </div>
+
+{#if showingConfirm && element.confirm}
+  <ConfirmDialog confirm={element.confirm} onConfirm={handleConfirm} onDeny={handleDeny} />
+{/if}

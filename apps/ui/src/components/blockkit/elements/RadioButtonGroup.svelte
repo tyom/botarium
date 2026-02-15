@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { SlackRadioButtonsElement, SlackOption } from '../../../lib/types'
   import { renderMrkdwn } from '../context'
+  import ConfirmDialog from './ConfirmDialog.svelte'
 
   interface Props {
     element: SlackRadioButtonsElement
@@ -10,6 +11,9 @@
 
   let { element, selectedOption, onChange }: Props = $props()
 
+  let showingConfirm = $state(false)
+  let pendingAction: (() => void) | null = $state(null)
+
   function isSelected(option: SlackOption): boolean {
     if (selectedOption !== undefined) {
       return selectedOption.value === option.value
@@ -18,7 +22,23 @@
   }
 
   function handleChange(option: SlackOption) {
-    onChange?.(option)
+    if (element.confirm) {
+      pendingAction = () => onChange?.(option)
+      showingConfirm = true
+    } else {
+      onChange?.(option)
+    }
+  }
+
+  function handleConfirm() {
+    pendingAction?.()
+    pendingAction = null
+    showingConfirm = false
+  }
+
+  function handleDeny() {
+    pendingAction = null
+    showingConfirm = false
   }
 </script>
 
@@ -38,3 +58,7 @@
     </label>
   {/each}
 </div>
+
+{#if showingConfirm && element.confirm}
+  <ConfirmDialog confirm={element.confirm} onConfirm={handleConfirm} onDeny={handleDeny} />
+{/if}
