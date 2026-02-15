@@ -5,6 +5,10 @@
     SlackStaticSelectElement,
     SlackFileInputElement,
     SlackCheckboxesElement,
+    SlackNumberInputElement,
+    SlackEmailInputElement,
+    SlackUrlInputElement,
+    SlackRadioButtonsElement,
     SlackOption,
     UploadedFile,
   } from '../../../lib/types'
@@ -13,6 +17,10 @@
   import StaticSelect from '../elements/StaticSelect.svelte'
   import FileInput from '../elements/FileInput.svelte'
   import Checkboxes from '../elements/Checkboxes.svelte'
+  import NumberInput from '../elements/NumberInput.svelte'
+  import EmailInput from '../elements/EmailInput.svelte'
+  import UrlInput from '../elements/UrlInput.svelte'
+  import RadioButtonGroup from '../elements/RadioButtonGroup.svelte'
 
   interface Props {
     block: SlackInputBlock
@@ -30,6 +38,11 @@
       actionId: string,
       selectedOptions: SlackOption[]
     ) => void
+    onRadioChange?: (
+      blockId: string,
+      actionId: string,
+      option: SlackOption
+    ) => void
   }
 
   let {
@@ -40,6 +53,7 @@
     onInputChange,
     onFileChange,
     onCheckboxChange,
+    onRadioChange,
   }: Props = $props()
 
   function getInputValue(actionId: string): string {
@@ -99,6 +113,34 @@
       element={el}
       selectedOptions={getSelectedOptions(el.action_id)}
       onChange={(options) => onCheckboxChange?.(blockId, el.action_id, options)}
+    />
+  {:else if block.element.type === 'number_input'}
+    {@const el = block.element as SlackNumberInputElement}
+    <NumberInput
+      element={el}
+      value={getInputValue(el.action_id)}
+      onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
+    />
+  {:else if block.element.type === 'email_text_input'}
+    {@const el = block.element as SlackEmailInputElement}
+    <EmailInput
+      element={el}
+      value={getInputValue(el.action_id)}
+      onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
+    />
+  {:else if block.element.type === 'url_text_input'}
+    {@const el = block.element as SlackUrlInputElement}
+    <UrlInput
+      element={el}
+      value={getInputValue(el.action_id)}
+      onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
+    />
+  {:else if block.element.type === 'radio_buttons'}
+    {@const el = block.element as SlackRadioButtonsElement}
+    <RadioButtonGroup
+      element={el}
+      selectedOption={getSelectedOption(el.action_id)}
+      onChange={(option) => onRadioChange?.(blockId, el.action_id, option)}
     />
   {/if}
 

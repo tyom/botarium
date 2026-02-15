@@ -12,6 +12,7 @@
     SlackBlock,
     SlackInputBlock,
     SlackCheckboxesElement,
+    SlackRadioButtonsElement,
     UploadedFile,
   } from '../lib/types'
 
@@ -89,6 +90,20 @@
           values[blockId][element.action_id] = {
             selected_options: checkboxElement.initial_options ?? [],
           }
+        } else if (
+          element.type === 'number_input' ||
+          element.type === 'email_text_input' ||
+          element.type === 'url_text_input'
+        ) {
+          values[blockId][element.action_id] = {
+            value: ('initial_value' in element ? (element as { initial_value?: string }).initial_value : undefined) ?? '',
+          }
+        } else if (element.type === 'radio_buttons') {
+          const radioElement = element as SlackRadioButtonsElement
+          values[blockId][element.action_id] = {
+            selected_option: radioElement.initial_option,
+            value: radioElement.initial_option?.value,
+          }
         }
       }
     }
@@ -131,6 +146,17 @@
       formValues[blockId] = {}
     }
     formValues[blockId][actionId] = { selected_options: selectedOptions }
+  }
+
+  function handleRadioChange(
+    blockId: string,
+    actionId: string,
+    option: SlackOption
+  ) {
+    if (!formValues[blockId]) {
+      formValues[blockId] = {}
+    }
+    formValues[blockId][actionId] = { selected_option: option, value: option.value }
   }
 
   async function handleAction(actionId: string, value: string) {
@@ -220,6 +246,7 @@
           onInputChange={handleInputChange}
           onFileChange={handleFileChange}
           onCheckboxChange={handleCheckboxChange}
+          onRadioChange={handleRadioChange}
         />
       </div>
 

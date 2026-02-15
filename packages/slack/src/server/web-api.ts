@@ -1595,6 +1595,23 @@ export class SlackWebAPI {
                 },
                 type: elementInfo.type,
               }
+            } else if (
+              elementInfo.type === 'radio_buttons' &&
+              'value' in val &&
+              !('selected_option' in val)
+            ) {
+              // Restructure radio_buttons: { value: "x" } -> { selected_option: {...}, type }
+              const selectedValue = val.value as string
+              const option = elementInfo.options?.find(
+                (o) => o.value === selectedValue
+              )
+              result[blockId][actionId] = {
+                selected_option: option || {
+                  text: { type: 'plain_text', text: selectedValue },
+                  value: selectedValue,
+                },
+                type: elementInfo.type,
+              }
             } else {
               result[blockId][actionId] = {
                 ...val,

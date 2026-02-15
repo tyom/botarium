@@ -37,6 +37,11 @@
       actionId: string,
       selectedOptions: SlackOption[]
     ) => void
+    onRadioChange?: (
+      blockId: string,
+      actionId: string,
+      option: SlackOption
+    ) => void
   }
 
   let {
@@ -47,6 +52,7 @@
     onInputChange,
     onFileChange,
     onCheckboxChange,
+    onRadioChange,
   }: Props = $props()
 
   function getBlockId(block: SlackBlock, index: number): string {
@@ -67,6 +73,7 @@
         {onInputChange}
         {onFileChange}
         {onCheckboxChange}
+        {onRadioChange}
       />
     {:else if block.type === 'actions'}
       <ActionsBlock block={block as SlackActionsBlock} {onAction} />
