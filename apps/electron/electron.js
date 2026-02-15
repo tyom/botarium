@@ -274,6 +274,10 @@ function readBotsJsonDev() {
 
   for (const entry of entries) {
     const source = typeof entry === 'string' ? entry : entry.source
+    if (!source) {
+      electronLogger.error({ entry }, 'Bot entry missing source path')
+      continue
+    }
     const sourcePath = path.resolve(appRoot, source)
     const entryFile =
       (typeof entry === 'object' ? entry.entry : undefined) ?? 'src/app.ts'
@@ -426,7 +430,11 @@ function settingsToEnv(settings) {
 
   // Track all vars injected by the emulator (from UI settings, not user's .env file)
   // This allows bots to distinguish between UI-derived env vars and actual .env overrides
-  const injectedVars = []
+  const injectedVars = [
+    'SLACK_BOT_TOKEN',
+    'SLACK_APP_TOKEN',
+    'SLACK_SIGNING_SECRET',
+  ]
 
   const env = {
     SLACK_API_URL: `http://localhost:${EMULATOR_PORT}/api`,
