@@ -13,7 +13,8 @@ slack:
       usage_hint: '[clear|modal]'
   shortcuts: []
   actions: {}
-  modals: {}
+  modals:
+    showcase_modal: showcase_modal
 
 # Settings with schema metadata for UI generation
 settings:

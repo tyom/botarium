@@ -33,9 +33,147 @@ export function register(app: App) {
       }
     }
 
-    // Handle /showcase modal -- placeholder for Plan 03
+    // Handle /showcase modal -- open a modal with all input-context elements
     if (arg === 'modal') {
-      // Placeholder -- Plan 03 will add modal opening here
+      try {
+        await client.views.open({
+          trigger_id: command.trigger_id,
+          view: {
+            type: 'modal',
+            callback_id: 'showcase_modal',
+            title: { type: 'plain_text', text: 'Input Showcase' },
+            submit: { type: 'plain_text', text: 'Submit' },
+            close: { type: 'plain_text', text: 'Cancel' },
+            blocks: [
+              {
+                type: 'input',
+                label: { type: 'plain_text', text: 'Your Name' },
+                hint: {
+                  type: 'plain_text',
+                  text: 'Enter your full name',
+                },
+                element: {
+                  type: 'plain_text_input',
+                  action_id: 'showcase_modal_name',
+                },
+              },
+              {
+                type: 'input',
+                label: { type: 'plain_text', text: 'Email Address' },
+                element: {
+                  type: 'email_text_input',
+                  action_id: 'showcase_modal_email',
+                  placeholder: {
+                    type: 'plain_text',
+                    text: 'name@example.com',
+                  },
+                },
+              },
+              {
+                type: 'input',
+                label: { type: 'plain_text', text: 'Website' },
+                element: {
+                  type: 'url_text_input',
+                  action_id: 'showcase_modal_url',
+                  placeholder: {
+                    type: 'plain_text',
+                    text: 'https://example.com',
+                  },
+                },
+              },
+              {
+                type: 'input',
+                label: { type: 'plain_text', text: 'Quantity' },
+                hint: {
+                  type: 'plain_text',
+                  text: 'Enter a number between 1 and 100',
+                },
+                element: {
+                  type: 'number_input',
+                  action_id: 'showcase_modal_quantity',
+                  is_decimal_allowed: false,
+                  min_value: '1',
+                  max_value: '100',
+                },
+              },
+              {
+                type: 'input',
+                label: { type: 'plain_text', text: 'Start Date' },
+                element: {
+                  type: 'datepicker',
+                  action_id: 'showcase_modal_start_date',
+                },
+              },
+              {
+                type: 'input',
+                label: { type: 'plain_text', text: 'Start Time' },
+                element: {
+                  type: 'timepicker',
+                  action_id: 'showcase_modal_start_time',
+                },
+              },
+              {
+                type: 'input',
+                label: { type: 'plain_text', text: 'Event DateTime' },
+                element: {
+                  type: 'datetimepicker',
+                  action_id: 'showcase_modal_event_datetime',
+                },
+              },
+              {
+                type: 'input',
+                label: { type: 'plain_text', text: 'Priority Level' },
+                element: {
+                  type: 'radio_buttons',
+                  action_id: 'showcase_modal_priority',
+                  options: [
+                    {
+                      text: { type: 'plain_text', text: 'Low' },
+                      value: 'low',
+                    },
+                    {
+                      text: { type: 'plain_text', text: 'Medium' },
+                      value: 'medium',
+                    },
+                    {
+                      text: { type: 'plain_text', text: 'High' },
+                      value: 'high',
+                    },
+                  ],
+                },
+              },
+              {
+                type: 'input',
+                label: {
+                  type: 'plain_text',
+                  text: 'Notification Preferences',
+                },
+                element: {
+                  type: 'checkboxes',
+                  action_id: 'showcase_modal_notifications',
+                  options: [
+                    {
+                      text: { type: 'plain_text', text: 'Email' },
+                      value: 'email',
+                    },
+                    {
+                      text: { type: 'plain_text', text: 'SMS' },
+                      value: 'sms',
+                    },
+                    {
+                      text: { type: 'plain_text', text: 'Push' },
+                      value: 'push',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        })
+        slackLogger.info('Opened showcase modal')
+      } catch (err) {
+        slackLogger.error({ err }, 'Failed to open showcase modal')
+      }
       return
     }
 
