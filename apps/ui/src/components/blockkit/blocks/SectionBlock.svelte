@@ -2,9 +2,11 @@
   import type {
     SlackSectionBlock,
     SlackButtonElement,
+    SlackStaticSelectElement,
   } from '../../../lib/types'
   import { renderMrkdwn } from '../context'
   import Button from '../elements/Button.svelte'
+  import StaticSelect from '../elements/StaticSelect.svelte'
   import ImageElement from '../elements/ImageElement.svelte'
 
   interface Props {
@@ -38,6 +40,15 @@
         <Button
           element={block.accessory as SlackButtonElement}
           onClick={onAction}
+        />
+      </div>
+    {:else if block.accessory.type === 'static_select'}
+      {@const sel = block.accessory as SlackStaticSelectElement}
+      <div class="shrink-0">
+        <StaticSelect
+          element={sel}
+          compact
+          onChange={(value) => onAction?.(sel.action_id, value)}
         />
       </div>
     {:else if block.accessory.type === 'image'}

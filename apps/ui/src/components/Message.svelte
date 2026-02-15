@@ -8,14 +8,24 @@
     ChevronRight,
     ImageIcon,
   } from '@lucide/svelte'
-  import type { SimulatorMessage } from '../lib/types'
+  import type {
+    SimulatorMessage,
+    SlackBlock,
+    SlackOption,
+    SlackSectionBlock,
+    SlackActionsBlock,
+  } from '../lib/types'
   import {
     getMessageShortcut,
     simulatorState,
     isBotUserId,
     getBotByUserId,
   } from '../lib/state.svelte'
-  import { updateFileExpanded } from '../lib/dispatcher.svelte'
+  import {
+    updateFileExpanded,
+    sendMessageBlockAction,
+  } from '../lib/dispatcher.svelte'
+  import BlockKitRenderer from './blockkit/BlockKitRenderer.svelte'
   import { formatTimestamp, formatRelativeTime } from '../lib/time'
   import * as ContextMenu from '$lib/components/ui/context-menu'
 
@@ -102,6 +112,104 @@
     })
   })
 
+  let hasBlocks = $derived(message.blocks && message.blocks.length > 0)
+
+  function buildActionValue(
+    blockId: string,
+    element: { type: string; action_id: string; options?: SlackOption[] },
+    value: string
+  ) {
+    const elementType = element.type
+
+    if (elementType === 'static_select' && element.options) {
+      const opt = element.options.find((o) => o.value === value)
+      return {
+        blockId,
+        elementType,
+        actionValue: opt
+          ? { selected_option: { text: opt.text, value: opt.value } }
+          : { value },
+      }
+    }
+
+    // For buttons and other types, use value as-is
+    return { blockId, elementType, actionValue: { value } }
+  }
+
+  function resolveActionFromBlocks(
+    blocks: SlackBlock[],
+    actionId: string,
+    value: string
+  ): {
+    blockId: string
+    elementType: string
+    actionValue: {
+      value?: string
+      selected_option?: {
+        text: { type: string; text: string }
+        value: string
+      }
+      selected_options?: Array<{
+        text: { type: string; text: string }
+        value: string
+      }>
+    }
+  } {
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i]
+      const blockId = block.block_id || `block_${i}`
+
+      // Check section accessory
+      if (block.type === 'section') {
+        const sectionBlock = block as SlackSectionBlock
+        if (sectionBlock.accessory) {
+          const el = sectionBlock.accessory
+          if ('action_id' in el && el.action_id === actionId) {
+            return buildActionValue(
+              blockId,
+              el as { type: string; action_id: string; options?: SlackOption[] },
+              value
+            )
+          }
+        }
+      }
+
+      // Check actions block elements
+      if (block.type === 'actions') {
+        const actionsBlock = block as SlackActionsBlock
+        for (const el of actionsBlock.elements) {
+          if ('action_id' in el && el.action_id === actionId) {
+            return buildActionValue(
+              blockId,
+              el as { type: string; action_id: string; options?: SlackOption[] },
+              value
+            )
+          }
+        }
+      }
+    }
+
+    // Fallback: treat as button
+    return { blockId: 'unknown', elementType: 'button', actionValue: { value } }
+  }
+
+  function handleMessageBlockAction(actionId: string, value: string) {
+    const { blockId, elementType, actionValue } = resolveActionFromBlocks(
+      message.blocks || [],
+      actionId,
+      value
+    )
+
+    sendMessageBlockAction(
+      message.ts,
+      message.channel,
+      actionId,
+      blockId,
+      elementType,
+      actionValue
+    )
+  }
+
   function toggleMenu(e: MouseEvent) {
     e.stopPropagation()
     menuOpen = !menuOpen
@@ -183,11 +291,27 @@
           {/if}
           <span class="text-xs text-slack-text-muted">{timestamp}</span>
         </div>
-        <div
-          class="message-text text-slack-text leading-[1.46] wrap-break-word whitespace-pre-wrap"
-        >
-          {@html formattedText}
-        </div>
+        {#if hasBlocks}
+          <div class="mt-1">
+            <BlockKitRenderer
+              blocks={message.blocks}
+              onAction={handleMessageBlockAction}
+            />
+          </div>
+          {#if message.text}
+            <div
+              class="message-text text-slack-text leading-[1.46] wrap-break-word whitespace-pre-wrap text-sm text-slack-text-muted mt-1"
+            >
+              {@html formattedText}
+            </div>
+          {/if}
+        {:else}
+          <div
+            class="message-text text-slack-text leading-[1.46] wrap-break-word whitespace-pre-wrap"
+          >
+            {@html formattedText}
+          </div>
+        {/if}
         {#if message.file}
           <div class="mt-1">
             {#if message.file.mimetype.startsWith('image/')}
