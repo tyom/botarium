@@ -1404,13 +1404,17 @@ export class SlackWebAPI {
     // Convert files with dataUrl to stored files with IDs
     const processedValues = await this.processFileUploadsInValues(values)
 
+    // Add type discriminators to state.values based on element types in the view's blocks
+    const viewBlocks = viewState.view.blocks || []
+    const typedValues = this.addTypeDiscriminators(processedValues, viewBlocks)
+
     // Dispatch view_submission to bot
     await this.socketMode.dispatchInteractive({
       type: 'view_submission',
       view: {
         ...viewState.view,
         id: view_id,
-        state: { values: processedValues },
+        state: { values: typedValues },
         private_metadata: viewState.view.private_metadata,
         callback_id: viewState.view.callback_id,
       },
@@ -1517,6 +1521,58 @@ export class SlackWebAPI {
     return processed
   }
 
+  /**
+   * Add type discriminators to state.values based on the element types in the view's blocks.
+   * Slack includes a `type` field in each value object matching the element type
+   * (e.g., "plain_text_input", "static_select", "checkboxes", "file_input").
+   */
+  private addTypeDiscriminators(
+    values: Record<string, Record<string, unknown>>,
+    blocks: unknown[]
+  ): Record<string, Record<string, unknown>> {
+    // Build a lookup of block_id -> element type from the view's blocks
+    const elementTypeMap = new Map<string, Map<string, string>>()
+
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i] as Record<string, unknown>
+      if (block.type !== 'input') continue
+
+      const blockId =
+        (block.block_id as string) || `block-${i}`
+      const element = block.element as Record<string, unknown> | undefined
+      if (!element?.type) continue
+
+      const actionId = (element.action_id as string) || ''
+      if (!elementTypeMap.has(blockId)) {
+        elementTypeMap.set(blockId, new Map())
+      }
+      elementTypeMap.get(blockId)!.set(actionId, element.type as string)
+    }
+
+    // Add type discriminator to each value
+    const result: Record<string, Record<string, unknown>> = {}
+    for (const [blockId, actionValues] of Object.entries(values)) {
+      result[blockId] = {}
+      for (const [actionId, value] of Object.entries(actionValues)) {
+        if (value && typeof value === 'object') {
+          const elementType = elementTypeMap.get(blockId)?.get(actionId)
+          if (elementType) {
+            result[blockId][actionId] = {
+              ...(value as Record<string, unknown>),
+              type: elementType,
+            }
+          } else {
+            result[blockId][actionId] = value
+          }
+        } else {
+          result[blockId][actionId] = value
+        }
+      }
+    }
+
+    return result
+  }
+
   handleSimulatorViewClose(body: { view_id: string }): Response {
     const { view_id } = body
 
@@ -1539,57 +1595,140 @@ export class SlackWebAPI {
   }
 
   async handleSimulatorBlockAction(body: {
-    view_id: string
+    // Modal context (existing)
+    view_id?: string
+    // Message context (new)
+    message_ts?: string
+    channel_id?: string
+    // Action fields
     action_id: string
-    value: string
+    block_id?: string
+    element_type?: string // "button", "static_select", "checkboxes", etc.
+    // Element-specific values (UI sends the one that matches element_type)
+    value?: string
+    selected_option?: { text: { type: string; text: string }; value: string }
+    selected_options?: Array<{
+      text: { type: string; text: string }
+      value: string
+    }>
     user: string
   }): Promise<Response> {
-    const { view_id, action_id, value, user } = body
+    const { action_id, user } = body
 
-    if (!view_id || !action_id) {
+    if (!action_id) {
       return Response.json(
         { ok: false, error: 'missing_argument' },
         { headers: corsHeaders() }
       )
     }
 
-    const viewState = this.state.getView(view_id)
-    if (!viewState) {
+    // Generate a new trigger_id for the action (bot may need it to update view)
+    const triggerId = this.state.generateTriggerId()
+
+    // Build element-specific action object
+    const elementType = body.element_type || 'button'
+    const action: Record<string, unknown> = {
+      type: elementType,
+      action_id,
+      block_id: body.block_id || 'command_block',
+      action_ts: String(Date.now() / 1000),
+    }
+
+    // Include element-specific value fields
+    if (elementType === 'button') {
+      action.value = body.value
+    } else if (elementType === 'static_select') {
+      action.selected_option = body.selected_option
+    } else if (elementType === 'checkboxes') {
+      action.selected_options = body.selected_options
+    } else {
+      // For other types, include whichever value fields are present
+      if (body.value !== undefined) action.value = body.value
+      if (body.selected_option !== undefined)
+        action.selected_option = body.selected_option
+      if (body.selected_options !== undefined)
+        action.selected_options = body.selected_options
+    }
+
+    if (body.view_id) {
+      // Modal context path
+      const viewState = this.state.getView(body.view_id)
+      if (!viewState) {
+        return Response.json(
+          { ok: false, error: 'view_not_found' },
+          { headers: corsHeaders() }
+        )
+      }
+
+      this.state.storeTriggerContext(triggerId, {
+        userId: user,
+        channelId: viewState.channelId ?? '',
+      })
+
+      // Dispatch block_actions with modal context
+      await this.socketMode.dispatchInteractive({
+        type: 'block_actions',
+        container: { type: 'view', view_id: body.view_id },
+        view: {
+          ...viewState.view,
+          id: body.view_id,
+          private_metadata: viewState.view.private_metadata,
+        },
+        user: {
+          id: user,
+          username: 'simulator_user',
+        },
+        actions: [action],
+        trigger_id: triggerId,
+      })
+    } else if (body.message_ts && body.channel_id) {
+      // Message context path
+      const msg = this.state.getMessage(body.channel_id, body.message_ts)
+      if (!msg) {
+        return Response.json(
+          { ok: false, error: 'message_not_found' },
+          { headers: corsHeaders() }
+        )
+      }
+
+      const channelInfo = this.state.getChannel(body.channel_id)
+      const channelName = channelInfo?.name || body.channel_id
+
+      this.state.storeTriggerContext(triggerId, {
+        userId: user,
+        channelId: body.channel_id,
+      })
+
+      // Dispatch block_actions with message context
+      await this.socketMode.dispatchInteractive({
+        type: 'block_actions',
+        container: {
+          type: 'message',
+          message_ts: body.message_ts,
+          channel_id: body.channel_id,
+          is_ephemeral: false,
+        },
+        channel: { id: body.channel_id, name: channelName },
+        message: {
+          type: 'message',
+          text: msg.text,
+          user: msg.user,
+          ts: msg.ts,
+          blocks: msg.blocks,
+        },
+        user: {
+          id: user,
+          username: 'simulator_user',
+        },
+        actions: [action],
+        trigger_id: triggerId,
+      })
+    } else {
       return Response.json(
-        { ok: false, error: 'view_not_found' },
+        { ok: false, error: 'missing_argument' },
         { headers: corsHeaders() }
       )
     }
-
-    // Generate a new trigger_id for the action (bot may need it to update view)
-    const triggerId = this.state.generateTriggerId()
-    this.state.storeTriggerContext(triggerId, {
-      userId: user,
-      channelId: viewState.channelId ?? '',
-    })
-
-    // Dispatch block_actions to bot
-    await this.socketMode.dispatchInteractive({
-      type: 'block_actions',
-      view: {
-        ...viewState.view,
-        id: view_id,
-        private_metadata: viewState.view.private_metadata,
-      },
-      user: {
-        id: user,
-        username: 'simulator_user',
-      },
-      actions: [
-        {
-          type: 'button',
-          action_id,
-          value,
-          block_id: 'command_block',
-        },
-      ],
-      trigger_id: triggerId,
-    })
 
     return Response.json({ ok: true }, { headers: corsHeaders() })
   }

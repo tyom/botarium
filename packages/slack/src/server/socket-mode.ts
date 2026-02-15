@@ -544,6 +544,9 @@ export class SocketModeServer {
   async dispatchInteractive(payload: {
     type: 'view_submission' | 'view_closed' | 'block_actions'
     view?: unknown
+    container?: unknown
+    channel?: unknown
+    message?: unknown
     user?: { id: string; username: string }
     actions?: unknown[]
     trigger_id?: string
