@@ -297,6 +297,18 @@
 }
 
 /* Mrkdwn rendered text styles (shared across messages, blocks, modals) */
+.mrkdwn > :is(pre, blockquote, ul, ol) {
+  margin: 8px 0;
+}
+
+.mrkdwn > :is(pre, blockquote, ul, ol):first-child {
+  margin-top: 0;
+}
+
+.mrkdwn > :is(pre, blockquote, ul, ol):last-child {
+  margin-bottom: 0;
+}
+
 .mrkdwn code {
   background: #8881;
   border: 1px solid #8883;
@@ -312,7 +324,6 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 4px;
   padding: 8px 12px;
-  margin: 4px 0;
   overflow-x: auto;
   white-space: pre;
 }
@@ -335,9 +346,25 @@
 
 .mrkdwn blockquote {
   border-left: 4px solid #ddd;
-  margin: 4px 0;
   padding-left: 12px;
   color: var(--text-secondary);
+}
+
+.mrkdwn ul,
+.mrkdwn ol {
+  padding-left: 24px;
+}
+
+.mrkdwn ul {
+  list-style-type: disc;
+}
+
+.mrkdwn ol {
+  list-style-type: decimal;
+}
+
+.mrkdwn li {
+  margin: 2px 0;
 }
 
 .mrkdwn .s-mention {

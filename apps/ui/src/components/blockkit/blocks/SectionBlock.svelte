@@ -20,16 +20,16 @@
 <div class="flex items-start justify-between gap-4">
   <div class="flex-1">
     {#if block.text}
-      <p class="mrkdwn text-slack-text whitespace-pre-wrap">
+      <div class="mrkdwn text-slack-text whitespace-pre-wrap">
         {@html renderMrkdwn(block.text)}
-      </p>
+      </div>
     {/if}
     {#if block.fields}
       <div class="grid grid-cols-2 gap-2 mt-2">
         {#each block.fields as field, i (i)}
-          <p class="mrkdwn text-slack-text text-sm">
+          <div class="mrkdwn text-slack-text text-sm">
             {@html renderMrkdwn(field)}
-          </p>
+          </div>
         {/each}
       </div>
     {/if}
