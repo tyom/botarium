@@ -104,15 +104,13 @@ function renderList(token: Tokens.List, depth: number): string {
   return lines.join('\n') + '\n'
 }
 
-/** Render a table as aligned plain text */
+/** Render a table as a code block with aligned columns */
 function renderTable(token: Tokens.Table): string {
-  // Render header and rows as readable text
   const headers = token.header.map((cell) => renderTokens(cell.tokens))
   const rows = token.rows.map((row) =>
     row.map((cell) => renderTokens(cell.tokens))
   )
 
-  // Calculate column widths
   const colWidths = headers.map((h, i) =>
     Math.max(h.length, ...rows.map((r) => (r[i] ?? '').length))
   )
@@ -124,7 +122,8 @@ function renderTable(token: Tokens.Table): string {
     row.map((cell, i) => pad(cell, colWidths[i]!)).join(' │ ')
   )
 
-  return [headerLine, separator, ...rowLines].join('\n') + '\n'
+  const table = [headerLine, separator, ...rowLines].join('\n')
+  return `\`\`\`\n${table}\n\`\`\`\n`
 }
 
 /** Render a block-level token to mrkdwn */

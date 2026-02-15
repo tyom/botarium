@@ -96,15 +96,15 @@ describe('markdownToMrkdwn', () => {
     expect(result).toContain('☐ Also not done')
   })
 
-  it('converts table to aligned text', () => {
+  it('converts table to code block with aligned columns', () => {
     const result = markdownToMrkdwn(
       '| Name | Age |\n|------|-----|\n| Alice | 30 |\n| Bob | 25 |'
     )
-    expect(result).toContain('Name')
+    expect(result).toStartWith('```\n')
+    expect(result).toEndWith('\n```')
     expect(result).toContain('│')
     expect(result).toContain('─')
     expect(result).toContain('Alice')
-    expect(result).toContain('Bob')
   })
 
   it('converts horizontal rule to line', () => {
