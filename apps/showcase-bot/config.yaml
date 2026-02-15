@@ -1,0 +1,33 @@
+# Showcase Bot Configuration
+# Sends categorized Block Kit example messages for visual verification.
+
+# Simulator-specific configuration (not sent to Slack)
+simulator:
+  id: showcase # Isolates DM messages per-bot in the simulator
+
+# Slack app configuration
+slack:
+  commands:
+    - command: /showcase
+      description: Populate #showcase with Block Kit examples
+      usage_hint: '[clear|modal]'
+  shortcuts: []
+  actions: {}
+  modals: {}
+
+# Settings with schema metadata for UI generation
+settings:
+  bot_name:
+    value: Showcase Bot
+    schema:
+      type: string
+      label: Bot Name
+      description: Display name for the bot in conversations
+      group: bot
+      required: true
+
+# Group definitions with display order
+groups:
+  - id: bot
+    label: Bot Configuration
+    order: 1
