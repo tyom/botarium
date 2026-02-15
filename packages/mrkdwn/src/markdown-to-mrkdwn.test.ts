@@ -20,7 +20,7 @@ describe('markdownToMrkdwn', () => {
 
   it('converts link', () => {
     expect(markdownToMrkdwn('[Example](https://example.com)')).toBe(
-      '<https://example.com|Example>',
+      '<https://example.com|Example>'
     )
   })
 
@@ -44,7 +44,7 @@ describe('markdownToMrkdwn', () => {
 
   it('converts combined bold and italic', () => {
     expect(markdownToMrkdwn('**bold** and *italic*')).toBe(
-      '*bold* and _italic_',
+      '*bold* and _italic_'
     )
   })
 
@@ -67,7 +67,7 @@ describe('markdownToMrkdwn', () => {
 
   it('converts image to link', () => {
     expect(markdownToMrkdwn('![alt text](https://example.com/img.png)')).toBe(
-      '<https://example.com/img.png|alt text>',
+      '<https://example.com/img.png|alt text>'
     )
   })
 })

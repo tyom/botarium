@@ -1,4 +1,4 @@
-import { toHTML } from 'slack-markdown'
+import { mrkdwnToHtml } from '@botarium/mrkdwn'
 import DOMPurify from 'dompurify'
 import type {
   SlackViewTextObject,
@@ -54,64 +54,10 @@ export function renderMrkdwn(textObj: SlackViewTextObject | undefined): string {
       .replace(/>/g, '&gt;')
   }
 
-  // mrkdwn type: parse with slack-markdown, sanitize output
-  let html = toHTML(textObj.text, {
-    escapeHTML: true,
-    hrefTarget: '_blank',
-  })
-
-  // Strip leading newline inside code blocks (slack-markdown captures \n after opening ```)
-  html = html.replace(/<code>\n/g, '<code>')
-
-  // Convert list items to proper HTML lists
-  html = convertLists(html)
-
-  // Collapse <br> tags adjacent to block elements (they have their own margins)
-  html = html.replace(/(<br>)+(<(?:ul|ol|blockquote|pre)>)/g, '$2')
-  html = html.replace(/(<\/(?:ul|ol|blockquote|pre)>)(<br>)+/g, '$1')
+  // mrkdwn type: parse with @botarium/mrkdwn, sanitize output
+  const html = mrkdwnToHtml(textObj.text)
 
   return DOMPurify.sanitize(html, SANITIZE_CONFIG)
-}
-
-/**
- * Convert bullet (•) and numbered (1. 2. 3.) text lines to <ul>/<ol> HTML lists.
- * slack-markdown doesn't parse lists, so we post-process the HTML.
- */
-function convertLists(html: string): string {
-  const lines = html.split('<br>')
-  const result: string[] = []
-  let i = 0
-
-  while (i < lines.length) {
-    const line = lines[i] ?? ''
-
-    // Check for unordered list sequence (• item)
-    if (/^•\s/.test(line)) {
-      const items: string[] = []
-      while (i < lines.length && /^•\s/.test(lines[i] ?? '')) {
-        items.push(`<li>${(lines[i] ?? '').replace(/^•\s/, '')}</li>`)
-        i++
-      }
-      result.push(`<ul>${items.join('')}</ul>`)
-      continue
-    }
-
-    // Check for ordered list sequence (N. item)
-    if (/^\d+\.\s/.test(line)) {
-      const items: string[] = []
-      while (i < lines.length && /^\d+\.\s/.test(lines[i] ?? '')) {
-        items.push(`<li>${(lines[i] ?? '').replace(/^\d+\.\s/, '')}</li>`)
-        i++
-      }
-      result.push(`<ol>${items.join('')}</ol>`)
-      continue
-    }
-
-    result.push(line)
-    i++
-  }
-
-  return result.join('<br>')
 }
 
 /**
