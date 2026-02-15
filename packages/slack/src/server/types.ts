@@ -63,6 +63,7 @@ export interface SlackMessage {
     mimetype?: string
     url_private?: string
   }>
+  blocks?: unknown[]
 }
 
 // =============================================================================
@@ -382,6 +383,7 @@ export interface SimulatorEvent {
     | 'view_update'
     | 'view_close'
     | 'file_shared'
+    | 'message_update'
     | 'bot_connecting' // WebSocket connected, waiting for config registration
     | 'bot_connected'
     | 'bot_disconnected'

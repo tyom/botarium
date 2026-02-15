@@ -280,13 +280,14 @@ export class SlackWebAPI {
     body: ChatPostMessageRequest,
     token: string | null
   ): Promise<Response> {
-    const { channel, text, thread_ts } = body
+    const { channel, text, thread_ts, blocks } = body
 
     webApiLogger.debug({ body, channel, text }, 'chat.postMessage request')
 
-    if (!channel || !text) {
+    // Slack allows either text or blocks (or both)
+    if (!channel || (!text && !blocks)) {
       webApiLogger.error(
-        { channel, text, hasChannel: !!channel, hasText: !!text },
+        { channel, text, hasChannel: !!channel, hasText: !!text, hasBlocks: !!blocks },
         'chat.postMessage missing required argument'
       )
       return Response.json(
@@ -297,14 +298,26 @@ export class SlackWebAPI {
 
     const botInfo = this.getBotInfoFromToken(token)
     const ts = this.state.generateTimestamp()
+    const messageText = text || ''
+
+    // Auto-generate block_id for blocks missing one
+    const processedBlocks = blocks
+      ? (blocks as Array<Record<string, unknown>>).map((block, index) => {
+          if (!block.block_id) {
+            return { ...block, block_id: `block_${index}` }
+          }
+          return block
+        })
+      : undefined
 
     const message: SlackMessage = {
       type: 'message',
       channel,
       user: botInfo.id,
-      text,
+      text: messageText,
       ts,
       thread_ts,
+      blocks: processedBlocks,
     }
 
     // Store the message
@@ -316,13 +329,13 @@ export class SlackWebAPI {
       ts,
       message: {
         type: 'message',
-        text,
+        text: messageText,
         user: botInfo.id,
         ts,
       },
     }
 
-    webApiLogger.debug(`chat.postMessage: ${text.substring(0, 50)}...`)
+    webApiLogger.debug(`chat.postMessage: ${messageText.substring(0, 50)}...`)
     return Response.json(response, { headers: corsHeaders() })
   }
 
@@ -330,7 +343,7 @@ export class SlackWebAPI {
     body: ChatPostMessageRequest & { ts: string },
     _token: string | null
   ): Promise<Response> {
-    const { channel, text, ts } = body
+    const { channel, text, ts, blocks } = body
 
     if (!channel || !ts) {
       return Response.json(
@@ -351,6 +364,26 @@ export class SlackWebAPI {
     if (text) {
       message.text = text
     }
+
+    // Update blocks if provided
+    if (blocks !== undefined) {
+      if (blocks) {
+        // Auto-generate block_id for blocks missing one
+        message.blocks = (blocks as Array<Record<string, unknown>>).map(
+          (block, index) => {
+            if (!block.block_id) {
+              return { ...block, block_id: `block_${index}` }
+            }
+            return block
+          }
+        )
+      } else {
+        delete message.blocks
+      }
+    }
+
+    // Emit message_update event so the UI can re-render
+    this.state.emitEvent({ type: 'message_update', message, channel })
 
     return Response.json(
       { ok: true, channel, ts, text: message.text },
