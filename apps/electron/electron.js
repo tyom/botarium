@@ -203,13 +203,7 @@ function getEmulatorConfig() {
   if (useDevServer) {
     // Dev mode: run the Slack plugin's server directly
     // The server/index.ts has `if (import.meta.main)` to run when executed directly
-    const slackPackageDir = path.join(
-      appRoot,
-      '..',
-      '..',
-      'packages',
-      'slack'
-    )
+    const slackPackageDir = path.join(appRoot, '..', '..', 'packages', 'slack')
     return {
       type: 'bun',
       bunPath: 'bun',
@@ -292,9 +286,7 @@ function readBotsJsonDev() {
       const configYamlPath = path.join(sourcePath, 'config.yaml')
       if (fs.existsSync(configYamlPath)) {
         const yamlContent = fs.readFileSync(configYamlPath, 'utf-8')
-        const match = yamlContent.match(
-          /^simulator:\s*\n\s+id:\s*(.+)/m
-        )
+        const match = yamlContent.match(/^simulator:\s*\n\s+id:\s*(.+)/m)
         if (match) {
           name = match[1].trim()
         }

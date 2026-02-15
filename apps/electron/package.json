@@ -43,7 +43,9 @@
       {
         "from": "../ui/dist",
         "to": "dist",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       "assets/**/*",
       "package.json"
