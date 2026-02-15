@@ -95,9 +95,22 @@ export class SlackWebAPI {
     if (contentType.includes('application/x-www-form-urlencoded')) {
       const text = await req.text()
       const params = new URLSearchParams(text)
-      const result: Record<string, string> = {}
+      const result: Record<string, unknown> = {}
       for (const [key, value] of params) {
-        result[key] = value
+        // Slack clients send JSON-encoded fields (blocks, attachments, etc.)
+        // in form data — parse them back into objects/arrays
+        if (
+          (value.startsWith('[') && value.endsWith(']')) ||
+          (value.startsWith('{') && value.endsWith('}'))
+        ) {
+          try {
+            result[key] = JSON.parse(value)
+          } catch {
+            result[key] = value
+          }
+        } else {
+          result[key] = value
+        }
       }
       return result as T
     }
@@ -1530,36 +1543,63 @@ export class SlackWebAPI {
     values: Record<string, Record<string, unknown>>,
     blocks: unknown[]
   ): Record<string, Record<string, unknown>> {
-    // Build a lookup of block_id -> element type from the view's blocks
-    const elementTypeMap = new Map<string, Map<string, string>>()
+    // Build a lookup of block_id -> element info from the view's blocks
+    const elementInfoMap = new Map<
+      string,
+      Map<string, { type: string; options?: Array<Record<string, unknown>> }>
+    >()
 
     for (let i = 0; i < blocks.length; i++) {
       const block = blocks[i] as Record<string, unknown>
       if (block.type !== 'input') continue
 
-      const blockId =
-        (block.block_id as string) || `block-${i}`
+      const blockId = (block.block_id as string) || `block-${i}`
       const element = block.element as Record<string, unknown> | undefined
       if (!element?.type) continue
 
       const actionId = (element.action_id as string) || ''
-      if (!elementTypeMap.has(blockId)) {
-        elementTypeMap.set(blockId, new Map())
+      if (!elementInfoMap.has(blockId)) {
+        elementInfoMap.set(blockId, new Map())
       }
-      elementTypeMap.get(blockId)!.set(actionId, element.type as string)
+      elementInfoMap.get(blockId)!.set(actionId, {
+        type: element.type as string,
+        options: element.options as
+          | Array<Record<string, unknown>>
+          | undefined,
+      })
     }
 
-    // Add type discriminator to each value
+    // Add type discriminator and restructure values to match Slack's format
     const result: Record<string, Record<string, unknown>> = {}
     for (const [blockId, actionValues] of Object.entries(values)) {
       result[blockId] = {}
       for (const [actionId, value] of Object.entries(actionValues)) {
         if (value && typeof value === 'object') {
-          const elementType = elementTypeMap.get(blockId)?.get(actionId)
-          if (elementType) {
-            result[blockId][actionId] = {
-              ...(value as Record<string, unknown>),
-              type: elementType,
+          const elementInfo = elementInfoMap.get(blockId)?.get(actionId)
+          if (elementInfo) {
+            const val = value as Record<string, unknown>
+            // Restructure static_select: { value: "x" } -> { selected_option: {...}, type }
+            if (
+              elementInfo.type === 'static_select' &&
+              'value' in val &&
+              !('selected_option' in val)
+            ) {
+              const selectedValue = val.value as string
+              const option = elementInfo.options?.find(
+                (o) => o.value === selectedValue
+              )
+              result[blockId][actionId] = {
+                selected_option: option || {
+                  text: { type: 'plain_text', text: selectedValue },
+                  value: selectedValue,
+                },
+                type: elementInfo.type,
+              }
+            } else {
+              result[blockId][actionId] = {
+                ...val,
+                type: elementInfo.type,
+              }
             }
           } else {
             result[blockId][actionId] = value
