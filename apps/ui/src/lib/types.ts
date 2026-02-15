@@ -71,6 +71,15 @@ export interface SlackViewTextObject {
   emoji?: boolean
 }
 
+// Confirm dialog composition object
+export interface SlackConfirmDialog {
+  title: SlackViewTextObject
+  text: SlackViewTextObject
+  confirm: SlackViewTextObject
+  deny: SlackViewTextObject
+  style?: 'primary' | 'danger'
+}
+
 // Slack view / modal structure
 export interface SlackView {
   type: 'modal' | 'home'
@@ -150,6 +159,7 @@ export type SlackBlockElement =
   | SlackImageElement
   | SlackStaticSelectElement
   | SlackOverflowElement
+  | SlackRadioButtonsElement
 
 export interface SlackButtonElement {
   type: 'button'
@@ -158,6 +168,7 @@ export interface SlackButtonElement {
   value?: string
   style?: 'primary' | 'danger'
   url?: string
+  confirm?: SlackConfirmDialog
 }
 
 export interface SlackImageElement {
@@ -172,18 +183,27 @@ export interface SlackStaticSelectElement {
   placeholder?: SlackViewTextObject
   options: SlackOption[]
   initial_option?: SlackOption
+  confirm?: SlackConfirmDialog
 }
 
 export interface SlackOverflowElement {
   type: 'overflow'
   action_id: string
-  options: SlackOption[]
+  options: SlackOverflowOption[]
+  confirm?: SlackConfirmDialog
 }
 
 export interface SlackOption {
   text: SlackViewTextObject
   value: string
   description?: SlackViewTextObject
+}
+
+export interface SlackOverflowOption {
+  text: SlackViewTextObject
+  value: string
+  description?: SlackViewTextObject
+  url?: string
 }
 
 // Input elements
@@ -193,6 +213,10 @@ export type SlackInputElement =
   | SlackMultiStaticSelectElement
   | SlackFileInputElement
   | SlackCheckboxesElement
+  | SlackRadioButtonsElement
+  | SlackNumberInputElement
+  | SlackEmailInputElement
+  | SlackUrlInputElement
 
 export interface SlackPlainTextInputElement {
   type: 'plain_text_input'
@@ -225,6 +249,43 @@ export interface SlackCheckboxesElement {
   action_id: string
   options: SlackOption[]
   initial_options?: SlackOption[]
+  confirm?: SlackConfirmDialog
+}
+
+export interface SlackRadioButtonsElement {
+  type: 'radio_buttons'
+  action_id: string
+  options: SlackOption[]
+  initial_option?: SlackOption
+  confirm?: SlackConfirmDialog
+  focus_on_load?: boolean
+}
+
+export interface SlackNumberInputElement {
+  type: 'number_input'
+  action_id: string
+  is_decimal_allowed: boolean
+  initial_value?: string
+  min_value?: string
+  max_value?: string
+  placeholder?: SlackViewTextObject
+  focus_on_load?: boolean
+}
+
+export interface SlackEmailInputElement {
+  type: 'email_text_input'
+  action_id: string
+  initial_value?: string
+  placeholder?: SlackViewTextObject
+  focus_on_load?: boolean
+}
+
+export interface SlackUrlInputElement {
+  type: 'url_text_input'
+  action_id: string
+  initial_value?: string
+  placeholder?: SlackViewTextObject
+  focus_on_load?: boolean
 }
 
 // Uploaded file representation for form values
