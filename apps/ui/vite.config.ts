@@ -14,6 +14,7 @@ export default defineConfig({
       $lib: resolve(__dirname, 'src/lib'),
     },
   },
+  base: './',
   build: {
     outDir: '../dist',
     emptyOutDir: true,

@@ -8,7 +8,9 @@
   "scripts": {
     "dev": "bun run build:preload && VITE_DEV=1 concurrently -k \"bun run --filter @botarium/ui dev:server\" \"wait-on http://localhost:5173 && electron .\"",
     "build:preload": "bun build src/preload.ts --outfile=dist/preload.cjs --target=node --format=cjs --external=electron",
-    "build": "bun run build:preload && bun run scripts/compile-bots.ts && bun run --filter @botarium/ui build",
+    "build:main": "bun build electron.js --outfile=dist/electron.cjs --target=node --format=cjs --external=electron",
+    "build:emulator": "bun build ../../packages/slack/src/server/index.ts --compile --outfile=dist/slack-emulator",
+    "build": "bun run build:preload && bun run build:main && bun run build:emulator && bun run scripts/compile-bots.ts && bun run --filter @botarium/ui build",
     "package": "bun run build && electron-builder",
     "typecheck": "tsc --noEmit"
   },
@@ -38,6 +40,11 @@
       "!dist/slack-emulator",
       "!dist/bots",
       "!dist/app",
+      {
+        "from": "../ui/dist",
+        "to": "dist",
+        "filter": ["**/*"]
+      },
       "assets/**/*",
       "package.json"
     ],
@@ -54,6 +61,7 @@
         ]
       }
     ],
+    "electronDist": "../../node_modules/.bun/electron@39.2.7/node_modules/electron/dist",
     "mac": {
       "category": "public.app-category.developer-tools",
       "target": "dmg"

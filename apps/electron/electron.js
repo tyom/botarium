@@ -18,7 +18,6 @@ import path from 'path'
 import fs from 'fs'
 import net from 'net'
 import { spawn } from 'child_process'
-import { fileURLToPath } from 'url'
 import {
   electronLogger,
   backendLogger,
@@ -31,16 +30,14 @@ import {
   validateApiKey,
 } from './model-fetcher.js'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+// Use app.getAppPath() for reliable path resolution in both dev and packaged modes.
+// Bun's bundler hardcodes import.meta.url at build time, making __filename/__dirname
+// unreliable in the packaged CJS bundle.
+const appRoot = app.getAppPath()
 
 // Emulator configuration
 const EMULATOR_PORT = 7557
 const EMULATOR_URL = `http://localhost:${EMULATOR_PORT}`
-
-// Check if running from bundled dist/electron.cjs (packaged) vs electron.js (dev)
-const isRunningFromDist =
-  __filename.endsWith('.cjs') || __dirname.endsWith('dist')
 
 // Set app name for consistent userData path (~/Library/Application Support/Botarium/)
 // This must be set before any app.getPath() calls
@@ -58,18 +55,13 @@ let logsPanelChecked = false
 const useDevServer = process.env.VITE_DEV === '1'
 
 // In dev mode, web app is at ../ui/dist, in packaged mode it's at dist/
-const webAppDir = isRunningFromDist
-  ? __dirname
-  : path.join(__dirname, '..', 'ui', 'dist')
+const webAppDir = app.isPackaged
+  ? path.join(appRoot, 'dist')
+  : path.join(appRoot, '..', 'ui', 'dist')
 const builtFile = path.join(webAppDir, 'index.html')
-const preloadPath = isRunningFromDist
-  ? path.join(__dirname, 'preload.cjs')
-  : path.join(__dirname, 'dist', 'preload.cjs')
+const preloadPath = path.join(appRoot, 'dist', 'preload.cjs')
 const settingsPath = path.join(app.getPath('userData'), 'settings.json')
-// Assets are at root level in both dev and packaged app
-const assetsDir = isRunningFromDist
-  ? path.join(__dirname, '..', 'assets')
-  : path.join(__dirname, 'assets')
+const assetsDir = path.join(appRoot, 'assets')
 const iconPath = path.join(
   assetsDir,
   app.isPackaged ? 'icon.png' : 'icon-dev.png'
@@ -212,7 +204,7 @@ function getEmulatorConfig() {
     // Dev mode: run the Slack plugin's server directly
     // The server/index.ts has `if (import.meta.main)` to run when executed directly
     const slackPackageDir = path.join(
-      __dirname,
+      appRoot,
       '..',
       '..',
       'packages',
@@ -232,7 +224,7 @@ function getEmulatorConfig() {
   const isPackaged = app.isPackaged
   const bundledBinary = isPackaged
     ? path.join(process.resourcesPath, binaryName)
-    : path.join(__dirname, 'dist', binaryName)
+    : path.join(appRoot, 'dist', binaryName)
 
   return {
     type: 'binary',
@@ -247,7 +239,7 @@ function getEmulatorConfig() {
 function readBotsManifest() {
   const manifestPath = app.isPackaged
     ? path.join(process.resourcesPath, 'bots', 'manifest.json')
-    : path.join(__dirname, 'dist', 'bots', 'manifest.json')
+    : path.join(appRoot, 'dist', 'bots', 'manifest.json')
 
   if (!fs.existsSync(manifestPath)) {
     electronLogger.info('No bots manifest found - running in discovery mode')
@@ -283,7 +275,7 @@ function getBotConfigs() {
   // Use compiled binaries from manifest
   const botsDir = isPackaged
     ? path.join(process.resourcesPath, 'bots')
-    : path.join(__dirname, 'dist', 'bots')
+    : path.join(appRoot, 'dist', 'bots')
 
   return botsManifest
     .map((bot) => {
