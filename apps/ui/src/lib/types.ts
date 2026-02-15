@@ -160,6 +160,8 @@ export type SlackBlockElement =
   | SlackStaticSelectElement
   | SlackOverflowElement
   | SlackRadioButtonsElement
+  | SlackDatePickerElement
+  | SlackTimePickerElement
 
 export interface SlackButtonElement {
   type: 'button'
@@ -217,6 +219,9 @@ export type SlackInputElement =
   | SlackNumberInputElement
   | SlackEmailInputElement
   | SlackUrlInputElement
+  | SlackDatePickerElement
+  | SlackTimePickerElement
+  | SlackDateTimePickerElement
 
 export interface SlackPlainTextInputElement {
   type: 'plain_text_input'
@@ -285,6 +290,33 @@ export interface SlackUrlInputElement {
   action_id: string
   initial_value?: string
   placeholder?: SlackViewTextObject
+  focus_on_load?: boolean
+}
+
+export interface SlackDatePickerElement {
+  type: 'datepicker'
+  action_id: string
+  initial_date?: string // YYYY-MM-DD
+  placeholder?: SlackViewTextObject
+  confirm?: SlackConfirmDialog
+  focus_on_load?: boolean
+}
+
+export interface SlackTimePickerElement {
+  type: 'timepicker'
+  action_id: string
+  initial_time?: string // HH:mm (24-hour)
+  placeholder?: SlackViewTextObject
+  confirm?: SlackConfirmDialog
+  focus_on_load?: boolean
+  timezone?: string
+}
+
+export interface SlackDateTimePickerElement {
+  type: 'datetimepicker'
+  action_id: string
+  initial_date_time?: number // UNIX timestamp in seconds
+  confirm?: SlackConfirmDialog
   focus_on_load?: boolean
 }
 
