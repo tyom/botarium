@@ -5,6 +5,8 @@
     SlackStaticSelectElement,
     SlackOverflowElement,
     SlackRadioButtonsElement,
+    SlackDatePickerElement,
+    SlackTimePickerElement,
   } from '../../../lib/types'
   import { renderMrkdwn } from '../context'
   import Button from '../elements/Button.svelte'
@@ -12,6 +14,8 @@
   import ImageElement from '../elements/ImageElement.svelte'
   import OverflowMenu from '../elements/OverflowMenu.svelte'
   import RadioButtonGroup from '../elements/RadioButtonGroup.svelte'
+  import DatePicker from '../elements/DatePicker.svelte'
+  import TimePicker from '../elements/TimePicker.svelte'
 
   interface Props {
     block: SlackSectionBlock
@@ -69,6 +73,24 @@
         <RadioButtonGroup
           element={radio}
           onChange={(option) => onAction?.(radio.action_id, option.value)}
+        />
+      </div>
+    {:else if block.accessory.type === 'datepicker'}
+      {@const dp = block.accessory as SlackDatePickerElement}
+      <div class="shrink-0">
+        <DatePicker
+          element={dp}
+          compact
+          onChange={(val) => onAction?.(dp.action_id, val)}
+        />
+      </div>
+    {:else if block.accessory.type === 'timepicker'}
+      {@const tp = block.accessory as SlackTimePickerElement}
+      <div class="shrink-0">
+        <TimePicker
+          element={tp}
+          compact
+          onChange={(val) => onAction?.(tp.action_id, val)}
         />
       </div>
     {:else if block.accessory.type === 'image'}

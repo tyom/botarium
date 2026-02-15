@@ -747,6 +747,9 @@ export async function sendMessageBlockAction(
       text: { type: string; text: string }
       value: string
     }>
+    selected_date?: string
+    selected_time?: string
+    selected_date_time?: number
   }
 ): Promise<boolean> {
   try {

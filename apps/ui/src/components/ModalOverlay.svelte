@@ -104,6 +104,19 @@
             selected_option: radioElement.initial_option,
             value: radioElement.initial_option?.value,
           }
+        } else if (element.type === 'datepicker') {
+          values[blockId][element.action_id] = {
+            value: ('initial_date' in element ? (element as { initial_date?: string }).initial_date : undefined) ?? '',
+          }
+        } else if (element.type === 'timepicker') {
+          values[blockId][element.action_id] = {
+            value: ('initial_time' in element ? (element as { initial_time?: string }).initial_time : undefined) ?? '',
+          }
+        } else if (element.type === 'datetimepicker') {
+          const initialTimestamp = 'initial_date_time' in element ? (element as { initial_date_time?: number }).initial_date_time : undefined
+          values[blockId][element.action_id] = {
+            value: initialTimestamp != null ? String(initialTimestamp) : '',
+          }
         }
       }
     }

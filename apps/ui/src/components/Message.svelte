@@ -140,6 +140,22 @@
       }
     }
 
+    if (elementType === 'datepicker') {
+      return {
+        blockId,
+        elementType,
+        actionValue: { selected_date: value },
+      }
+    }
+
+    if (elementType === 'timepicker') {
+      return {
+        blockId,
+        elementType,
+        actionValue: { selected_time: value },
+      }
+    }
+
     // For buttons and other types, use value as-is
     return { blockId, elementType, actionValue: { value } }
   }
@@ -161,6 +177,8 @@
         text: { type: string; text: string }
         value: string
       }>
+      selected_date?: string
+      selected_time?: string
     }
   } {
     for (let i = 0; i < blocks.length; i++) {

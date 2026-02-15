@@ -5,11 +5,15 @@
     SlackStaticSelectElement,
     SlackOverflowElement,
     SlackRadioButtonsElement,
+    SlackDatePickerElement,
+    SlackTimePickerElement,
   } from '../../../lib/types'
   import Button from '../elements/Button.svelte'
   import StaticSelect from '../elements/StaticSelect.svelte'
   import OverflowMenu from '../elements/OverflowMenu.svelte'
   import RadioButtonGroup from '../elements/RadioButtonGroup.svelte'
+  import DatePicker from '../elements/DatePicker.svelte'
+  import TimePicker from '../elements/TimePicker.svelte'
 
   interface Props {
     block: SlackActionsBlock
@@ -41,6 +45,20 @@
       <RadioButtonGroup
         element={radio}
         onChange={(option) => onAction?.(radio.action_id, option.value)}
+      />
+    {:else if element.type === 'datepicker'}
+      {@const dp = element as SlackDatePickerElement}
+      <DatePicker
+        element={dp}
+        compact
+        onChange={(val) => onAction?.(dp.action_id, val)}
+      />
+    {:else if element.type === 'timepicker'}
+      {@const tp = element as SlackTimePickerElement}
+      <TimePicker
+        element={tp}
+        compact
+        onChange={(val) => onAction?.(tp.action_id, val)}
       />
     {/if}
   {/each}

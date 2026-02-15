@@ -9,6 +9,8 @@
     SlackEmailInputElement,
     SlackUrlInputElement,
     SlackRadioButtonsElement,
+    SlackDatePickerElement,
+    SlackTimePickerElement,
     SlackOption,
     UploadedFile,
   } from '../../../lib/types'
@@ -21,6 +23,8 @@
   import EmailInput from '../elements/EmailInput.svelte'
   import UrlInput from '../elements/UrlInput.svelte'
   import RadioButtonGroup from '../elements/RadioButtonGroup.svelte'
+  import DatePicker from '../elements/DatePicker.svelte'
+  import TimePicker from '../elements/TimePicker.svelte'
 
   interface Props {
     block: SlackInputBlock
@@ -141,6 +145,20 @@
       element={el}
       selectedOption={getSelectedOption(el.action_id)}
       onChange={(option) => onRadioChange?.(blockId, el.action_id, option)}
+    />
+  {:else if block.element.type === 'datepicker'}
+    {@const el = block.element as SlackDatePickerElement}
+    <DatePicker
+      element={el}
+      value={getInputValue(el.action_id)}
+      onChange={(val) => onInputChange?.(blockId, el.action_id, val)}
+    />
+  {:else if block.element.type === 'timepicker'}
+    {@const el = block.element as SlackTimePickerElement}
+    <TimePicker
+      element={el}
+      value={getInputValue(el.action_id)}
+      onChange={(val) => onInputChange?.(blockId, el.action_id, val)}
     />
   {/if}
 

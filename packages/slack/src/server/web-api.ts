@@ -1612,6 +1612,21 @@ export class SlackWebAPI {
                 },
                 type: elementInfo.type,
               }
+            } else if (elementInfo.type === 'datepicker' && 'value' in val) {
+              result[blockId][actionId] = {
+                selected_date: (val.value as string) || null,
+                type: elementInfo.type,
+              }
+            } else if (elementInfo.type === 'timepicker' && 'value' in val) {
+              result[blockId][actionId] = {
+                selected_time: (val.value as string) || null,
+                type: elementInfo.type,
+              }
+            } else if (elementInfo.type === 'datetimepicker' && 'value' in val) {
+              result[blockId][actionId] = {
+                selected_date_time: val.value ? Number(val.value) : null,
+                type: elementInfo.type,
+              }
             } else {
               result[blockId][actionId] = {
                 ...val,
@@ -1668,6 +1683,10 @@ export class SlackWebAPI {
       text: { type: string; text: string }
       value: string
     }>
+    // Picker-specific values
+    selected_date?: string
+    selected_time?: string
+    selected_date_time?: number
     user: string
   }): Promise<Response> {
     const { action_id, user } = body
@@ -1702,6 +1721,12 @@ export class SlackWebAPI {
       action.selected_option = body.selected_option
     } else if (elementType === 'checkboxes') {
       action.selected_options = body.selected_options
+    } else if (elementType === 'datepicker') {
+      action.selected_date = body.selected_date
+    } else if (elementType === 'timepicker') {
+      action.selected_time = body.selected_time
+    } else if (elementType === 'datetimepicker') {
+      action.selected_date_time = body.selected_date_time
     } else {
       // For other types, include whichever value fields are present
       if (body.value !== undefined) action.value = body.value
