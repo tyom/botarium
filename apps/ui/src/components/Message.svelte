@@ -118,6 +118,28 @@
       }
     }
 
+    if (elementType === 'overflow' && element.options) {
+      const opt = element.options.find((o) => o.value === value)
+      return {
+        blockId,
+        elementType,
+        actionValue: opt
+          ? { selected_option: { text: opt.text, value: opt.value } }
+          : { value },
+      }
+    }
+
+    if (elementType === 'radio_buttons' && element.options) {
+      const opt = element.options.find((o) => o.value === value)
+      return {
+        blockId,
+        elementType,
+        actionValue: opt
+          ? { selected_option: { text: opt.text, value: opt.value } }
+          : { value },
+      }
+    }
+
     // For buttons and other types, use value as-is
     return { blockId, elementType, actionValue: { value } }
   }

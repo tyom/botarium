@@ -3,11 +3,15 @@
     SlackSectionBlock,
     SlackButtonElement,
     SlackStaticSelectElement,
+    SlackOverflowElement,
+    SlackRadioButtonsElement,
   } from '../../../lib/types'
   import { renderMrkdwn } from '../context'
   import Button from '../elements/Button.svelte'
   import StaticSelect from '../elements/StaticSelect.svelte'
   import ImageElement from '../elements/ImageElement.svelte'
+  import OverflowMenu from '../elements/OverflowMenu.svelte'
+  import RadioButtonGroup from '../elements/RadioButtonGroup.svelte'
 
   interface Props {
     block: SlackSectionBlock
@@ -49,6 +53,22 @@
           element={sel}
           compact
           onChange={(value) => onAction?.(sel.action_id, value)}
+        />
+      </div>
+    {:else if block.accessory.type === 'overflow'}
+      {@const ovf = block.accessory as SlackOverflowElement}
+      <div class="shrink-0">
+        <OverflowMenu
+          element={ovf}
+          onSelect={(option) => onAction?.(ovf.action_id, option.value)}
+        />
+      </div>
+    {:else if block.accessory.type === 'radio_buttons'}
+      {@const radio = block.accessory as SlackRadioButtonsElement}
+      <div class="shrink-0">
+        <RadioButtonGroup
+          element={radio}
+          onChange={(option) => onAction?.(radio.action_id, option.value)}
         />
       </div>
     {:else if block.accessory.type === 'image'}

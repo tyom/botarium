@@ -1679,6 +1679,10 @@ export class SlackWebAPI {
       action.value = body.value
     } else if (elementType === 'static_select') {
       action.selected_option = body.selected_option
+    } else if (elementType === 'overflow') {
+      action.selected_option = body.selected_option
+    } else if (elementType === 'radio_buttons') {
+      action.selected_option = body.selected_option
     } else if (elementType === 'checkboxes') {
       action.selected_options = body.selected_options
     } else {
