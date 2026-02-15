@@ -71,7 +71,7 @@ function formatInline(text: string): string {
   text = text.replace(/`([^`\n]+)`/g, (_match, code: string) => {
     const idx = inlineCodePh.length
     inlineCodePh.push(`<code>${escapeHtml(code)}</code>`)
-    return `\x00IC${idx}\x00`
+    return `\uE001IC${idx}\uE001`
   })
 
   // HTML-escape remaining text
@@ -130,7 +130,7 @@ function formatInline(text: string): string {
   })
 
   // Restore inline code placeholders
-  text = text.replace(/\x00IC(\d+)\x00/g, (_match, idx: string) => {
+  text = text.replace(/\uE001IC(\d+)\uE001/g, (_match, idx: string) => {
     return inlineCodePh[parseInt(idx, 10)] ?? ''
   })
 
@@ -153,7 +153,7 @@ export function mrkdwnToHtml(text: string): string {
     codeBlockPh.push(
       `<pre><code>${escapeHtml(code.replace(/\n$/, ''))}</code></pre>`
     )
-    return `\x00CB${idx}\x00`
+    return `\uE000CB${idx}\uE000`
   })
 
   // Phase 2: Process line-by-line for block-level elements
@@ -165,7 +165,7 @@ export function mrkdwnToHtml(text: string): string {
     const line = lines[i] ?? ''
 
     // Code block placeholder - pass through
-    if (/^\x00CB\d+\x00$/.test(line)) {
+    if (/^\uE000CB\d+\uE000$/.test(line)) {
       output.push(line)
       i++
       continue
@@ -220,11 +220,11 @@ export function mrkdwnToHtml(text: string): string {
   html = html.replace(/(<br>)+(<(?:ul|ol|blockquote|pre)>)/g, '$2')
   html = html.replace(/(<\/(?:ul|ol|blockquote|pre)>)(<br>)+/g, '$1')
   // Also clean up code block placeholders adjacent to <br>
-  html = html.replace(/(<br>)+(\x00CB\d+\x00)/g, '$2')
-  html = html.replace(/(\x00CB\d+\x00)(<br>)+/g, '$1')
+  html = html.replace(/(<br>)+(\uE000CB\d+\uE000)/g, '$2')
+  html = html.replace(/(\uE000CB\d+\uE000)(<br>)+/g, '$1')
 
   // Phase 4: Restore code block placeholders
-  html = html.replace(/\x00CB(\d+)\x00/g, (_match, idx: string) => {
+  html = html.replace(/\uE000CB(\d+)\uE000/g, (_match, idx: string) => {
     return codeBlockPh[parseInt(idx, 10)] ?? ''
   })
 
