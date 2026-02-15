@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { SlackCheckboxesElement, SlackOption } from '../../../lib/types'
-  import { renderText } from '../context'
+  import { renderMrkdwn } from '../context'
 
   interface Props {
     element: SlackCheckboxesElement
@@ -52,8 +52,8 @@
         onchange={(e) => handleToggle(option, e.currentTarget.checked)}
         class="size-4 rounded border-white/30 bg-slack-input text-slack-accent focus:ring-slack-accent focus:ring-offset-0 cursor-pointer"
       />
-      <span class="text-slack-text group-hover:text-white transition-colors">
-        {renderText(option.text)}
+      <span class="mrkdwn text-slack-text group-hover:text-white transition-colors">
+        {@html renderMrkdwn(option.text)}
       </span>
     </label>
   {/each}

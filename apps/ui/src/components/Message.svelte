@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { toHTML } from 'slack-markdown'
-  import DOMPurify from 'dompurify'
   import {
     EllipsisVertical,
     Trash2,
@@ -26,6 +24,7 @@
     sendMessageBlockAction,
   } from '../lib/dispatcher.svelte'
   import BlockKitRenderer from './blockkit/BlockKitRenderer.svelte'
+  import { renderMrkdwn } from './blockkit/context'
   import { formatTimestamp, formatRelativeTime } from '../lib/time'
   import * as ContextMenu from '$lib/components/ui/context-menu'
 
@@ -82,9 +81,11 @@
       .replace(/@__SIMULATED_USER__\b/g, `@${userName}`)
       .replace(/@U_USER\b/g, `@${userName}`)
 
-    let html = toHTML(text, {
-      hrefTarget: '_blank',
-    }).replace(/<br><br>/g, '<br><br><span class="p-gap"></span>')
+    // Use unified renderMrkdwn for core mrkdwn-to-HTML conversion
+    let html = renderMrkdwn({ type: 'mrkdwn', text })
+
+    // Post-processing: paragraph gaps (safe to add after sanitization)
+    html = html.replace(/<br><br>/g, '<br><br><span class="p-gap"></span>')
 
     // Wrap @mentions in highlight span AFTER markdown processing
     const escapedUserName = userName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -94,22 +95,7 @@
       `<span class="slack-mention">@${userName}</span>`
     )
 
-    // Sanitize HTML to prevent XSS attacks
-    return DOMPurify.sanitize(html, {
-      ALLOWED_TAGS: [
-        'a',
-        'b',
-        'blockquote',
-        'br',
-        'code',
-        'em',
-        'i',
-        'pre',
-        'span',
-        'strong',
-      ],
-      ALLOWED_ATTR: ['href', 'target', 'class'],
-    })
+    return html
   })
 
   let hasBlocks = $derived(message.blocks && message.blocks.length > 0)
@@ -167,7 +153,11 @@
           if ('action_id' in el && el.action_id === actionId) {
             return buildActionValue(
               blockId,
-              el as { type: string; action_id: string; options?: SlackOption[] },
+              el as {
+                type: string
+                action_id: string
+                options?: SlackOption[]
+              },
               value
             )
           }
@@ -181,7 +171,11 @@
           if ('action_id' in el && el.action_id === actionId) {
             return buildActionValue(
               blockId,
-              el as { type: string; action_id: string; options?: SlackOption[] },
+              el as {
+                type: string
+                action_id: string
+                options?: SlackOption[]
+              },
               value
             )
           }
@@ -300,14 +294,14 @@
           </div>
           {#if message.text}
             <div
-              class="message-text text-slack-text leading-[1.46] wrap-break-word whitespace-pre-wrap text-sm text-slack-text-muted mt-1"
+              class="mrkdwn message-text text-slack-text leading-[1.46] wrap-break-word whitespace-pre-wrap text-sm text-slack-text-muted mt-1"
             >
               {@html formattedText}
             </div>
           {/if}
         {:else}
           <div
-            class="message-text text-slack-text leading-[1.46] wrap-break-word whitespace-pre-wrap"
+            class="mrkdwn message-text text-slack-text leading-[1.46] wrap-break-word whitespace-pre-wrap"
           >
             {@html formattedText}
           </div>
@@ -428,7 +422,7 @@
 </ContextMenu.Root>
 
 <style>
-  /* Slack markdown styles for dynamic content */
+  /* Message-specific styles for dynamic content (mrkdwn styles are in app.css) */
   .message-text :global(br + br) {
     display: none;
   }
@@ -438,61 +432,11 @@
     height: 0.8em;
   }
 
-  .message-text :global(code) {
-    background: #8881;
-    border: 1px solid #8883;
-    border-radius: 3px;
-    padding: 2px 4px;
-    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-    font-size: 12px;
-    color: #e6902c;
-  }
-
-  .message-text :global(pre) {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
-    padding: 8px 12px;
-    margin: 4px 0;
-    overflow-x: auto;
-    white-space: pre;
-  }
-
-  .message-text :global(pre code) {
-    background: none;
-    border: none;
-    padding: 0;
-    color: var(--text-primary);
-  }
-
-  .message-text :global(a) {
-    color: #1d9bd1;
-    text-decoration: none;
-  }
-
-  .message-text :global(a:hover) {
-    text-decoration: underline;
-  }
-
-  .message-text :global(.s-mention) {
-    background: rgba(232, 171, 76, 0.2);
-    color: #e8ab4c;
-    padding: 0 2px;
-    border-radius: 3px;
-  }
-
   .message-text :global(.slack-mention) {
     background: rgba(29, 155, 209, 0.2);
     color: #1d9bd1;
     padding: 0 2px;
     border-radius: 3px;
     font-weight: 500;
-  }
-
-  .message-text :global(blockquote) {
-    border-left: 4px solid #ddd;
-    margin: 4px 0;
-    padding-left: 12px;
-    color: var(--text-secondary);
   }
 </style>
