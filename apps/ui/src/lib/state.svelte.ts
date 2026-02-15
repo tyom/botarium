@@ -274,6 +274,7 @@ export function restoreMessages(
     user: string
     text: string
     threadTs?: string
+    blocks?: unknown[]
     reactions?: Array<{ name: string; count: number }>
     file?: {
       id: string
@@ -306,6 +307,7 @@ export function restoreMessages(
       reactions: new SvelteMap(
         msg.reactions?.map((r) => [r.name, r.count]) ?? []
       ),
+      blocks: msg.blocks as SimulatorMessage['blocks'],
       file: msg.file
         ? {
             id: msg.file.id,

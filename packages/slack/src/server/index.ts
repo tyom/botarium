@@ -268,6 +268,7 @@ export async function startEmulatorServer(
               count: r.count,
             })),
             file: msg.file,
+            ...(msg.blocks ? { blocks: msg.blocks } : {}),
           }))
           return Response.json(response, {
             headers: { 'Access-Control-Allow-Origin': '*' },

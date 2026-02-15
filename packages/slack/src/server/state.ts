@@ -89,6 +89,7 @@ export class EmulatorState {
         text: record.text,
         ts: record.ts,
         thread_ts: record.threadTs,
+        blocks: record.blocks,
         reactions: record.reactions?.map((reaction) => ({
           name: reaction.name,
           users: reaction.users ?? [],
@@ -188,6 +189,7 @@ export class EmulatorState {
         text: record.text,
         ts: record.ts,
         thread_ts: record.threadTs,
+        blocks: record.blocks,
         reactions: record.reactions?.map((reaction) => ({
           name: reaction.name,
           users: reaction.users ?? [],
@@ -372,6 +374,15 @@ export class EmulatorState {
   getMessage(channel: string, ts: string): SlackMessage | undefined {
     const channelMessages = this.messages.get(channel)
     return channelMessages?.find((m) => m.ts === ts)
+  }
+
+  /** Re-persist a message that was modified in-place (e.g., chat.update) */
+  persistMessage(message: SlackMessage): void {
+    if (this.persistence) {
+      this.persistence.saveMessage(message).catch((err) => {
+        stateLogger.error({ err }, 'Failed to persist message')
+      })
+    }
   }
 
   /**

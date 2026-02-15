@@ -23,6 +23,7 @@ export interface MessageRecord {
   threadTs?: string
   reactions?: ReactionRecord[]
   fileId?: string
+  blocks?: unknown[]
 }
 
 export interface FileRecord {
@@ -110,6 +111,13 @@ export class EmulatorPersistence {
     } catch {
       // Column already exists, ignore
     }
+
+    // Migration: add blocks column for BlockKit persistence
+    try {
+      this.db.run(`ALTER TABLE simulator_messages ADD COLUMN blocks TEXT`)
+    } catch {
+      // Column already exists, ignore
+    }
     // Backfill legacy DM rows so they remain visible after upgrade
     this.db.run(
       `UPDATE simulator_messages SET app_id = ? WHERE app_id IS NULL AND channel LIKE 'D_%'`,
@@ -186,14 +194,15 @@ export class EmulatorPersistence {
       count: r.count,
     }))
     const reactionsJson = reactions ? JSON.stringify(reactions) : null
+    const blocksJson = message.blocks ? JSON.stringify(message.blocks) : null
     const fileId = message.file?.id ?? null
     // DM messages are scoped to app_id, channel messages are global (NULL)
     const appIdValue = this.isDirectMessage(message.channel) ? this.appId : null
 
     this.db.run(
-      `INSERT INTO simulator_messages (ts, channel, user, text, thread_ts, reactions, file_id, app_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(ts) DO UPDATE SET text = excluded.text, reactions = excluded.reactions, file_id = excluded.file_id`,
+      `INSERT INTO simulator_messages (ts, channel, user, text, thread_ts, reactions, file_id, app_id, blocks, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(ts) DO UPDATE SET text = excluded.text, reactions = excluded.reactions, file_id = excluded.file_id, blocks = excluded.blocks`,
       [
         message.ts,
         message.channel,
@@ -203,6 +212,7 @@ export class EmulatorPersistence {
         reactionsJson,
         fileId,
         appIdValue,
+        blocksJson,
         now,
       ]
     )
@@ -233,7 +243,7 @@ export class EmulatorPersistence {
     // Load channel messages (always) + DM messages only for current app
     const results = this.db
       .query(
-        `SELECT ts, channel, user, text, thread_ts as threadTs, reactions, file_id as fileId
+        `SELECT ts, channel, user, text, thread_ts as threadTs, reactions, file_id as fileId, blocks
          FROM simulator_messages
          WHERE channel NOT LIKE 'D_%'
             OR app_id = ?
@@ -247,6 +257,7 @@ export class EmulatorPersistence {
       threadTs: string | null
       reactions: string | null
       fileId: string | null
+      blocks: string | null
     }>
 
     return results.map((row) => ({
@@ -257,6 +268,7 @@ export class EmulatorPersistence {
       threadTs: row.threadTs ?? undefined,
       reactions: row.reactions ? JSON.parse(row.reactions) : undefined,
       fileId: row.fileId ?? undefined,
+      blocks: row.blocks ? JSON.parse(row.blocks) : undefined,
     }))
   }
 

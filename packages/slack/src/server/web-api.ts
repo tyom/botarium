@@ -395,6 +395,9 @@ export class SlackWebAPI {
       }
     }
 
+    // Persist updated message (includes blocks changes)
+    this.state.persistMessage(message)
+
     // Emit message_update event so the UI can re-render
     this.state.emitEvent({ type: 'message_update', message, channel })
 
@@ -487,6 +490,7 @@ export class SlackWebAPI {
         text: m.text,
         ts: m.ts,
         thread_ts: m.thread_ts,
+        ...(m.blocks ? { blocks: m.blocks } : {}),
       })),
       has_more: false,
     }
@@ -515,6 +519,7 @@ export class SlackWebAPI {
         text: m.text,
         ts: m.ts,
         thread_ts: m.thread_ts,
+        ...(m.blocks ? { blocks: m.blocks } : {}),
       })),
       has_more: false,
     }

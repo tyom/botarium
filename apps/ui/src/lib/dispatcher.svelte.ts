@@ -46,6 +46,7 @@ interface StoredMessage {
   user: string
   text: string
   threadTs?: string
+  blocks?: unknown[]
   reactions?: Array<{ name: string; count: number }>
   file?: {
     id: string
