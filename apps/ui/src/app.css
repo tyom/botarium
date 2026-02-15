@@ -295,3 +295,58 @@
     }
   }
 }
+
+/* Mrkdwn rendered text styles (shared across messages, blocks, modals) */
+.mrkdwn code {
+  background: #8881;
+  border: 1px solid #8883;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #e6902c;
+}
+
+.mrkdwn pre {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 4px 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.mrkdwn pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-primary);
+}
+
+.mrkdwn a {
+  color: #1d9bd1;
+  text-decoration: none;
+}
+
+.mrkdwn a:hover {
+  text-decoration: underline;
+}
+
+.mrkdwn blockquote {
+  border-left: 4px solid #ddd;
+  margin: 4px 0;
+  padding-left: 12px;
+  color: var(--text-secondary);
+}
+
+.mrkdwn .s-mention {
+  background: rgba(232, 171, 76, 0.2);
+  color: #e8ab4c;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+.mrkdwn .s-emoji {
+  font-style: normal;
+}
