@@ -37,7 +37,6 @@ function renderInlineToken(token: Token): string {
     }
     case 'text': {
       const t = token as Tokens.Text
-      // Text tokens may have nested tokens (e.g., from inline parsing)
       if ('tokens' in t && t.tokens) {
         return renderTokens(t.tokens)
       }
@@ -51,7 +50,6 @@ function renderInlineToken(token: Token): string {
     }
     case 'html': {
       const t = token as Tokens.HTML
-      // Pass through HTML tags stripped
       return t.text.replace(/<[^>]+>/g, '')
     }
     default:
@@ -64,8 +62,73 @@ function renderTokens(tokens: Token[]): string {
   return tokens.map(renderInlineToken).join('')
 }
 
+/** Render list items with proper nesting via indentation */
+function renderList(token: Tokens.List, depth: number): string {
+  const indent = '    '.repeat(depth)
+  const lines: string[] = []
+
+  token.items.forEach((item, idx) => {
+    // Task list checkbox
+    let prefix: string
+    if (item.task) {
+      prefix = `${indent}${item.checked ? '☑' : '☐'} `
+    } else {
+      prefix = token.ordered ? `${indent}${idx + 1}. ` : `${indent}• `
+    }
+
+    // Separate text content from nested block content (sub-lists)
+    const textParts: string[] = []
+    const blockParts: string[] = []
+
+    for (const child of item.tokens ?? []) {
+      if (child.type === 'list') {
+        blockParts.push(renderList(child as Tokens.List, depth + 1))
+      } else if (child.type === 'text') {
+        const t = child as Tokens.Text
+        if ('tokens' in t && t.tokens) {
+          textParts.push(renderTokens(t.tokens))
+        } else {
+          textParts.push(t.text)
+        }
+      } else {
+        textParts.push(renderBlockToken(child, depth).trim())
+      }
+    }
+
+    lines.push(`${prefix}${textParts.join('')}`)
+    if (blockParts.length > 0) {
+      lines.push(...blockParts.flatMap((b) => b.split('\n').filter(Boolean)))
+    }
+  })
+
+  return lines.join('\n') + '\n'
+}
+
+/** Render a table as aligned plain text */
+function renderTable(token: Tokens.Table): string {
+  // Render header and rows as readable text
+  const headers = token.header.map((cell) => renderTokens(cell.tokens))
+  const rows = token.rows.map((row) =>
+    row.map((cell) => renderTokens(cell.tokens))
+  )
+
+  // Calculate column widths
+  const colWidths = headers.map((h, i) =>
+    Math.max(h.length, ...rows.map((r) => (r[i] ?? '').length))
+  )
+
+  const pad = (text: string, width: number) => text.padEnd(width)
+  const separator = colWidths.map((w) => '─'.repeat(w)).join('─┼─')
+  const headerLine = headers.map((h, i) => pad(h, colWidths[i]!)).join(' │ ')
+  const rowLines = rows.map((row) =>
+    row.map((cell, i) => pad(cell, colWidths[i]!)).join(' │ ')
+  )
+
+  return [headerLine, separator, ...rowLines].join('\n') + '\n'
+}
+
 /** Render a block-level token to mrkdwn */
-function renderBlockToken(token: Token): string {
+function renderBlockToken(token: Token, depth = 0): string {
   switch (token.type) {
     case 'heading': {
       const t = token as Tokens.Heading
@@ -90,21 +153,15 @@ function renderBlockToken(token: Token): string {
       )
     }
     case 'list': {
-      const t = token as Tokens.List
-      return (
-        t.items
-          .map((item, idx) => {
-            const content = renderBlockTokens(item.tokens ?? []).trim()
-            const prefix = t.ordered ? `${idx + 1}. ` : '- '
-            return `${prefix}${content}`
-          })
-          .join('\n') + '\n'
-      )
+      return renderList(token as Tokens.List, depth)
     }
+    case 'table': {
+      return renderTable(token as Tokens.Table)
+    }
+    case 'hr':
+      return '───\n'
     case 'space':
       return '\n'
-    case 'hr':
-      return '---\n'
     default:
       return renderInlineToken(token)
   }
@@ -112,14 +169,15 @@ function renderBlockToken(token: Token): string {
 
 /** Render a list of block tokens to mrkdwn */
 function renderBlockTokens(tokens: Token[]): string {
-  return tokens.map(renderBlockToken).join('')
+  return tokens.map((t) => renderBlockToken(t)).join('')
 }
 
 /**
  * Convert standard Markdown text to Slack mrkdwn format.
  *
  * Handles bold, italic, strike, code, links, headings, lists, blockquotes,
- * and images. Uses `marked` for parsing and a custom renderer for output.
+ * tables, task lists, and images. Uses `marked` for parsing and a custom
+ * renderer for output.
  */
 export function markdownToMrkdwn(text: string): string {
   if (!text) return ''

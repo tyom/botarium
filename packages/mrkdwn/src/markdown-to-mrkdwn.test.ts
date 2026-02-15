@@ -32,10 +32,9 @@ describe('markdownToMrkdwn', () => {
     expect(markdownToMrkdwn('## Subtitle')).toBe('*Subtitle*')
   })
 
-  it('preserves code block', () => {
-    const result = markdownToMrkdwn('```\ncode here\n```')
-    expect(result).toContain('```')
-    expect(result).toContain('code here')
+  it('preserves code block and strips language tag', () => {
+    const result = markdownToMrkdwn('```python\ncode here\n```')
+    expect(result).toBe('```\ncode here\n```')
   })
 
   it('preserves inline code', () => {
@@ -48,10 +47,9 @@ describe('markdownToMrkdwn', () => {
     )
   })
 
-  it('converts unordered list', () => {
+  it('converts unordered list with bullet character', () => {
     const result = markdownToMrkdwn('- item1\n- item2')
-    expect(result).toContain('- item1')
-    expect(result).toContain('- item2')
+    expect(result).toBe('• item1\n• item2')
   })
 
   it('converts ordered list', () => {
@@ -69,5 +67,47 @@ describe('markdownToMrkdwn', () => {
     expect(markdownToMrkdwn('![alt text](https://example.com/img.png)')).toBe(
       '<https://example.com/img.png|alt text>'
     )
+  })
+
+  it('handles nested unordered lists with indentation', () => {
+    const result = markdownToMrkdwn('- Parent\n  - Child\n  - Child 2\n- Next')
+    expect(result).toContain('• Parent')
+    expect(result).toContain('    • Child')
+    expect(result).toContain('    • Child 2')
+    expect(result).toContain('• Next')
+  })
+
+  it('handles nested ordered lists with indentation', () => {
+    const result = markdownToMrkdwn(
+      '1. First\n2. Second\n   1. Sub A\n   2. Sub B\n3. Third'
+    )
+    expect(result).toContain('1. First')
+    expect(result).toContain('    1. Sub A')
+    expect(result).toContain('    2. Sub B')
+    expect(result).toContain('3. Third')
+  })
+
+  it('converts task list with checkboxes', () => {
+    const result = markdownToMrkdwn(
+      '- [x] Done\n- [ ] Not done\n- [ ] Also not done'
+    )
+    expect(result).toContain('☑ Done')
+    expect(result).toContain('☐ Not done')
+    expect(result).toContain('☐ Also not done')
+  })
+
+  it('converts table to aligned text', () => {
+    const result = markdownToMrkdwn(
+      '| Name | Age |\n|------|-----|\n| Alice | 30 |\n| Bob | 25 |'
+    )
+    expect(result).toContain('Name')
+    expect(result).toContain('│')
+    expect(result).toContain('─')
+    expect(result).toContain('Alice')
+    expect(result).toContain('Bob')
+  })
+
+  it('converts horizontal rule to line', () => {
+    expect(markdownToMrkdwn('---')).toBe('───')
   })
 })
