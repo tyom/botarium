@@ -160,6 +160,7 @@ export type SlackBlockElement =
   | SlackStaticSelectElement
   | SlackOverflowElement
   | SlackRadioButtonsElement
+  | SlackCheckboxesElement
   | SlackDatePickerElement
   | SlackTimePickerElement
   | SlackDateTimePickerElement

@@ -5,6 +5,7 @@
     SlackStaticSelectElement,
     SlackOverflowElement,
     SlackRadioButtonsElement,
+    SlackCheckboxesElement,
     SlackDatePickerElement,
     SlackTimePickerElement,
   } from '../../../lib/types'
@@ -14,6 +15,7 @@
   import ImageElement from '../elements/ImageElement.svelte'
   import OverflowMenu from '../elements/OverflowMenu.svelte'
   import RadioButtonGroup from '../elements/RadioButtonGroup.svelte'
+  import Checkboxes from '../elements/Checkboxes.svelte'
   import DatePicker from '../elements/DatePicker.svelte'
   import TimePicker from '../elements/TimePicker.svelte'
 
@@ -91,6 +93,15 @@
           element={tp}
           compact
           onChange={(val) => onAction?.(tp.action_id, val)}
+        />
+      </div>
+    {:else if block.accessory.type === 'checkboxes'}
+      {@const cb = block.accessory as SlackCheckboxesElement}
+      <div class="shrink-0">
+        <Checkboxes
+          element={cb}
+          selectedOptions={undefined}
+          onChange={(options) => onAction?.(cb.action_id, JSON.stringify(options.map(o => ({ text: o.text, value: o.value }))))}
         />
       </div>
     {:else if block.accessory.type === 'image'}

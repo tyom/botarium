@@ -140,6 +140,23 @@
       }
     }
 
+    if (elementType === 'checkboxes') {
+      try {
+        const selectedOptions = JSON.parse(value)
+        return {
+          blockId,
+          elementType,
+          actionValue: { selected_options: selectedOptions },
+        }
+      } catch {
+        return {
+          blockId,
+          elementType,
+          actionValue: { selected_options: [] },
+        }
+      }
+    }
+
     if (elementType === 'datepicker') {
       return {
         blockId,

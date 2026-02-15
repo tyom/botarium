@@ -5,6 +5,7 @@
     SlackStaticSelectElement,
     SlackOverflowElement,
     SlackRadioButtonsElement,
+    SlackCheckboxesElement,
     SlackDatePickerElement,
     SlackTimePickerElement,
     SlackDateTimePickerElement,
@@ -13,6 +14,7 @@
   import StaticSelect from '../elements/StaticSelect.svelte'
   import OverflowMenu from '../elements/OverflowMenu.svelte'
   import RadioButtonGroup from '../elements/RadioButtonGroup.svelte'
+  import Checkboxes from '../elements/Checkboxes.svelte'
   import DatePicker from '../elements/DatePicker.svelte'
   import TimePicker from '../elements/TimePicker.svelte'
   import DateTimePicker from '../elements/DateTimePicker.svelte'
@@ -47,6 +49,13 @@
       <RadioButtonGroup
         element={radio}
         onChange={(option) => onAction?.(radio.action_id, option.value)}
+      />
+    {:else if element.type === 'checkboxes'}
+      {@const cb = element as SlackCheckboxesElement}
+      <Checkboxes
+        element={cb}
+        selectedOptions={undefined}
+        onChange={(options) => onAction?.(cb.action_id, JSON.stringify(options.map(o => ({ text: o.text, value: o.value }))))}
       />
     {:else if element.type === 'datepicker'}
       {@const dp = element as SlackDatePickerElement}
