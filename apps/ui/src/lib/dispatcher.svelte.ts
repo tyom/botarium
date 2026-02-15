@@ -6,6 +6,7 @@
 import {
   simulatorState,
   addMessage,
+  updateMessage,
   deleteMessageFromState,
   clearChannelMessagesFromState,
   addReactionToMessage,
@@ -28,6 +29,7 @@ import type {
   SlackView,
   SlackFile,
   SlackAppConfig,
+  SlackBlock,
   ConnectedBotInfo,
 } from './types'
 import { INTERNAL_SIMULATED_USER_ID } from './settings-store'
@@ -268,6 +270,7 @@ function handleSSEEvent(event: {
     text: string
     ts: string
     thread_ts?: string
+    blocks?: unknown[]
   }
   channel?: string
   item_ts?: string
@@ -309,6 +312,7 @@ function handleSSEEvent(event: {
             text: msg.text,
             thread_ts: msg.thread_ts,
             channel: msg.channel,
+            blocks: msg.blocks as SlackBlock[] | undefined,
           })
         }
       }
@@ -334,6 +338,17 @@ function handleSSEEvent(event: {
           thread_ts: msg.thread_ts,
           channel: msg.channel,
           file,
+          blocks: msg.blocks as SlackBlock[] | undefined,
+        })
+      }
+      break
+
+    case 'message_update':
+      if (event.message) {
+        const msg = event.message
+        updateMessage(msg.channel, msg.ts, {
+          text: msg.text,
+          blocks: msg.blocks as SlackBlock[] | undefined,
         })
       }
       break
@@ -711,6 +726,55 @@ export async function sendBlockAction(
     return true
   } catch (error) {
     dispatcherLogger.error('Failed to send block action:', error)
+    return false
+  }
+}
+
+/**
+ * Send a block action from within a message (e.g., button click in message blocks)
+ * Unlike sendBlockAction (for modals), this sends message_ts + channel_id context
+ */
+export async function sendMessageBlockAction(
+  messageTs: string,
+  channelId: string,
+  actionId: string,
+  blockId: string,
+  elementType: string,
+  actionValue: {
+    value?: string
+    selected_option?: { text: { type: string; text: string }; value: string }
+    selected_options?: Array<{
+      text: { type: string; text: string }
+      value: string
+    }>
+  }
+): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `${EMULATOR_API_URL}/api/simulator/block-action`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message_ts: messageTs,
+          channel_id: channelId,
+          action_id: actionId,
+          block_id: blockId,
+          element_type: elementType,
+          ...actionValue,
+          user: simulatorState.simulatedUserId,
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    dispatcherLogger.info(`Message block action sent: ${actionId}`)
+    return true
+  } catch (error) {
+    dispatcherLogger.error('Failed to send message block action:', error)
     return false
   }
 }

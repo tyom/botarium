@@ -21,6 +21,7 @@ export interface SimulatorMessage {
   channel: string
   reactions: Map<string, number>
   file?: SlackFile
+  blocks?: SlackBlock[]
 }
 
 export interface Channel {

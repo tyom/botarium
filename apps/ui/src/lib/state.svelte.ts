@@ -82,6 +82,20 @@ export function addMessage(
   return fullMessage
 }
 
+// Action: Update an existing message (e.g., chat.update with new blocks/text)
+export function updateMessage(
+  channel: string,
+  ts: string,
+  updates: Partial<Pick<SimulatorMessage, 'text' | 'blocks'>>
+): void {
+  const channelMsgs = simulatorState.messages.get(channel)
+  const msg = channelMsgs?.get(ts)
+  if (msg && channelMsgs) {
+    // Create new object reference to trigger Svelte reactivity (same pattern as addReactionToMessage)
+    channelMsgs.set(ts, { ...msg, ...updates })
+  }
+}
+
 // Action: Add reaction to a message
 export function addReactionToMessage(
   channel: string,
