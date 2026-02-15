@@ -17,11 +17,30 @@
   let isOpen = $state(false)
   let showingConfirm = $state(false)
   let pendingAction: (() => void) | null = $state(null)
+  let triggerRef: HTMLButtonElement
   let containerRef: HTMLDivElement
+  let menuStyle = $state('')
 
   function toggle(e: MouseEvent) {
     e.stopPropagation()
     isOpen = !isOpen
+    if (isOpen) {
+      positionMenu()
+    }
+  }
+
+  function positionMenu() {
+    if (!triggerRef) return
+    const rect = triggerRef.getBoundingClientRect()
+    const menuHeight = element.options.length * 36 + 2 // approximate: ~36px per option + border
+    const spaceBelow = window.innerHeight - rect.bottom
+    const openAbove = spaceBelow < menuHeight + 8
+
+    if (openAbove) {
+      menuStyle = `position:fixed; bottom:${window.innerHeight - rect.top + 4}px; right:${window.innerWidth - rect.right}px;`
+    } else {
+      menuStyle = `position:fixed; top:${rect.bottom + 4}px; right:${window.innerWidth - rect.right}px;`
+    }
   }
 
   function handleSelect(option: SlackOverflowOption) {
@@ -72,11 +91,12 @@
 
 <svelte:window onclick={handleClickOutside} onkeydown={handleKeyDown} />
 
-<div class="relative inline-flex" bind:this={containerRef}>
+<div class="inline-flex" bind:this={containerRef}>
   <button
     type="button"
     class="p-1 rounded text-slack-text-muted hover:bg-white/10 hover:text-slack-text transition-colors"
     onclick={toggle}
+    bind:this={triggerRef}
     aria-label="More options"
     aria-expanded={isOpen}
   >
@@ -84,7 +104,8 @@
   </button>
   {#if isOpen}
     <div
-      class="absolute top-full right-0 mt-1 min-w-36 bg-slack-sidebar border border-white/20 rounded-md shadow-lg z-50 overflow-hidden"
+      style={menuStyle}
+      class="min-w-36 bg-slack-sidebar border border-white/20 rounded-md shadow-lg z-200"
     >
       {#each element.options as option (option.value)}
         <button
