@@ -7,6 +7,7 @@
     SlackRadioButtonsElement,
     SlackDatePickerElement,
     SlackTimePickerElement,
+    SlackDateTimePickerElement,
   } from '../../../lib/types'
   import Button from '../elements/Button.svelte'
   import StaticSelect from '../elements/StaticSelect.svelte'
@@ -14,6 +15,7 @@
   import RadioButtonGroup from '../elements/RadioButtonGroup.svelte'
   import DatePicker from '../elements/DatePicker.svelte'
   import TimePicker from '../elements/TimePicker.svelte'
+  import DateTimePicker from '../elements/DateTimePicker.svelte'
 
   interface Props {
     block: SlackActionsBlock
@@ -59,6 +61,13 @@
         element={tp}
         compact
         onChange={(val) => onAction?.(tp.action_id, val)}
+      />
+    {:else if element.type === 'datetimepicker'}
+      {@const dtp = element as SlackDateTimePickerElement}
+      <DateTimePicker
+        element={dtp}
+        compact
+        onChange={(val) => onAction?.(dtp.action_id, val)}
       />
     {/if}
   {/each}

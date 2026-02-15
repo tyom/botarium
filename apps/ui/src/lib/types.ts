@@ -162,6 +162,7 @@ export type SlackBlockElement =
   | SlackRadioButtonsElement
   | SlackDatePickerElement
   | SlackTimePickerElement
+  | SlackDateTimePickerElement
 
 export interface SlackButtonElement {
   type: 'button'

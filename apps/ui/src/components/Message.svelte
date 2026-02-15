@@ -156,6 +156,14 @@
       }
     }
 
+    if (elementType === 'datetimepicker') {
+      return {
+        blockId,
+        elementType,
+        actionValue: { selected_date_time: Number(value) },
+      }
+    }
+
     // For buttons and other types, use value as-is
     return { blockId, elementType, actionValue: { value } }
   }
@@ -179,6 +187,7 @@
       }>
       selected_date?: string
       selected_time?: string
+      selected_date_time?: number
     }
   } {
     for (let i = 0; i < blocks.length; i++) {
