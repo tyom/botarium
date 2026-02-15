@@ -25,7 +25,7 @@
   let { block, onAction }: Props = $props()
 </script>
 
-<div class="flex flex-wrap gap-2">
+<div class="flex flex-wrap gap-2 items-start">
   {#each block.elements as element, i (i)}
     {#if element.type === 'button'}
       <Button element={element as SlackButtonElement} onClick={onAction} />

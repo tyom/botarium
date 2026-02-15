@@ -53,13 +53,21 @@
     if (!triggerRef) return
     const rect = triggerRef.getBoundingClientRect()
     const menuHeight = 320 // approximate calendar height
+    const menuWidth = 280 // 7 columns x 32px cells + 24px padding
     const spaceBelow = window.innerHeight - rect.bottom
     const openAbove = spaceBelow < menuHeight + 8
 
+    // Prevent right-edge overflow
+    let left = rect.left
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = window.innerWidth - menuWidth - 8
+    }
+    if (left < 8) left = 8
+
     if (openAbove) {
-      menuStyle = `position:fixed; bottom:${window.innerHeight - rect.top + 4}px; left:${rect.left}px;`
+      menuStyle = `position:fixed; bottom:${window.innerHeight - rect.top + 4}px; left:${left}px; width:${menuWidth}px;`
     } else {
-      menuStyle = `position:fixed; top:${rect.bottom + 4}px; left:${rect.left}px;`
+      menuStyle = `position:fixed; top:${rect.bottom + 4}px; left:${left}px; width:${menuWidth}px;`
     }
   }
 

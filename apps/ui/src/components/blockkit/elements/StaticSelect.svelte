@@ -46,7 +46,7 @@
 
 <select
   class="bg-slack-input border border-white/20 rounded-lg text-slack-text focus:border-white/40 focus:outline-none
-    {compact ? 'px-3 py-1.5 text-sm' : 'w-full px-3 py-2'}"
+    {compact ? 'px-3 py-1.5 text-sm max-w-[250px]' : 'w-full px-3 py-2'}"
   value={selectedValue}
   onchange={(e) => handleChange(e.currentTarget.value)}
 >

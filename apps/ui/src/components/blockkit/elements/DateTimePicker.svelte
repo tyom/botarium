@@ -85,12 +85,20 @@
     if (!triggerRef) return
     const rect = triggerRef.getBoundingClientRect()
     const menuHeight = 420 // approximate calendar + time field height
+    const menuWidth = 280 // calendar is the widest part; time field + Done fit within
     const spaceBelow = window.innerHeight - rect.bottom
 
+    // Prevent right-edge overflow
+    let left = rect.left
+    if (left + menuWidth > window.innerWidth - 8) {
+      left = window.innerWidth - menuWidth - 8
+    }
+    if (left < 8) left = 8
+
     if (spaceBelow < menuHeight + 8) {
-      menuStyle = `position:fixed; bottom:${window.innerHeight - rect.top + 4}px; left:${rect.left}px;`
+      menuStyle = `position:fixed; bottom:${window.innerHeight - rect.top + 4}px; left:${left}px; width:${menuWidth}px;`
     } else {
-      menuStyle = `position:fixed; top:${rect.bottom + 4}px; left:${rect.left}px;`
+      menuStyle = `position:fixed; top:${rect.bottom + 4}px; left:${left}px; width:${menuWidth}px;`
     }
   }
 
@@ -250,7 +258,7 @@
               class="flex items-center gap-0.5 rounded-lg border border-white/20 bg-slack-input text-slack-text transition-colors focus-within:border-slack-accent px-2.5 py-1.5 text-sm"
             >
               {#snippet children({ segments })}
-                {#each segments as { part, value: segValue } (part)}
+                {#each segments as { part, value: segValue }, i (i)}
                   {#if part === 'literal'}
                     <span class="text-slack-text-muted">{segValue}</span>
                   {:else}
