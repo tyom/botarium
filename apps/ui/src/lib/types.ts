@@ -33,6 +33,7 @@ export interface Channel {
 export const CHANNELS: Channel[] = [
   { id: 'C_GENERAL', name: 'general', type: 'channel' },
   { id: 'C_RANDOM', name: 'random', type: 'channel' },
+  { id: 'C_SHOWCASE', name: 'showcase', type: 'channel' },
 ]
 
 export const BOT_USER_ID = 'U_BOT'

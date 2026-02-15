@@ -197,11 +197,13 @@
       onOpenThread={handleOpenThread}
       onImagePreview={handleImagePreview}
     />
-    <InputBar
-      onSend={handleSend}
-      disabled={backendState.isInputDisabled || isBotInputDisabled()}
-      bind:value={mainInputValue}
-    />
+    {#if simulatorState.currentChannel !== 'C_SHOWCASE'}
+      <InputBar
+        onSend={handleSend}
+        disabled={backendState.isInputDisabled || isBotInputDisabled()}
+        bind:value={mainInputValue}
+      />
+    {/if}
   </main>
 {/snippet}
 
