@@ -743,6 +743,15 @@ export class EmulatorState {
   }
 
   /**
+   * Find a connected bot by its token
+   */
+  getBotByToken(token: string): ConnectedBot | undefined {
+    return Array.from(this.connectedBots.values()).find(
+      (bot) => `xoxb-${bot.id}` === token
+    )
+  }
+
+  /**
    * Get all connected bots
    */
   getBots(): ConnectedBot[] {
