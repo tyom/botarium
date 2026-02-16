@@ -203,6 +203,9 @@ export class SlackWebAPI {
         case '/api/chat.update':
           return this.chatUpdate(await this.parseBody(req), token)
 
+        case '/api/chat.delete':
+          return this.chatDelete(await this.parseBody(req), token)
+
         case '/api/reactions.add':
           return this.reactionsAdd(await this.parseBody(req), token)
 
@@ -404,6 +407,34 @@ export class SlackWebAPI {
     return Response.json(
       { ok: true, channel, ts, text: message.text },
       { headers: corsHeaders() }
+    )
+  }
+
+  private async chatDelete(
+    body: { channel: string; ts: string },
+    _token: string | null
+  ): Promise<Response> {
+    const { channel, ts } = body
+
+    if (!channel || !ts) {
+      return Response.json(
+        { ok: false, error: 'missing_required_field' },
+        { status: 400, headers: corsHeaders() }
+      )
+    }
+
+    const deleted = this.state.deleteMessageByChannelAndTs(channel, ts)
+    if (!deleted) {
+      return Response.json(
+        { ok: false, error: 'message_not_found' },
+        { status: 404, headers: corsHeaders() }
+      )
+    }
+
+    webApiLogger.debug(`chat.delete: ${channel} ${ts}`)
+    return Response.json(
+      { ok: true, channel, ts },
+      { status: 200, headers: corsHeaders() }
     )
   }
 
