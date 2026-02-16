@@ -449,6 +449,32 @@ export class EmulatorState {
     return false
   }
 
+  /**
+   * Delete a message by channel and timestamp (for chat.delete API)
+   */
+  deleteMessageByChannelAndTs(channel: string, ts: string): boolean {
+    const channelMessages = this.messages.get(channel)
+    if (!channelMessages) return false
+
+    const messageIndex = channelMessages.findIndex(msg => msg.ts === ts)
+    if (messageIndex === -1) return false
+
+    channelMessages.splice(messageIndex, 1)
+
+    // Persist deletion
+    if (this.persistence) {
+      this.persistence.deleteMessage(ts).catch((err) => {
+        stateLogger.error(
+          { err },
+          'Failed to delete message from persistence'
+        )
+      })
+    }
+
+    stateLogger.info({ channel, ts }, 'Message deleted by channel and ts')
+    return true
+  }
+
   // ==========================================================================
   // Reaction Operations
   // ==========================================================================
