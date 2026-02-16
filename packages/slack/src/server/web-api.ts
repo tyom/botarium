@@ -226,13 +226,13 @@ export class SlackWebAPI {
 
         // Views API endpoints
         case '/api/views.open':
-          return this.viewsOpen(await this.parseBody(req))
+          return this.viewsOpen(await this.parseBody(req), token)
 
         case '/api/views.update':
           return this.viewsUpdate(await this.parseBody(req))
 
         case '/api/views.push':
-          return this.viewsPush(await this.parseBody(req))
+          return this.viewsPush(await this.parseBody(req), token)
 
         case '/api/files.uploadV2':
           return this.filesUploadV2(req, token)
@@ -604,7 +604,10 @@ export class SlackWebAPI {
     return view
   }
 
-  private viewsOpen(body: ViewsOpenRequest): Response {
+  private viewsOpen(
+    body: ViewsOpenRequest,
+    token: string | null
+  ): Response {
     const { trigger_id, view: rawView } = body
     webApiLogger.info({ trigger_id, hasView: !!rawView }, 'views.open called')
     const view = this.parseViewIfString(rawView as SlackView | string)
@@ -630,6 +633,9 @@ export class SlackWebAPI {
     const viewId = this.state.generateViewId()
     webApiLogger.info({ viewId, title: view.title?.text }, 'Creating view')
 
+    // Extract bot ID from token for targeted dispatch
+    const botId = this.extractBotIdFromToken(token)
+
     // Store the view (this emits view_open event via SSE)
     this.state.storeView({
       id: viewId,
@@ -637,8 +643,9 @@ export class SlackWebAPI {
       triggerId: trigger_id,
       userId: context.userId,
       channelId: context.channelId,
+      botId,
     })
-    webApiLogger.info({ viewId }, 'View stored and event emitted')
+    webApiLogger.info({ viewId, botId }, 'View stored and event emitted')
 
     const response: ViewsOpenResponse = {
       ok: true,
@@ -674,10 +681,13 @@ export class SlackWebAPI {
     return Response.json(response, { headers: corsHeaders() })
   }
 
-  private viewsPush(body: ViewsOpenRequest): Response {
+  private viewsPush(
+    body: ViewsOpenRequest,
+    token: string | null
+  ): Response {
     // views.push is similar to views.open but pushes onto a stack
     // For now, implement same as views.open
-    return this.viewsOpen(body)
+    return this.viewsOpen(body, token)
   }
 
   private async filesUploadV2(
@@ -1457,21 +1467,24 @@ export class SlackWebAPI {
     const viewBlocks = viewState.view.blocks || []
     const typedValues = this.addTypeDiscriminators(processedValues, viewBlocks)
 
-    // Dispatch view_submission to bot
-    await this.socketMode.dispatchInteractive({
-      type: 'view_submission',
-      view: {
-        ...viewState.view,
-        id: view_id,
-        state: { values: typedValues },
-        private_metadata: viewState.view.private_metadata,
-        callback_id: viewState.view.callback_id,
+    // Dispatch view_submission to the bot that opened this view
+    await this.socketMode.dispatchInteractive(
+      {
+        type: 'view_submission',
+        view: {
+          ...viewState.view,
+          id: view_id,
+          state: { values: typedValues },
+          private_metadata: viewState.view.private_metadata,
+          callback_id: viewState.view.callback_id,
+        },
+        user: {
+          id: viewState.userId,
+          username: 'simulator_user',
+        },
       },
-      user: {
-        id: viewState.userId,
-        username: 'simulator_user',
-      },
-    })
+      viewState.botId
+    )
 
     // Note: Don't close the view here - bot may need to update it
     // (e.g., show "generating" status, then result)
@@ -1787,22 +1800,25 @@ export class SlackWebAPI {
         channelId: viewState.channelId ?? '',
       })
 
-      // Dispatch block_actions with modal context
-      await this.socketMode.dispatchInteractive({
-        type: 'block_actions',
-        container: { type: 'view', view_id: body.view_id },
-        view: {
-          ...viewState.view,
-          id: body.view_id,
-          private_metadata: viewState.view.private_metadata,
+      // Dispatch block_actions to the bot that opened this view
+      await this.socketMode.dispatchInteractive(
+        {
+          type: 'block_actions',
+          container: { type: 'view', view_id: body.view_id },
+          view: {
+            ...viewState.view,
+            id: body.view_id,
+            private_metadata: viewState.view.private_metadata,
+          },
+          user: {
+            id: user,
+            username: 'simulator_user',
+          },
+          actions: [action],
+          trigger_id: triggerId,
         },
-        user: {
-          id: user,
-          username: 'simulator_user',
-        },
-        actions: [action],
-        trigger_id: triggerId,
-      })
+        viewState.botId
+      )
     } else if (body.message_ts && body.channel_id) {
       // Message context path
       const msg = this.state.getMessage(body.channel_id, body.message_ts)
@@ -1821,30 +1837,37 @@ export class SlackWebAPI {
         channelId: body.channel_id,
       })
 
-      // Dispatch block_actions with message context
-      await this.socketMode.dispatchInteractive({
-        type: 'block_actions',
-        container: {
-          type: 'message',
-          message_ts: body.message_ts,
-          channel_id: body.channel_id,
-          is_ephemeral: false,
+      // Extract bot ID from message user (U_{botId} -> botId)
+      const messageBotId =
+        msg.user?.startsWith('U_') ? msg.user.slice(2) : undefined
+
+      // Dispatch block_actions to the bot that sent this message
+      await this.socketMode.dispatchInteractive(
+        {
+          type: 'block_actions',
+          container: {
+            type: 'message',
+            message_ts: body.message_ts,
+            channel_id: body.channel_id,
+            is_ephemeral: false,
+          },
+          channel: { id: body.channel_id, name: channelName },
+          message: {
+            type: 'message',
+            text: msg.text,
+            user: msg.user,
+            ts: msg.ts,
+            blocks: msg.blocks,
+          },
+          user: {
+            id: user,
+            username: 'simulator_user',
+          },
+          actions: [action],
+          trigger_id: triggerId,
         },
-        channel: { id: body.channel_id, name: channelName },
-        message: {
-          type: 'message',
-          text: msg.text,
-          user: msg.user,
-          ts: msg.ts,
-          blocks: msg.blocks,
-        },
-        user: {
-          id: user,
-          username: 'simulator_user',
-        },
-        actions: [action],
-        trigger_id: triggerId,
-      })
+        messageBotId
+      )
     } else {
       return Response.json(
         { ok: false, error: 'missing_argument' },

@@ -164,6 +164,7 @@ export interface ViewState {
   triggerId: string
   userId: string
   channelId?: string
+  botId?: string // ID of the bot that opened this view (for targeted dispatch)
 }
 
 export interface ViewsOpenRequest {

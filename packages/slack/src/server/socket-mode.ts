@@ -541,16 +541,19 @@ export class SocketModeServer {
     }
   }
 
-  async dispatchInteractive(payload: {
-    type: 'view_submission' | 'view_closed' | 'block_actions'
-    view?: unknown
-    container?: unknown
-    channel?: unknown
-    message?: unknown
-    user?: { id: string; username: string }
-    actions?: unknown[]
-    trigger_id?: string
-  }): Promise<void> {
+  async dispatchInteractive(
+    payload: {
+      type: 'view_submission' | 'view_closed' | 'block_actions'
+      view?: unknown
+      container?: unknown
+      channel?: unknown
+      message?: unknown
+      user?: { id: string; username: string }
+      actions?: unknown[]
+      trigger_id?: string
+    },
+    targetBotId?: string
+  ): Promise<void> {
     if (this.connections.size === 0) {
       socketModeLogger.warn(
         `No bots connected, interactive payload not dispatched: ${payload.type}`
@@ -578,7 +581,60 @@ export class SocketModeServer {
         ? (payload.view as { id?: string }).id
         : undefined
 
-    // Send to all connected bots
+    // Targeted dispatch: send to the specific bot that owns the interaction
+    if (targetBotId) {
+      const bot = this.state.getBot(targetBotId)
+      if (!bot || bot.status !== 'connected') {
+        socketModeLogger.warn(
+          { targetBotId },
+          'Target bot not found or not connected for interactive dispatch'
+        )
+        return
+      }
+
+      const targetConnection = this.connections.get(bot.connectionId)
+      if (!targetConnection) {
+        socketModeLogger.warn(
+          { botId: bot.id, connectionId: bot.connectionId },
+          'Bot connection not found in active connections'
+        )
+        return
+      }
+
+      // Send to the bot's specific connection only (not broadcast to all)
+      try {
+        await Promise.race([
+          this.sendWithAck(
+            targetConnection,
+            envelope.envelope_id,
+            message,
+            viewId
+          ),
+          new Promise<void>((_, reject) =>
+            setTimeout(
+              () => reject(new Error('Dispatch timeout')),
+              10000
+            )
+          ),
+        ])
+        socketModeLogger.debug(
+          {
+            botId: bot.id,
+            connectionId: bot.connectionId,
+            type: payload.type,
+          },
+          'Interactive payload dispatched to target bot'
+        )
+      } catch (err) {
+        socketModeLogger.error(
+          { err, botId: bot.id, type: payload.type },
+          'Failed to dispatch interactive payload'
+        )
+      }
+      return
+    }
+
+    // Fallback: send to all connected bots (for cases where target bot is unknown)
     const sendPromises: Promise<void>[] = []
     for (const conn of this.connections.values()) {
       sendPromises.push(
