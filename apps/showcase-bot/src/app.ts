@@ -1,5 +1,6 @@
 import { App, LogLevel } from '@slack/bolt'
 import { registerListeners } from './listeners/index'
+import { sendShowcaseMessages } from './listeners/commands/showcase'
 import { settings, isSimulatorMode } from './settings'
 import { startConfigServer } from './config/http-server'
 import { slackConfig, config } from './config/loader'
@@ -217,6 +218,14 @@ async function main() {
       }
 
       await registerWithSimulator()
+
+      // Pre-populate #showcase channel with Block Kit examples
+      slackLogger.info('Populating #showcase channel...')
+      try {
+        await sendShowcaseMessages(app.client)
+      } catch (err) {
+        slackLogger.error({ err }, 'Failed to populate showcase channel')
+      }
     }
   }
 

@@ -4,6 +4,31 @@ import { slackLogger } from '../../utils/logger'
 
 const SHOWCASE_CHANNEL = 'C_SHOWCASE'
 
+/**
+ * Send all showcase messages to the #showcase channel.
+ * Reusable: called both on startup (auto-populate) and via /showcase command.
+ */
+export async function sendShowcaseMessages(client: App['client']) {
+  for (const message of showcaseMessages) {
+    try {
+      await client.chat.postMessage({
+        channel: SHOWCASE_CHANNEL,
+        text: message.fallbackText,
+        blocks: message.blocks,
+      })
+    } catch (err) {
+      slackLogger.error(
+        { err, fallbackText: message.fallbackText },
+        'Failed to send showcase message'
+      )
+    }
+  }
+  slackLogger.info(
+    { messageCount: showcaseMessages.length },
+    'Sent showcase messages'
+  )
+}
+
 export function register(app: App) {
   app.command('/showcase', async ({ command, ack, client }) => {
     await ack()
@@ -178,24 +203,6 @@ export function register(app: App) {
     }
 
     // Send all showcase messages to #showcase channel
-    for (const message of showcaseMessages) {
-      try {
-        await client.chat.postMessage({
-          channel: SHOWCASE_CHANNEL,
-          text: message.fallbackText,
-          blocks: message.blocks,
-        })
-      } catch (err) {
-        slackLogger.error(
-          { err, fallbackText: message.fallbackText },
-          'Failed to send showcase message'
-        )
-      }
-    }
-
-    slackLogger.info(
-      { messageCount: showcaseMessages.length },
-      'Sent showcase messages'
-    )
+    await sendShowcaseMessages(client)
   })
 }
