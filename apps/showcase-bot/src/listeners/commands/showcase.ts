@@ -5,10 +5,34 @@ import { slackLogger } from '../../utils/logger'
 const SHOWCASE_CHANNEL = 'C_SHOWCASE'
 
 /**
+ * Clear all messages from the #showcase channel.
+ */
+async function clearShowcaseChannel(client: App['client']) {
+  try {
+    const history = await client.conversations.history({
+      channel: SHOWCASE_CHANNEL,
+      limit: 200,
+    })
+    if (history.messages) {
+      for (const msg of history.messages) {
+        if (msg.ts) {
+          await client.chat.delete({ channel: SHOWCASE_CHANNEL, ts: msg.ts })
+        }
+      }
+    }
+  } catch {
+    // Channel may be empty or not yet available — safe to ignore
+  }
+}
+
+/**
  * Send all showcase messages to the #showcase channel.
+ * Clears existing messages first to prevent duplicates across restarts.
  * Reusable: called both on startup (auto-populate) and via /showcase command.
  */
 export async function sendShowcaseMessages(client: App['client']) {
+  await clearShowcaseChannel(client)
+
   for (const message of showcaseMessages) {
     try {
       await client.chat.postMessage({
@@ -34,29 +58,6 @@ export function register(app: App) {
     await ack()
 
     const arg = command.text.trim().toLowerCase()
-
-    // Handle /showcase clear -- clear channel then re-populate
-    if (arg === 'clear') {
-      try {
-        const history = await client.conversations.history({
-          channel: SHOWCASE_CHANNEL,
-          limit: 200,
-        })
-        if (history.messages) {
-          for (const msg of history.messages) {
-            if (msg.ts) {
-              await client.chat.delete({
-                channel: SHOWCASE_CHANNEL,
-                ts: msg.ts,
-              })
-            }
-          }
-        }
-        slackLogger.info('Cleared showcase channel')
-      } catch (err) {
-        slackLogger.warn({ err }, 'Failed to clear showcase channel')
-      }
-    }
 
     // Handle /showcase modal -- open a modal with all input-context elements
     if (arg === 'modal') {

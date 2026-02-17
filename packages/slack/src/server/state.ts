@@ -832,6 +832,19 @@ export class EmulatorState {
     return allCommands
   }
 
+  /**
+   * Find the connected bot that registered a given command
+   */
+  getBotForCommand(command: string): ConnectedBot | undefined {
+    for (const bot of this.connectedBots.values()) {
+      if (bot.status !== 'connected') continue
+      if (bot.appConfig.commands?.some((c) => c.command === command)) {
+        return bot
+      }
+    }
+    return undefined
+  }
+
   // ==========================================================================
   // View / Modal Operations
   // ==========================================================================

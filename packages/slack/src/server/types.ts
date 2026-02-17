@@ -385,6 +385,7 @@ export interface SimulatorEvent {
     | 'view_close'
     | 'file_shared'
     | 'message_update'
+    | 'message_delete'
     | 'bot_connecting' // WebSocket connected, waiting for config registration
     | 'bot_connected'
     | 'bot_disconnected'
@@ -393,6 +394,8 @@ export interface SimulatorEvent {
   user?: string
   reaction?: string
   item_ts?: string
+  // Delete-related fields
+  ts?: string
   // View-related fields
   viewId?: string
   view?: SlackView

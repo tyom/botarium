@@ -354,6 +354,12 @@ function handleSSEEvent(event: {
       }
       break
 
+    case 'message_delete':
+      if (event.channel && event.ts) {
+        deleteMessageFromState(event.channel, event.ts)
+      }
+      break
+
     case 'reaction_added':
       if (event.channel && event.item_ts && event.reaction) {
         addReactionToMessage(event.channel, event.item_ts, event.reaction)

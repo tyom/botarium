@@ -419,22 +419,25 @@ export class SlackWebAPI {
     if (!channel || !ts) {
       return Response.json(
         { ok: false, error: 'missing_required_field' },
-        { status: 400, headers: corsHeaders() }
+        { headers: corsHeaders() }
       )
     }
 
-    const deleted = this.state.deleteMessageByChannelAndTs(channel, ts)
+    const deleted = this.state.deleteMessage(ts)
     if (!deleted) {
       return Response.json(
         { ok: false, error: 'message_not_found' },
-        { status: 404, headers: corsHeaders() }
+        { headers: corsHeaders() }
       )
     }
+
+    // Emit SSE event so the frontend removes the message
+    this.state.emitEvent({ type: 'message_delete', ts, channel })
 
     webApiLogger.debug(`chat.delete: ${channel} ${ts}`)
     return Response.json(
       { ok: true, channel, ts },
-      { status: 200, headers: corsHeaders() }
+      { headers: corsHeaders() }
     )
   }
 
@@ -1424,12 +1427,13 @@ export class SlackWebAPI {
       api_app_id: 'A_SIMULATOR',
     }
 
-    // Dispatch to connected bots
+    // Dispatch to the bot that owns this command (or broadcast as fallback)
+    const targetBot = this.state.getBotForCommand(command)
     webApiLogger.info(
-      { connectedBots: this.socketMode.getConnectionCount() },
-      'Dispatching slash command to bots'
+      { connectedBots: this.socketMode.getConnectionCount(), targetBot: targetBot?.id },
+      'Dispatching slash command'
     )
-    await this.socketMode.dispatchSlashCommand(payload)
+    await this.socketMode.dispatchSlashCommand(payload, targetBot?.id)
     webApiLogger.info('Slash command dispatched successfully')
 
     return Response.json(
