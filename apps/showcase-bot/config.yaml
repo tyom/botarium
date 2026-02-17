@@ -9,8 +9,8 @@ simulator:
 slack:
   commands:
     - command: /showcase
-      description: Populate #showcase with Block Kit examples
-      usage_hint: '[clear|modal]'
+      description: Block Kit showcase commands
+      usage_hint: '[generate|clear|modal|help]'
   shortcuts: []
   actions: {}
   modals:
