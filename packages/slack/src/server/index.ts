@@ -263,6 +263,7 @@ export async function startEmulatorServer(
             user: msg.user,
             text: msg.text,
             threadTs: msg.thread_ts,
+            ...(msg.subtype ? { subtype: msg.subtype } : {}),
             reactions: msg.reactions?.map((r) => ({
               name: r.name,
               count: r.count,

@@ -203,6 +203,9 @@ export class SlackWebAPI {
         case '/api/chat.update':
           return this.chatUpdate(await this.parseBody(req), token)
 
+        case '/api/chat.postEphemeral':
+          return this.chatPostEphemeral(await this.parseBody(req), token)
+
         case '/api/chat.delete':
           return this.chatDelete(await this.parseBody(req), token)
 
@@ -353,6 +356,42 @@ export class SlackWebAPI {
 
     webApiLogger.debug(`chat.postMessage: ${messageText.substring(0, 50)}...`)
     return Response.json(response, { headers: corsHeaders() })
+  }
+
+  private async chatPostEphemeral(
+    body: { channel: string; user: string; text?: string; blocks?: unknown[] },
+    token: string | null
+  ): Promise<Response> {
+    const { channel, text, user, blocks } = body
+
+    if (!channel || !user || (!text && !blocks)) {
+      return Response.json(
+        { ok: false, error: 'missing_argument' },
+        { headers: corsHeaders() }
+      )
+    }
+
+    const botInfo = this.getBotInfoFromToken(token)
+    const ts = this.state.generateTimestamp()
+    const messageText = text || ''
+
+    const message: SlackMessage = {
+      type: 'message',
+      subtype: 'ephemeral',
+      channel,
+      user: botInfo.id,
+      text: messageText,
+      ts,
+      blocks: blocks as Array<Record<string, unknown>> | undefined,
+    }
+
+    this.state.addMessage(message)
+
+    webApiLogger.debug(`chat.postEphemeral: ${messageText.substring(0, 50)}...`)
+    return Response.json(
+      { ok: true, channel, ts, message_ts: ts },
+      { headers: corsHeaders() }
+    )
   }
 
   private async chatUpdate(

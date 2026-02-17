@@ -273,6 +273,7 @@ export function restoreMessages(
     channel: string
     user: string
     text: string
+    subtype?: string
     threadTs?: string
     blocks?: unknown[]
     reactions?: Array<{ name: string; count: number }>
@@ -302,6 +303,7 @@ export function restoreMessages(
       ts: msg.ts,
       user: msg.user,
       text: msg.text,
+      subtype: msg.subtype,
       thread_ts: msg.threadTs,
       channel,
       reactions: new SvelteMap(

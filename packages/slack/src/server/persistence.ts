@@ -20,6 +20,7 @@ export interface MessageRecord {
   channel: string
   user: string
   text: string
+  subtype?: string
   threadTs?: string
   reactions?: ReactionRecord[]
   fileId?: string
@@ -118,6 +119,13 @@ export class EmulatorPersistence {
     } catch {
       // Column already exists, ignore
     }
+    // Migration: add subtype column for ephemeral messages
+    try {
+      this.db.run(`ALTER TABLE simulator_messages ADD COLUMN subtype TEXT`)
+    } catch {
+      // Column already exists, ignore
+    }
+
     // Backfill legacy DM rows so they remain visible after upgrade
     this.db.run(
       `UPDATE simulator_messages SET app_id = ? WHERE app_id IS NULL AND channel LIKE 'D_%'`,
@@ -200,9 +208,9 @@ export class EmulatorPersistence {
     const appIdValue = this.isDirectMessage(message.channel) ? this.appId : null
 
     this.db.run(
-      `INSERT INTO simulator_messages (ts, channel, user, text, thread_ts, reactions, file_id, app_id, blocks, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(ts) DO UPDATE SET text = excluded.text, reactions = excluded.reactions, file_id = excluded.file_id, blocks = excluded.blocks`,
+      `INSERT INTO simulator_messages (ts, channel, user, text, thread_ts, reactions, file_id, app_id, blocks, subtype, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(ts) DO UPDATE SET text = excluded.text, reactions = excluded.reactions, file_id = excluded.file_id, blocks = excluded.blocks, subtype = excluded.subtype`,
       [
         message.ts,
         message.channel,
@@ -213,6 +221,7 @@ export class EmulatorPersistence {
         fileId,
         appIdValue,
         blocksJson,
+        message.subtype ?? null,
         now,
       ]
     )
@@ -243,7 +252,7 @@ export class EmulatorPersistence {
     // Load channel messages (always) + DM messages only for current app
     const results = this.db
       .query(
-        `SELECT ts, channel, user, text, thread_ts as threadTs, reactions, file_id as fileId, blocks
+        `SELECT ts, channel, user, text, thread_ts as threadTs, reactions, file_id as fileId, blocks, subtype
          FROM simulator_messages
          WHERE channel NOT LIKE 'D_%'
             OR app_id = ?
@@ -258,6 +267,7 @@ export class EmulatorPersistence {
       reactions: string | null
       fileId: string | null
       blocks: string | null
+      subtype: string | null
     }>
 
     return results.map((row) => ({
@@ -269,6 +279,7 @@ export class EmulatorPersistence {
       reactions: row.reactions ? JSON.parse(row.reactions) : undefined,
       fileId: row.fileId ?? undefined,
       blocks: row.blocks ? JSON.parse(row.blocks) : undefined,
+      subtype: row.subtype ?? undefined,
     }))
   }
 

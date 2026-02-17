@@ -45,6 +45,7 @@ interface StoredMessage {
   channel: string
   user: string
   text: string
+  subtype?: string
   threadTs?: string
   blocks?: unknown[]
   reactions?: Array<{ name: string; count: number }>
@@ -270,6 +271,7 @@ function handleSSEEvent(event: {
     user: string
     text: string
     ts: string
+    subtype?: string
     thread_ts?: string
     blocks?: unknown[]
   }
@@ -311,6 +313,7 @@ function handleSSEEvent(event: {
             ts: msg.ts,
             user: msg.user,
             text: msg.text,
+            subtype: msg.subtype,
             thread_ts: msg.thread_ts,
             channel: msg.channel,
             blocks: msg.blocks as SlackBlock[] | undefined,

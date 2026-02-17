@@ -17,6 +17,7 @@ export interface SimulatorMessage {
   ts: string
   user: string
   text: string
+  subtype?: string
   thread_ts?: string
   channel: string
   reactions: Map<string, number>
