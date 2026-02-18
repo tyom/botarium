@@ -22,10 +22,9 @@
   interface Props {
     block: SlackSectionBlock
     onAction?: (actionId: string, value: string) => void
-    onImagePreview?: (imageUrl: string, imageAlt: string) => void
   }
 
-  let { block, onAction, onImagePreview }: Props = $props()
+  let { block, onAction }: Props = $props()
 
   const isStackedAccessory = $derived(
     block.accessory?.type === 'radio_buttons' ||
@@ -99,7 +98,6 @@
         imageUrl={block.accessory.image_url}
         altText={block.accessory.alt_text}
         size="accessory"
-        {onImagePreview}
       />
     {/if}
   {/if}

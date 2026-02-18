@@ -67,7 +67,7 @@
 <div class="space-y-1">
   {#each blocks as block, index (getBlockId(block, index))}
     {#if block.type === 'section'}
-      <SectionBlock block={block as SlackSectionBlock} {onAction} {onImagePreview} />
+      <SectionBlock block={block as SlackSectionBlock} {onAction} />
     {:else if block.type === 'input'}
       <InputBlock
         block={block as SlackInputBlock}
@@ -84,7 +84,7 @@
     {:else if block.type === 'divider'}
       <DividerBlock />
     {:else if block.type === 'context'}
-      <ContextBlock block={block as SlackContextBlock} {onImagePreview} />
+      <ContextBlock block={block as SlackContextBlock} />
     {:else if block.type === 'image'}
       <ImageBlock block={block as SlackImageBlock} {onImagePreview} />
     {:else if block.type === 'header'}

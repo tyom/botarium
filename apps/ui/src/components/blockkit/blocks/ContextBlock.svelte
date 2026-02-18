@@ -8,10 +8,9 @@
 
   interface Props {
     block: SlackContextBlock
-    onImagePreview?: (imageUrl: string, imageAlt: string) => void
   }
 
-  let { block, onImagePreview }: Props = $props()
+  let { block }: Props = $props()
 </script>
 
 <div
@@ -22,7 +21,7 @@
       <span class="mrkdwn">{@html renderMrkdwn(el as SlackViewTextObject)}</span
       >
     {:else if el.type === 'image'}
-      <ImageElement imageUrl={el.image_url} altText={el.alt_text} size="sm" {onImagePreview} />
+      <ImageElement imageUrl={el.image_url} altText={el.alt_text} size="sm" />
     {/if}
   {/each}
 </div>
