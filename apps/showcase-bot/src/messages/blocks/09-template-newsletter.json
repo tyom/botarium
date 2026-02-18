@@ -38,7 +38,8 @@
           "type": "plain_text",
           "text": "Watch Now",
           "emoji": true
-        }
+        },
+        "action_id": "showcase_newsletter_watch"
       }
     },
     {
@@ -70,7 +71,8 @@
           "type": "plain_text",
           "text": "RSVP",
           "emoji": true
-        }
+        },
+        "action_id": "showcase_newsletter_rsvp_retreat"
       }
     },
     {
@@ -85,7 +87,8 @@
           "type": "plain_text",
           "text": "Learn More",
           "emoji": true
-        }
+        },
+        "action_id": "showcase_newsletter_learn_more"
       }
     },
     {
@@ -100,7 +103,8 @@
           "type": "plain_text",
           "text": "RSVP",
           "emoji": true
-        }
+        },
+        "action_id": "showcase_newsletter_rsvp_pretzel"
       }
     },
     {
@@ -125,7 +129,8 @@
           "type": "plain_text",
           "text": "Watch Recording",
           "emoji": true
-        }
+        },
+        "action_id": "showcase_newsletter_recording"
       }
     },
     {

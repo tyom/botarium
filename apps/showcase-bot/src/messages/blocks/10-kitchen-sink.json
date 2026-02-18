@@ -1,0 +1,467 @@
+{
+  "blocks": [
+    {
+      "type": "rich_text",
+      "elements": [
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "Hello there, I am a basic rich text block!"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "rich_text",
+      "elements": [
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "Hello there, "
+            },
+            {
+              "type": "text",
+              "text": "I am a bold rich text block!",
+              "style": {
+                "bold": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "rich_text",
+      "elements": [
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "Hello there, "
+            },
+            {
+              "type": "text",
+              "text": "I am a strikethrough rich text block!",
+              "style": {
+                "strike": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "rich_text",
+      "elements": [
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "emoji",
+              "name": "basketball"
+            },
+            {
+              "type": "text",
+              "text": " "
+            },
+            {
+              "type": "emoji",
+              "name": "snowboarder"
+            },
+            {
+              "type": "text",
+              "text": " "
+            },
+            {
+              "type": "emoji",
+              "name": "checkered_flag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "rich_text",
+      "elements": [
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "Basic bullet list with rich elements\n"
+            }
+          ]
+        },
+        {
+          "type": "rich_text_list",
+          "style": "bullet",
+          "indent": 0,
+          "elements": [
+            {
+              "type": "rich_text_section",
+              "elements": [
+                {
+                  "type": "text",
+                  "text": "item 1: "
+                },
+                {
+                  "type": "emoji",
+                  "name": "basketball"
+                }
+              ]
+            },
+            {
+              "type": "rich_text_section",
+              "elements": [
+                {
+                  "type": "text",
+                  "text": "item 2: "
+                },
+                {
+                  "type": "text",
+                  "text": "this is a list item"
+                }
+              ]
+            },
+            {
+              "type": "rich_text_section",
+              "elements": [
+                {
+                  "type": "text",
+                  "text": "item 3: "
+                },
+                {
+                  "type": "link",
+                  "url": "https://example.com/",
+                  "text": "with a link",
+                  "style": {
+                    "bold": true
+                  }
+                }
+              ]
+            },
+            {
+              "type": "rich_text_section",
+              "elements": [
+                {
+                  "type": "text",
+                  "text": "item 4: "
+                },
+                {
+                  "type": "text",
+                  "text": "we are near the end"
+                }
+              ]
+            },
+            {
+              "type": "rich_text_section",
+              "elements": [
+                {
+                  "type": "text",
+                  "text": "item 5: "
+                },
+                {
+                  "type": "text",
+                  "text": "this is the end"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "rich_text",
+      "elements": [
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "Check out these different block types with paragraph breaks between them:\n\n"
+            }
+          ]
+        },
+        {
+          "type": "rich_text_preformatted",
+          "elements": [
+            {
+              "type": "text",
+              "text": "Hello there, I am preformatted block!\n\nI can have multiple paragraph breaks within the block."
+            }
+          ]
+        },
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "\nI am rich text with a paragraph break following preformatted text. \n\nI can have multiple paragraph breaks within the block.\n\n"
+            }
+          ]
+        },
+        {
+          "type": "rich_text_quote",
+          "elements": [
+            {
+              "type": "text",
+              "text": "I am a basic rich text quote, \n\nI can have multiple paragraph breaks within the block."
+            }
+          ]
+        },
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "\nI am rich text with a paragraph after the quote block\n\n"
+            }
+          ]
+        },
+        {
+          "type": "rich_text_quote",
+          "elements": [
+            {
+              "type": "text",
+              "text": "I am a basic quote block following rich text"
+            }
+          ]
+        },
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "\n"
+            }
+          ]
+        },
+        {
+          "type": "rich_text_preformatted",
+          "elements": [
+            {
+              "type": "text",
+              "text": "I am more preformatted text following a quote block"
+            }
+          ]
+        },
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "\n"
+            }
+          ]
+        },
+        {
+          "type": "rich_text_quote",
+          "elements": [
+            {
+              "type": "text",
+              "text": "I am a basic quote block following preformatted text"
+            }
+          ]
+        },
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "\n"
+            }
+          ]
+        },
+        {
+          "type": "rich_text_list",
+          "style": "bullet",
+          "indent": 0,
+          "elements": [
+            {
+              "type": "rich_text_section",
+              "elements": [
+                {
+                  "type": "text",
+                  "text": "list item one"
+                }
+              ]
+            },
+            {
+              "type": "rich_text_section",
+              "elements": [
+                {
+                  "type": "text",
+                  "text": "list item two"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rich_text_section",
+          "elements": [
+            {
+              "type": "text",
+              "text": "\nI am rich text with a paragraph break after a list"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "context_actions",
+      "elements": [
+        {
+          "type": "feedback_buttons",
+          "action_id": "showcase_feedback",
+          "positive_button": {
+            "text": {
+              "type": "plain_text",
+              "text": "Good Response"
+            },
+            "value": "positive"
+          },
+          "negative_button": {
+            "text": {
+              "type": "plain_text",
+              "text": "Bad Response"
+            },
+            "value": "negative"
+          }
+        },
+        {
+          "type": "icon_button",
+          "action_id": "showcase_remove",
+          "icon": "trash",
+          "text": {
+            "type": "plain_text",
+            "text": "Remove"
+          }
+        }
+      ]
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": {
+            "type": "plain_text",
+            "text": "Click Me",
+            "emoji": true
+          },
+          "value": "click_me_123",
+          "action_id": "showcase_kitchen_sink_0"
+        }
+      ]
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "conversations_select",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Select a conversation",
+            "emoji": true
+          },
+          "initial_conversation": "G12345678",
+          "action_id": "showcase_kitchen_sink_0"
+        },
+        {
+          "type": "users_select",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Select a user",
+            "emoji": true
+          },
+          "initial_user": "U12345678",
+          "action_id": "showcase_kitchen_sink_1"
+        },
+        {
+          "type": "channels_select",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Select a channel",
+            "emoji": true
+          },
+          "initial_channel": "C12345678",
+          "action_id": "showcase_kitchen_sink_2"
+        }
+      ]
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "conversations_select",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Select a conversation",
+            "emoji": true
+          },
+          "action_id": "showcase_kitchen_sink_0"
+        },
+        {
+          "type": "channels_select",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Select a channel",
+            "emoji": true
+          },
+          "action_id": "showcase_kitchen_sink_1"
+        },
+        {
+          "type": "users_select",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Select a user",
+            "emoji": true
+          },
+          "action_id": "showcase_kitchen_sink_2"
+        },
+        {
+          "type": "static_select",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Select an item",
+            "emoji": true
+          },
+          "options": [
+            {
+              "text": {
+                "type": "plain_text",
+                "text": "*plain_text option 0*",
+                "emoji": true
+              },
+              "value": "value-0"
+            },
+            {
+              "text": {
+                "type": "plain_text",
+                "text": "*plain_text option 1*",
+                "emoji": true
+              },
+              "value": "value-1"
+            },
+            {
+              "text": {
+                "type": "plain_text",
+                "text": "*plain_text option 2*",
+                "emoji": true
+              },
+              "value": "value-2"
+            }
+          ],
+          "action_id": "showcase_kitchen_sink_3"
+        }
+      ]
+    }
+  ]
+}
