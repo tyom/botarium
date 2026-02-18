@@ -21,6 +21,7 @@
       'br',
       'code',
       'del',
+      'div',
       'em',
       'i',
       'li',
@@ -90,25 +91,29 @@
     return elements.map(renderInlineElement).join('')
   }
 
+  function newlinesToBreaks(html: string): string {
+    return html.replace(/\n+/g, '<span class="rt-br"></span>')
+  }
+
   function renderBlockElement(el: RichTextBlockElement): string {
     switch (el.type) {
       case 'rich_text_section': {
-        const content = renderInlineElements(el.elements)
-        return `<span class="rt-section">${content}</span>`
+        const content = newlinesToBreaks(renderInlineElements(el.elements))
+        return `<div class="rt-section">${content}</div>`
       }
       case 'rich_text_preformatted': {
         const content = renderInlineElements(el.elements)
         return `<pre class="rt-pre">${content}</pre>`
       }
       case 'rich_text_quote': {
-        const content = renderInlineElements(el.elements)
+        const content = newlinesToBreaks(renderInlineElements(el.elements))
         return `<blockquote class="rt-quote">${content}</blockquote>`
       }
       case 'rich_text_list': {
         const tag = el.style === 'ordered' ? 'ol' : 'ul'
         const indentStyle = el.indent ? ` style="padding-left: ${el.indent * 24}px"` : ''
         const items = el.elements
-          .map((item) => `<li>${renderInlineElements(item.elements)}</li>`)
+          .map((item) => `<li>${newlinesToBreaks(renderInlineElements(item.elements))}</li>`)
           .join('')
         return `<${tag} class="rt-list"${indentStyle}>${items}</${tag}>`
       }
@@ -128,13 +133,14 @@
 </div>
 
 <style>
-  .rich-text :global(.rt-section) {
-    white-space: pre-wrap;
+  .rich-text :global(.rt-br) {
+    display: block;
+    height: 8px;
   }
 
   .rich-text :global(.rt-pre) {
     background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 4px;
     padding: 8px 12px;
     font-family: var(--font-mono);
@@ -144,11 +150,10 @@
   }
 
   .rich-text :global(.rt-quote) {
-    border-left: 4px solid #ddd;
+    border-left: 4px solid rgba(255, 255, 255, 0.25);
     padding-left: 12px;
     color: var(--text-secondary);
     margin: 4px 0;
-    white-space: pre-wrap;
   }
 
   .rich-text :global(.rt-list) {
@@ -165,7 +170,7 @@
   }
 
   .rich-text :global(.rt-list li) {
-    margin: 2px 0;
+    margin: 0;
   }
 
   .rich-text :global(.s-code) {
