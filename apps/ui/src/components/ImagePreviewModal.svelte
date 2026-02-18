@@ -49,9 +49,9 @@
   ]
   const handleKeyDown = createKeydownHandler(shortcuts)
 
-  // Calculate max pan distance based on image size vs panel size.
-  // At 2x zoom, the zoomed image = 2 * baseSize.
-  // Max pan per side = (zoomedSize - panelSize) / 2, clamped to >= 0.
+  // Pan bounds: large images can pan to panel edge, small images stay padded.
+  const SMALL_IMAGE_PADDING = 80
+
   function getPanBounds() {
     if (!imageEl || !panelEl) return { maxX: 0, maxY: 0 }
 
@@ -63,10 +63,16 @@
     const zoomedWidth = baseWidth * 2
     const zoomedHeight = baseHeight * 2
 
-    const maxX = Math.max(0, (zoomedWidth - panelRect.width) / 2)
-    const maxY = Math.max(0, (zoomedHeight - panelRect.height) / 2)
+    function axisMax(zoomed: number, panel: number) {
+      if (zoomed >= panel) {
+        // Large image: can pan until image edge meets panel edge
+        return (zoomed - panel) / 2
+      }
+      // Small image: can pan within a padded inner area
+      return Math.max(0, (panel - zoomed) / 2 - SMALL_IMAGE_PADDING)
+    }
 
-    return { maxX, maxY }
+    return { maxX: axisMax(zoomedWidth, panelRect.width), maxY: axisMax(zoomedHeight, panelRect.height) }
   }
 
   function clampPan(pos: { x: number; y: number }) {
@@ -102,8 +108,12 @@
 
         const zoomedWidth = imgRect.width * 2
         const zoomedHeight = imgRect.height * 2
-        const maxX = Math.max(0, (zoomedWidth - panelRect.width) / 2)
-        const maxY = Math.max(0, (zoomedHeight - panelRect.height) / 2)
+        function axisMax(zoomed: number, panel: number) {
+          if (zoomed >= panel) return (zoomed - panel) / 2
+          return Math.max(0, (panel - zoomed) / 2 - SMALL_IMAGE_PADDING)
+        }
+        const maxX = axisMax(zoomedWidth, panelRect.width)
+        const maxY = axisMax(zoomedHeight, panelRect.height)
 
         // Pan to keep clicked point stationary after zoom
         panPosition = {
