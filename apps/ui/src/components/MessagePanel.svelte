@@ -65,7 +65,7 @@
     activeThreadTs?: string | null
     onShowLogs?: () => void
     onOpenThread?: (ts: string) => void
-    onImagePreview?: (imageUrl: string, imageAlt: string, userName?: string) => void
+    onImagePreview?: (imageUrl: string, imageAlt: string, userName?: string, isBot?: boolean, timestamp?: string, channelName?: string) => void
   }
 
   let {

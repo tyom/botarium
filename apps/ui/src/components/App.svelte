@@ -45,7 +45,14 @@
   let logPanelVisible = $state(false)
   let rhsTab = $state<'thread' | 'logs'>('thread')
   let mainInputValue = $state('')
-  let previewImage = $state<{ url: string; alt: string; userName?: string } | null>(null)
+  let previewImage = $state<{
+    url: string
+    alt: string
+    userName?: string
+    isBot?: boolean
+    timestamp?: string
+    channelName?: string
+  } | null>(null)
 
   // Derive active thread from centralized state (synced with URL)
   let activeThreadTs = $derived(simulatorState.currentThreadTs)
@@ -176,8 +183,15 @@
     rhsTab = tabId as 'thread' | 'logs'
   }
 
-  function handleImagePreview(url: string, alt: string, userName?: string) {
-    previewImage = { url, alt, userName }
+  function handleImagePreview(
+    url: string,
+    alt: string,
+    userName?: string,
+    isBot?: boolean,
+    timestamp?: string,
+    channelName?: string
+  ) {
+    previewImage = { url, alt, userName, isBot, timestamp, channelName }
   }
 
   function handleCloseImagePreview() {
@@ -321,6 +335,9 @@
     imageUrl={previewImage.url}
     imageAlt={previewImage.alt}
     userName={previewImage.userName}
+    isBot={previewImage.isBot}
+    timestamp={previewImage.timestamp}
+    channelName={previewImage.channelName}
     onClose={handleCloseImagePreview}
   />
 {/if}

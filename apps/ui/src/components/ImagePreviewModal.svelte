@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { X } from '@lucide/svelte'
+  import { X, Sparkles, Lock, Hash } from '@lucide/svelte'
   import {
     createKeydownHandler,
     type KeyboardShortcut,
@@ -9,10 +9,25 @@
     imageUrl: string
     imageAlt?: string
     userName?: string
+    isBot?: boolean
+    timestamp?: string
+    channelName?: string
     onClose: () => void
   }
 
-  let { imageUrl, imageAlt = '', userName, onClose }: Props = $props()
+  let {
+    imageUrl,
+    imageAlt = '',
+    userName,
+    isBot = false,
+    timestamp,
+    channelName,
+    onClose,
+  }: Props = $props()
+
+  let avatarLetter = $derived(userName ? userName.charAt(0).toUpperCase() : '')
+  let isChannel = $derived(channelName?.startsWith('#') ?? false)
+  let channelLabel = $derived(channelName?.replace(/^#/, '') ?? '')
 
   let isZoomed = $state(false)
   let panPosition = $state({ x: 0, y: 0 })
@@ -174,7 +189,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
   role="dialog"
-  class="fixed inset-0 bg-black/90 flex items-center justify-center z-70"
+  class="fixed inset-0 bg-black/70 backdrop-blur-2xl flex items-center justify-center z-70"
   onclick={handleBackdropClick}
   onmouseup={handleMouseUp}
   onmousemove={handleMouseMove}
@@ -182,10 +197,35 @@
   onwheel={handleWheel}
   aria-modal="true"
 >
-  <!-- User info top-left -->
+  <!-- Author info top-left -->
   {#if userName}
-    <div class="absolute top-4 left-4 flex items-center gap-2 z-10">
-      <span class="text-white text-sm font-semibold">{userName}</span>
+    <div class="absolute top-3 left-4 flex items-center gap-2.5 z-10">
+      <div
+        class="size-7 rounded-lg text-white flex items-center justify-center font-bold text-xs shrink-0 {isBot
+          ? 'bg-slack-bot-avatar'
+          : 'bg-slack-user-avatar'}"
+      >
+        {#if isBot}
+          <Sparkles size={14} />
+        {:else}
+          {avatarLetter}
+        {/if}
+      </div>
+      <div class="flex items-baseline gap-1.5">
+        <span class="text-white text-sm font-bold">{userName}</span>
+        {#if timestamp}
+          <span class="text-white/50 text-xs">{timestamp}</span>
+        {/if}
+        {#if channelName}
+          <span class="text-white/50 text-xs">in</span>
+          <span class="text-white/50 text-xs inline-flex items-center gap-0.5">
+            {#if isChannel}
+              <Lock size={10} />
+            {/if}
+            {channelLabel}
+          </span>
+        {/if}
+      </div>
     </div>
   {/if}
 
