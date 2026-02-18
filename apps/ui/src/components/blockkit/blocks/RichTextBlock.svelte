@@ -1,10 +1,10 @@
 <script lang="ts">
   import DOMPurify from 'dompurify'
   import type {
-    SlackRichTextBlock,
     RichTextBlockElement,
     RichTextInlineElement,
     RichTextStyle,
+    SlackRichTextBlock,
   } from '../../../lib/types'
 
   interface Props {
@@ -111,9 +111,14 @@
       }
       case 'rich_text_list': {
         const tag = el.style === 'ordered' ? 'ol' : 'ul'
-        const indentStyle = el.indent ? ` style="padding-left: ${el.indent * 24}px"` : ''
+        const indentStyle = el.indent
+          ? ` style="padding-left: ${el.indent * 24}px"`
+          : ''
         const items = el.elements
-          .map((item) => `<li>${newlinesToBreaks(renderInlineElements(item.elements))}</li>`)
+          .map(
+            (item) =>
+              `<li>${newlinesToBreaks(renderInlineElements(item.elements))}</li>`
+          )
           .join('')
         return `<${tag} class="rt-list"${indentStyle}>${items}</${tag}>`
       }

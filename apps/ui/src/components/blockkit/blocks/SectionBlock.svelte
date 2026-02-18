@@ -27,8 +27,8 @@
   let { block, onAction }: Props = $props()
 </script>
 
-<div class="flex items-start justify-between gap-4">
-  <div class="flex-1">
+<div class="p-section_block flex items-start justify-between gap-4">
+  <div class="p-section_block__text_content">
     {#if block.text}
       <div class="mrkdwn text-slack-text whitespace-pre-wrap">
         {@html renderMrkdwn(block.text)}
@@ -46,7 +46,7 @@
   </div>
   {#if block.accessory}
     {#if block.accessory.type === 'button'}
-      <div class="shrink-0">
+      <div class="shrink-0 p-section_block__accessory">
         <Button
           element={block.accessory as SlackButtonElement}
           onClick={onAction}
@@ -101,7 +101,13 @@
         <Checkboxes
           element={cb}
           selectedOptions={undefined}
-          onChange={(options) => onAction?.(cb.action_id, JSON.stringify(options.map(o => ({ text: o.text, value: o.value }))))}
+          onChange={(options) =>
+            onAction?.(
+              cb.action_id,
+              JSON.stringify(
+                options.map((o) => ({ text: o.text, value: o.value }))
+              )
+            )}
         />
       </div>
     {:else if block.accessory.type === 'image'}
@@ -113,3 +119,16 @@
     {/if}
   {/if}
 </div>
+
+<style>
+  .p-section_block {
+    line-height: 1.46668;
+    margin: 8px 0 4px;
+  }
+  .p-section_block__text_content {
+    flex: 1;
+  }
+  .p-section_block__accessory {
+    margin: 0 0 4px 8px;
+  }
+</style>
