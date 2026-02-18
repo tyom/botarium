@@ -105,6 +105,7 @@ export type SlackBlock =
   | SlackContextBlock
   | SlackImageBlock
   | SlackHeaderBlock
+  | SlackRichTextBlock
 
 export interface SlackSectionBlock {
   type: 'section'
@@ -153,6 +154,100 @@ export interface SlackHeaderBlock {
   type: 'header'
   block_id?: string
   text: SlackViewTextObject
+}
+
+// Rich text style applied to inline elements
+export interface RichTextStyle {
+  bold?: boolean
+  italic?: boolean
+  strike?: boolean
+  code?: boolean
+  underline?: boolean
+}
+
+// Rich text inline elements (leaf nodes)
+export interface RichTextTextElement {
+  type: 'text'
+  text: string
+  style?: RichTextStyle
+}
+
+export interface RichTextLinkElement {
+  type: 'link'
+  url: string
+  text?: string
+  style?: RichTextStyle
+}
+
+export interface RichTextEmojiElement {
+  type: 'emoji'
+  name: string
+  unicode?: string
+  style?: RichTextStyle
+}
+
+export interface RichTextUserMentionElement {
+  type: 'user'
+  user_id: string
+  style?: RichTextStyle
+}
+
+export interface RichTextChannelMentionElement {
+  type: 'channel'
+  channel_id: string
+  style?: RichTextStyle
+}
+
+export interface RichTextBroadcastMentionElement {
+  type: 'broadcast'
+  range: 'here' | 'channel' | 'everyone'
+  style?: RichTextStyle
+}
+
+export type RichTextInlineElement =
+  | RichTextTextElement
+  | RichTextLinkElement
+  | RichTextEmojiElement
+  | RichTextUserMentionElement
+  | RichTextChannelMentionElement
+  | RichTextBroadcastMentionElement
+
+// Rich text block-level elements
+export interface RichTextSectionElement {
+  type: 'rich_text_section'
+  elements: RichTextInlineElement[]
+}
+
+export interface RichTextPreformattedElement {
+  type: 'rich_text_preformatted'
+  elements: RichTextInlineElement[]
+  border?: 0 | 1
+}
+
+export interface RichTextQuoteElement {
+  type: 'rich_text_quote'
+  elements: RichTextInlineElement[]
+  border?: 0 | 1
+}
+
+export interface RichTextListElement {
+  type: 'rich_text_list'
+  style: 'bullet' | 'ordered'
+  elements: RichTextSectionElement[]
+  indent?: number
+  border?: 0 | 1
+}
+
+export type RichTextBlockElement =
+  | RichTextSectionElement
+  | RichTextPreformattedElement
+  | RichTextQuoteElement
+  | RichTextListElement
+
+export interface SlackRichTextBlock {
+  type: 'rich_text'
+  block_id?: string
+  elements: RichTextBlockElement[]
 }
 
 // Block elements
