@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { X, Sparkles, Lock, Hash } from '@lucide/svelte'
+  import { X, Sparkles } from '@lucide/svelte'
   import {
     createKeydownHandler,
     type KeyboardShortcut,
@@ -26,8 +26,6 @@
   }: Props = $props()
 
   let avatarLetter = $derived(userName ? userName.charAt(0).toUpperCase() : '')
-  let isChannel = $derived(channelName?.startsWith('#') ?? false)
-  let channelLabel = $derived(channelName?.replace(/^#/, '') ?? '')
 
   let isZoomed = $state(false)
   let panPosition = $state({ x: 0, y: 0 })
@@ -216,18 +214,15 @@
           {avatarLetter}
         {/if}
       </div>
-      <div class="flex items-baseline gap-1.5">
+      <div class="flex flex-col">
         <span class="text-white text-sm font-bold">{userName}</span>
-        {#if timestamp}
-          <span class="text-white/50 text-xs">{timestamp}</span>
-        {/if}
-        {#if channelName}
-          <span class="text-white/50 text-xs">in</span>
-          <span class="text-white/50 text-xs inline-flex items-center gap-0.5">
-            {#if isChannel}
-              <Lock size={10} />
+        {#if timestamp || channelName}
+          <span class="text-white/50 text-xs flex items-center gap-1">
+            {#if timestamp}{timestamp}{/if}
+            {#if timestamp && channelName}<span>in</span>{/if}
+            {#if channelName}
+              <span>{channelName}</span>
             {/if}
-            {channelLabel}
           </span>
         {/if}
       </div>
