@@ -399,6 +399,35 @@ export async function startEmulatorServer(
         )
       }
 
+      // Image proxy endpoint (allows UI to fetch external image metadata)
+      if (path === '/api/simulator/image-size' && req.method === 'GET') {
+        const imageUrl = url.searchParams.get('url')
+        if (!imageUrl) {
+          return Response.json(
+            { ok: false, error: 'missing url param' },
+            { status: 400, headers: { 'Access-Control-Allow-Origin': '*' } }
+          )
+        }
+        try {
+          const res = await fetch(imageUrl, { method: 'HEAD' })
+          let size = Number(res.headers.get('content-length') || 0)
+          if (!size) {
+            const full = await fetch(imageUrl)
+            const blob = await full.blob()
+            size = blob.size
+          }
+          return Response.json(
+            { ok: true, size },
+            { headers: { 'Access-Control-Allow-Origin': '*' } }
+          )
+        } catch {
+          return Response.json(
+            { ok: false, error: 'fetch failed' },
+            { status: 502, headers: { 'Access-Control-Allow-Origin': '*' } }
+          )
+        }
+      }
+
       // Slack Web API endpoints (with /api/ prefix)
       if (path.startsWith('/api/')) {
         return webApi.handleRequest(req, path)

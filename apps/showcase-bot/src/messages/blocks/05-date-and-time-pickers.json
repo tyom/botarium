@@ -1,0 +1,74 @@
+{
+  "fallbackText": "Date & Time Pickers",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "Date & Time Pickers",
+        "emoji": true
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "datepicker",
+          "action_id": "showcase_datepicker",
+          "initial_date": "{{TODAY_DATE}}",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Select a date",
+            "emoji": true
+          }
+        },
+        {
+          "type": "timepicker",
+          "action_id": "showcase_timepicker",
+          "initial_time": "09:00",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Select a time",
+            "emoji": true
+          }
+        },
+        {
+          "type": "datetimepicker",
+          "action_id": "showcase_datetimepicker",
+          "initial_date_time": "{{TODAY_NOON_UNIX}}"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "text": { "type": "mrkdwn", "text": "*Delivery Date* (datepicker accessory)" },
+      "accessory": {
+        "type": "datepicker",
+        "action_id": "showcase_datepicker_accessory",
+        "initial_date": "{{TODAY_DATE}}",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Select a delivery date",
+          "emoji": true
+        }
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Meeting Time* (timepicker accessory)"
+      },
+      "accessory": {
+        "type": "timepicker",
+        "action_id": "showcase_timepicker_accessory",
+        "initial_time": "14:30",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Choose a meeting time",
+          "emoji": true
+        }
+      }
+    }
+  ]
+}

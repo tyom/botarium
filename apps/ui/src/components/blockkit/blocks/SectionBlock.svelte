@@ -108,7 +108,7 @@
       <ImageElement
         imageUrl={block.accessory.image_url}
         altText={block.accessory.alt_text}
-        size="md"
+        size="accessory"
       />
     {/if}
   {/if}

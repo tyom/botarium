@@ -1,0 +1,55 @@
+{
+  "fallbackText": "Selection Elements",
+  "blocks": [
+    {
+      "type": "header",
+      "text": { "type": "plain_text", "text": "Selection Elements", "emoji": true }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "static_select",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Choose an option",
+            "emoji": true
+          },
+          "action_id": "showcase_static_select",
+          "options": [
+            {
+              "text": { "type": "plain_text", "text": "Option A", "emoji": true },
+              "value": "option_a"
+            },
+            {
+              "text": { "type": "plain_text", "text": "Option B", "emoji": true },
+              "value": "option_b"
+            },
+            {
+              "text": { "type": "plain_text", "text": "Option C", "emoji": true },
+              "value": "option_c"
+            }
+          ]
+        },
+        {
+          "type": "overflow",
+          "action_id": "showcase_overflow",
+          "options": [
+            {
+              "text": { "type": "plain_text", "text": "Edit", "emoji": true },
+              "value": "edit"
+            },
+            {
+              "text": { "type": "plain_text", "text": "Archive", "emoji": true },
+              "value": "archive"
+            },
+            {
+              "text": { "type": "plain_text", "text": "Delete", "emoji": true },
+              "value": "delete"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

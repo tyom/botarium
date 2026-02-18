@@ -370,13 +370,6 @@
                 onAction={handleMessageBlockAction}
               />
             </div>
-            {#if message.text}
-              <div
-                class="mrkdwn message-text text-slack-text-muted leading-[1.46] wrap-break-word whitespace-pre-wrap text-sm mt-1"
-              >
-                {@html formattedText}
-              </div>
-            {/if}
           {:else}
             <div
               class="mrkdwn message-text text-slack-text leading-[1.46] wrap-break-word whitespace-pre-wrap"

@@ -1,0 +1,46 @@
+{
+  "fallbackText": "Text & Layout Blocks",
+  "blocks": [
+    {
+      "type": "header",
+      "text": { "type": "plain_text", "text": "Block Kit Showcase", "emoji": true }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Bold text*, _italic text_, ~strikethrough~, `inline code`, <https://slack.com|a link>, and a blockquote:\n> This is a blockquote with *formatting*"
+      }
+    },
+    {
+      "type": "section",
+      "fields": [
+        { "type": "mrkdwn", "text": "*Field 1*\nLeft column value" },
+        { "type": "mrkdwn", "text": "_Field 2_\nRight column value" }
+      ]
+    },
+    {
+      "type": "context",
+      "elements": [
+        {
+          "type": "image",
+          "image_url": "https://placecats.com/32/32",
+          "alt_text": "cat avatar"
+        },
+        {
+          "type": "mrkdwn",
+          "text": "Posted by *Showcase Bot* | Context block with image and text"
+        }
+      ]
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "type": "image",
+      "image_url": "https://placecats.com/300/200",
+      "alt_text": "A placeholder cat image",
+      "title": { "type": "plain_text", "text": "Image Block", "emoji": true }
+    }
+  ]
+}
