@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { EllipsisVertical } from '@lucide/svelte'
+  import { Ellipsis } from '@lucide/svelte'
   import type {
     SlackOverflowElement,
     SlackOverflowOption,
@@ -94,13 +94,13 @@
 <div class="inline-flex" bind:this={containerRef}>
   <button
     type="button"
-    class="p-1 rounded text-slack-text-muted hover:bg-white/10 hover:text-slack-text transition-colors"
+    class="h-[34px] px-2 rounded-lg border border-white/20 bg-slack-input text-slack-text-muted hover:bg-white/10 hover:text-slack-text transition-colors inline-flex items-center"
     onclick={toggle}
     bind:this={triggerRef}
     aria-label="More options"
     aria-expanded={isOpen}
   >
-    <EllipsisVertical size={18} />
+    <Ellipsis size={16} />
   </button>
   {#if isOpen}
     <div

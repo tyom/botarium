@@ -30,7 +30,7 @@
   })
 </script>
 
-<div class="flex flex-col items-start">
+<div class="flex flex-col items-start max-w-[620px]">
   <span class="text-sm text-slack-text-muted">
     {#if block.title}{renderText(block.title)}{/if}
     {#if imageSize}({imageSize}){/if}

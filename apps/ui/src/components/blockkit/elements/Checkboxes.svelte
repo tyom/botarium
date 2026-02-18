@@ -66,20 +66,33 @@
 
 <div class="space-y-2">
   {#each element.options as option (option.text.text)}
-    <label class="flex items-center gap-2 cursor-pointer group">
+    <label class="flex items-start gap-2 cursor-pointer group">
       <input
         type="checkbox"
         checked={isSelected(option)}
         onchange={(e) => handleToggle(option, e.currentTarget.checked)}
-        class="size-4 rounded border-white/30 bg-slack-input text-slack-accent focus:ring-slack-accent focus:ring-offset-0 cursor-pointer"
+        class="mt-1 size-4 rounded border-white/30 bg-slack-input text-slack-accent focus:ring-slack-accent focus:ring-offset-0 cursor-pointer"
       />
-      <span class="mrkdwn text-slack-text group-hover:text-white transition-colors">
-        {@html renderMrkdwn(option.text)}
-      </span>
+      <div>
+        <span
+          class="mrkdwn text-slack-text group-hover:text-white transition-colors"
+        >
+          {@html renderMrkdwn(option.text)}
+        </span>
+        {#if option.description}
+          <div class="text-slack-text-muted text-sm">
+            {@html renderMrkdwn(option.description)}
+          </div>
+        {/if}
+      </div>
     </label>
   {/each}
 </div>
 
 {#if showingConfirm && element.confirm}
-  <ConfirmDialog confirm={element.confirm} onConfirm={handleConfirm} onDeny={handleDeny} />
+  <ConfirmDialog
+    confirm={element.confirm}
+    onConfirm={handleConfirm}
+    onDeny={handleDeny}
+  />
 {/if}

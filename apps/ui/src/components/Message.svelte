@@ -352,7 +352,7 @@
             {avatarLetter}
           {/if}
         </div>
-        <div class="flex-1 min-w-0 max-w-[620px]">
+        <div class="flex-1 min-w-0">
           <div class="flex items-baseline gap-2 mb-1">
             <span class="font-bold text-white">{displayName}</span>
             {#if isBot}

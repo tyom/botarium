@@ -13,10 +13,13 @@
   let { block }: Props = $props()
 </script>
 
-<div class="flex flex-wrap items-center gap-2 text-xs text-slack-text-muted">
+<div
+  class="flex flex-wrap items-center gap-2 text-xs text-slack-text-muted my-2 max-w-[620px]"
+>
   {#each block.elements as el, i (i)}
     {#if 'text' in el}
-      <span class="mrkdwn">{@html renderMrkdwn(el as SlackViewTextObject)}</span>
+      <span class="mrkdwn">{@html renderMrkdwn(el as SlackViewTextObject)}</span
+      >
     {:else if el.type === 'image'}
       <ImageElement imageUrl={el.image_url} altText={el.alt_text} size="sm" />
     {/if}

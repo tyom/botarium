@@ -79,7 +79,7 @@
   }
 </script>
 
-<div>
+<div class="max-w-[620px]">
   {#if block.element.type !== 'file_input'}
     <!-- svelte-ignore a11y_label_has_associated_control -->
     <label class="block text-sm text-slack-text-muted mb-1.5">

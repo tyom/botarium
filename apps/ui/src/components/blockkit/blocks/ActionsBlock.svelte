@@ -27,7 +27,7 @@
   let { block, onAction }: Props = $props()
 </script>
 
-<div class="flex flex-wrap gap-2 items-start">
+<div class="flex flex-wrap gap-2 items-start max-w-[620px]">
   {#each block.elements as element, i (i)}
     {#if element.type === 'button'}
       <Button element={element as SlackButtonElement} onClick={onAction} />
@@ -46,17 +46,21 @@
       />
     {:else if element.type === 'radio_buttons'}
       {@const radio = element as SlackRadioButtonsElement}
-      <RadioButtonGroup
-        element={radio}
-        onChange={(option) => onAction?.(radio.action_id, option.value)}
-      />
+      <div class="w-full pt-2">
+        <RadioButtonGroup
+          element={radio}
+          onChange={(option) => onAction?.(radio.action_id, option.value)}
+        />
+      </div>
     {:else if element.type === 'checkboxes'}
       {@const cb = element as SlackCheckboxesElement}
-      <Checkboxes
-        element={cb}
-        selectedOptions={undefined}
-        onChange={(options) => onAction?.(cb.action_id, JSON.stringify(options.map(o => ({ text: o.text, value: o.value }))))}
-      />
+      <div class="w-full pt-2">
+        <Checkboxes
+          element={cb}
+          selectedOptions={undefined}
+          onChange={(options) => onAction?.(cb.action_id, JSON.stringify(options.map(o => ({ text: o.text, value: o.value }))))}
+        />
+      </div>
     {:else if element.type === 'datepicker'}
       {@const dp = element as SlackDatePickerElement}
       <DatePicker
