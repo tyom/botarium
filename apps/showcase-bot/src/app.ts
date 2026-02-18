@@ -1,6 +1,6 @@
 import { App, LogLevel } from '@slack/bolt'
 import { registerListeners } from './listeners/index'
-import { sendShowcaseMessages } from './listeners/commands/showcase'
+import { sendShowcaseMessages, HELP_TEXT } from './listeners/commands/showcase'
 import { settings, isSimulatorMode } from './settings'
 import { startConfigServer } from './config/http-server'
 import { slackConfig, config } from './config/loader'
@@ -225,6 +225,17 @@ async function main() {
         await sendShowcaseMessages(app.client)
       } catch (err) {
         slackLogger.error({ err }, 'Failed to populate showcase channel')
+      }
+
+      // Send help text to bot DM so it's not empty on first open
+      const dmChannel = `D_${config.simulator.id}`
+      try {
+        await app.client.chat.postMessage({
+          channel: dmChannel,
+          text: HELP_TEXT,
+        })
+      } catch (err) {
+        slackLogger.error({ err }, 'Failed to send DM help message')
       }
     }
   }

@@ -53,7 +53,7 @@ export async function sendShowcaseMessages(client: App['client']) {
   )
 }
 
-const HELP_TEXT = [
+export const HELP_TEXT = [
   '*/showcase* commands:',
   '- `/showcase generate` -- Populate #showcase with Block Kit examples',
   '- `/showcase clear` -- Clear all messages from #showcase',
