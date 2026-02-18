@@ -188,15 +188,20 @@
 <!-- svelte-ignore a11y_interactive_supports_focus -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
-  role="dialog"
-  class="fixed inset-0 bg-black/70 backdrop-blur-2xl flex items-center justify-center z-70"
+  class="fixed inset-0 z-70"
   onclick={handleBackdropClick}
   onmouseup={handleMouseUp}
   onmousemove={handleMouseMove}
   onmouseleave={handleMouseUp}
   onwheel={handleWheel}
-  aria-modal="true"
+  role="presentation"
 >
+  <div
+    role="dialog"
+    class="absolute inset-[30px] bg-black/70 backdrop-blur-2xl flex items-center justify-center rounded-xl overflow-hidden"
+    onclick={handleBackdropClick}
+    aria-modal="true"
+  >
   <!-- Author info top-left -->
   {#if userName}
     <div class="absolute top-3 left-4 flex items-center gap-2.5 z-10">
@@ -262,5 +267,6 @@
       style:max-width="90vw"
       draggable="false"
     />
+  </div>
   </div>
 </div>
