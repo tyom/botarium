@@ -44,6 +44,7 @@
       actionId: string,
       option: SlackOption
     ) => void
+    onImagePreview?: (imageUrl: string, imageAlt: string) => void
   }
 
   let {
@@ -55,6 +56,7 @@
     onFileChange,
     onCheckboxChange,
     onRadioChange,
+    onImagePreview,
   }: Props = $props()
 
   function getBlockId(block: SlackBlock, index: number): string {
@@ -65,7 +67,7 @@
 <div class="space-y-1">
   {#each blocks as block, index (getBlockId(block, index))}
     {#if block.type === 'section'}
-      <SectionBlock block={block as SlackSectionBlock} {onAction} />
+      <SectionBlock block={block as SlackSectionBlock} {onAction} {onImagePreview} />
     {:else if block.type === 'input'}
       <InputBlock
         block={block as SlackInputBlock}
@@ -82,9 +84,9 @@
     {:else if block.type === 'divider'}
       <DividerBlock />
     {:else if block.type === 'context'}
-      <ContextBlock block={block as SlackContextBlock} />
+      <ContextBlock block={block as SlackContextBlock} {onImagePreview} />
     {:else if block.type === 'image'}
-      <ImageBlock block={block as SlackImageBlock} />
+      <ImageBlock block={block as SlackImageBlock} {onImagePreview} />
     {:else if block.type === 'header'}
       <HeaderBlock block={block as SlackHeaderBlock} />
     {:else if block.type === 'rich_text'}

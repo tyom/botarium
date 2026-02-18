@@ -368,6 +368,7 @@
               <BlockKitRenderer
                 blocks={message.blocks ?? []}
                 onAction={handleMessageBlockAction}
+                {onImagePreview}
               />
             </div>
           {:else}

@@ -5,9 +5,10 @@
 
   interface Props {
     block: SlackImageBlock
+    onImagePreview?: (imageUrl: string, imageAlt: string) => void
   }
 
-  let { block }: Props = $props()
+  let { block, onImagePreview }: Props = $props()
   let collapsed = $state(false)
   let imageSize = $state<string | null>(null)
 
@@ -46,10 +47,24 @@
     </button>
   </span>
   {#if !collapsed}
-    <img
-      src={block.image_url}
-      alt={block.alt_text}
-      class="max-w-full rounded-lg"
-    />
+    {#if onImagePreview}
+      <button
+        type="button"
+        class="cursor-zoom-in block bg-transparent border-none p-0"
+        onclick={() => onImagePreview!(block.image_url, block.alt_text)}
+      >
+        <img
+          src={block.image_url}
+          alt={block.alt_text}
+          class="max-w-full rounded-lg"
+        />
+      </button>
+    {:else}
+      <img
+        src={block.image_url}
+        alt={block.alt_text}
+        class="max-w-full rounded-lg"
+      />
+    {/if}
   {/if}
 </div>
