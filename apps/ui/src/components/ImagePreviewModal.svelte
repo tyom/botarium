@@ -33,6 +33,7 @@
   let panStart = $state({ x: 0, y: 0 })
   let hasDragged = $state(false)
   let imageEl = $state<HTMLImageElement | null>(null)
+  let panelEl = $state<HTMLDivElement | null>(null)
   let wheelTimeout: ReturnType<typeof setTimeout> | null = $state(null)
   let isWheeling = $state(false)
 
@@ -48,22 +49,22 @@
   ]
   const handleKeyDown = createKeydownHandler(shortcuts)
 
-  // Calculate max pan distance based on image size vs viewport
-  // At 2x zoom, image extends imgBaseSize from center in each direction
-  // Max pan = how far we can translate before showing background
+  // Calculate max pan distance based on image size vs panel size.
+  // At 2x zoom, the zoomed image = 2 * baseSize.
+  // Max pan per side = (zoomedSize - panelSize) / 2, clamped to >= 0.
   function getPanBounds() {
-    if (!imageEl) return { maxX: 0, maxY: 0 }
+    if (!imageEl || !panelEl) return { maxX: 0, maxY: 0 }
 
-    const rect = imageEl.getBoundingClientRect()
-    // When zoomed, rect is 2x the base display size due to scale(2)
+    const imgRect = imageEl.getBoundingClientRect()
+    const panelRect = panelEl.getBoundingClientRect()
     const scale = isZoomed ? 2 : 1
-    const imgWidth = rect.width / scale
-    const imgHeight = rect.height / scale
+    const baseWidth = imgRect.width / scale
+    const baseHeight = imgRect.height / scale
+    const zoomedWidth = baseWidth * 2
+    const zoomedHeight = baseHeight * 2
 
-    // At 2x zoom, image extends imgWidth/imgHeight from center
-    // Max pan = overflow per side (how far image extends beyond viewport)
-    const maxX = Math.max(0, imgWidth - window.innerWidth / 2)
-    const maxY = Math.max(0, imgHeight - window.innerHeight / 2)
+    const maxX = Math.max(0, (zoomedWidth - panelRect.width) / 2)
+    const maxY = Math.max(0, (zoomedHeight - panelRect.height) / 2)
 
     return { maxX, maxY }
   }
@@ -90,22 +91,21 @@
       isZoomed = false
       panPosition = { x: 0, y: 0 }
     } else {
-      // Calculate cursor offset from viewport center
-      const offsetX = e.clientX - window.innerWidth / 2
-      const offsetY = e.clientY - window.innerHeight / 2
+      if (imageEl && panelEl) {
+        const imgRect = imageEl.getBoundingClientRect()
+        const panelRect = panelEl.getBoundingClientRect()
+        // Cursor offset from panel center
+        const panelCenterX = panelRect.left + panelRect.width / 2
+        const panelCenterY = panelRect.top + panelRect.height / 2
+        const offsetX = e.clientX - panelCenterX
+        const offsetY = e.clientY - panelCenterY
 
-      // Calculate bounds using current 1x dimensions (before zoom)
-      if (imageEl) {
-        const rect = imageEl.getBoundingClientRect()
-        const imgWidth = rect.width
-        const imgHeight = rect.height
-
-        // At 2x zoom, max translate = imgSize - viewportSize/2
-        const maxX = Math.max(0, imgWidth - window.innerWidth / 2)
-        const maxY = Math.max(0, imgHeight - window.innerHeight / 2)
+        const zoomedWidth = imgRect.width * 2
+        const zoomedHeight = imgRect.height * 2
+        const maxX = Math.max(0, (zoomedWidth - panelRect.width) / 2)
+        const maxY = Math.max(0, (zoomedHeight - panelRect.height) / 2)
 
         // Pan to keep clicked point stationary after zoom
-        // Offset is negated: if cursor is right of center, pan image left
         panPosition = {
           x: Math.max(-maxX, Math.min(maxX, -offsetX)),
           y: Math.max(-maxY, Math.min(maxY, -offsetY)),
@@ -195,6 +195,7 @@
   role="presentation"
 >
   <div
+    bind:this={panelEl}
     role="dialog"
     class="absolute inset-[30px] bg-black/70 backdrop-blur-2xl flex items-center justify-center rounded-xl overflow-hidden"
     onclick={handleBackdropClick}
@@ -258,8 +259,8 @@
       style:transform={isZoomed
         ? `scale(2) translate(${panPosition.x / 2}px, ${panPosition.y / 2}px)`
         : 'scale(1)'}
-      style:max-height="90vh"
-      style:max-width="90vw"
+      style:max-height="calc(100vh - 160px)"
+      style:max-width="calc(100vw - 160px)"
       draggable="false"
     />
   </div>
