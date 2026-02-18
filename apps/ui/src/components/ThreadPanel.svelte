@@ -21,7 +21,7 @@
   interface Props {
     threadTs: string
     mockApp: MockApp
-    onImagePreview?: (imageUrl: string, imageAlt: string) => void
+    onImagePreview?: (imageUrl: string, imageAlt: string, userName?: string) => void
   }
 
   let { threadTs, mockApp, onImagePreview }: Props = $props()

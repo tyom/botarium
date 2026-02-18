@@ -45,7 +45,7 @@
   let logPanelVisible = $state(false)
   let rhsTab = $state<'thread' | 'logs'>('thread')
   let mainInputValue = $state('')
-  let previewImage = $state<{ url: string; alt: string } | null>(null)
+  let previewImage = $state<{ url: string; alt: string; userName?: string } | null>(null)
 
   // Derive active thread from centralized state (synced with URL)
   let activeThreadTs = $derived(simulatorState.currentThreadTs)
@@ -176,8 +176,8 @@
     rhsTab = tabId as 'thread' | 'logs'
   }
 
-  function handleImagePreview(url: string, alt: string) {
-    previewImage = { url, alt }
+  function handleImagePreview(url: string, alt: string, userName?: string) {
+    previewImage = { url, alt, userName }
   }
 
   function handleCloseImagePreview() {
@@ -320,6 +320,7 @@
   <ImagePreviewModal
     imageUrl={previewImage.url}
     imageAlt={previewImage.alt}
+    userName={previewImage.userName}
     onClose={handleCloseImagePreview}
   />
 {/if}

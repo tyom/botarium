@@ -8,10 +8,11 @@
   interface Props {
     imageUrl: string
     imageAlt?: string
+    userName?: string
     onClose: () => void
   }
 
-  let { imageUrl, imageAlt = '', onClose }: Props = $props()
+  let { imageUrl, imageAlt = '', userName, onClose }: Props = $props()
 
   let isZoomed = $state(false)
   let panPosition = $state({ x: 0, y: 0 })
@@ -181,6 +182,13 @@
   onwheel={handleWheel}
   aria-modal="true"
 >
+  <!-- User info top-left -->
+  {#if userName}
+    <div class="absolute top-4 left-4 flex items-center gap-2 z-10">
+      <span class="text-white text-sm font-semibold">{userName}</span>
+    </div>
+  {/if}
+
   <!-- Close button -->
   <button
     class="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors z-10"

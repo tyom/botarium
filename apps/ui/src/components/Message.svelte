@@ -36,7 +36,7 @@
     onOpenThread?: (ts: string) => void
     onDelete?: (ts: string) => void
     onGenerateImage?: (message: SimulatorMessage) => void
-    onImagePreview?: (imageUrl: string, imageAlt: string) => void
+    onImagePreview?: (imageUrl: string, imageAlt: string, userName?: string) => void
   }
 
   const EMOJI_MAP: Record<string, string> = {
@@ -368,7 +368,7 @@
               <BlockKitRenderer
                 blocks={message.blocks ?? []}
                 onAction={handleMessageBlockAction}
-                {onImagePreview}
+                onImagePreview={(url, alt) => onImagePreview?.(url, alt, displayName)}
               />
             </div>
           {:else}
@@ -410,7 +410,8 @@
                     onclick={() =>
                       onImagePreview?.(
                         message.file!.url_private,
-                        message.file!.title || message.file!.name
+                        message.file!.title || message.file!.name,
+                        displayName
                       )}
                   >
                     <img
