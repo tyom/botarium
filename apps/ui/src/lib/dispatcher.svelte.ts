@@ -281,6 +281,7 @@ function handleSSEEvent(event: {
     blocks?: unknown[]
   }
   channel?: string
+  ts?: string
   item_ts?: string
   user?: string
   reaction?: string

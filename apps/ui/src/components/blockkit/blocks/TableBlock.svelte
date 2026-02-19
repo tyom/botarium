@@ -24,7 +24,7 @@
     {#if block.rows.length > 0}
       <thead>
         <tr class="header-row">
-          {#each block.rows[0] as cell, colIndex}
+          {#each block.rows[0] as cell, colIndex (colIndex)}
             <th style="text-align: {getAlignment(colIndex)}">
               {#if cell.type === 'rich_text'}
                 <RichTextBlock block={cell as SlackRichTextBlock} />
@@ -38,9 +38,9 @@
     {/if}
     {#if block.rows.length > 1}
       <tbody>
-        {#each block.rows.slice(1) as row}
+        {#each block.rows.slice(1) as row, rowIndex (rowIndex)}
           <tr class="data-row">
-            {#each row as cell, colIndex}
+            {#each row as cell, colIndex (colIndex)}
               <td style="text-align: {getAlignment(colIndex)}">
                 {#if cell.type === 'rich_text'}
                   <RichTextBlock block={cell as SlackRichTextBlock} />

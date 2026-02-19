@@ -49,7 +49,7 @@ export function register(app: App) {
   })
 
   // Handle modal submission
-  app.view('showcase_modal', async ({ view, ack, body, client }) => {
+  app.view('showcase_modal', async ({ view, ack, client }) => {
     await ack()
 
     const valuesSummary = JSON.stringify(view.state.values, null, 2)

@@ -46,8 +46,6 @@
   // Selected date state, initialized from timestamp
   let selectedDate = $state<CalendarDate | undefined>(undefined)
   let selectedTime = $state<Time | undefined>(undefined)
-  let initialized = $state(false)
-
   // Initialize from timestamp when it changes
   $effect(() => {
     const ts = initialTimestamp
@@ -59,7 +57,6 @@
       selectedDate = undefined
       selectedTime = undefined
     }
-    initialized = true
   })
 
   // Display text: formatted date+time or placeholder

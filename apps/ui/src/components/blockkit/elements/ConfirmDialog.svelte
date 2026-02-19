@@ -25,10 +25,11 @@
 
 <svelte:window onkeydown={handleKeyDown} />
 
-<!-- svelte-ignore a11y_no_static_element_interactions a11y_click_events_have_key_events -->
 <div
-  class="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]"
+  class="fixed inset-0 bg-black/60 flex items-center justify-center z-60"
   onclick={handleBackdropClick}
+  onkeydown={handleKeyDown}
+  role="presentation"
 >
   <div
     class="bg-slack-bg border border-white/20 rounded-xl max-w-sm w-full p-5 shadow-2xl"

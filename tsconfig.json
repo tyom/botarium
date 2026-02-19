@@ -18,5 +18,5 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": ["**/templates/**"]
+  "exclude": ["**/templates/**", "tmp/**"]
 }

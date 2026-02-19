@@ -133,6 +133,7 @@
           <div
             class="flex items-center relative hover:bg-(--sidebar-hover) rounded-lg group"
             class:!bg-(--sidebar-active)={isActive}
+            role="group"
             oncontextmenu={!channel.isPreset
               ? (e) => handleContextMenu(e, channel.id, channel.name)
               : undefined}
