@@ -253,6 +253,19 @@
   -webkit-app-region: no-drag;
 }
 
+/* Channel header tab */
+@utility channel-tab {
+  @apply flex items-center gap-1.5 text-[13px] font-semibold px-3 pt-1.5 pb-2 border-b-2 border-transparent text-slack-text-muted cursor-pointer rounded-t transition-colors no-drag;
+
+  &:hover {
+    @apply bg-slack-hover;
+  }
+
+  &[data-active='true'] {
+    @apply text-slack-text border-white;
+  }
+}
+
 /* Panel tab button */
 @utility panel-tab {
   @apply bg-transparent border-none px-2 py-1 text-base font-bold text-(--text-muted) cursor-pointer rounded transition-colors no-drag;
