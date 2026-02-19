@@ -145,9 +145,15 @@ describe('mrkdwnToHtml', () => {
   })
 
   it('renders emoji shortcodes', () => {
-    expect(mrkdwnToHtml(':thinking_face:')).toBe('\u{1F914}')
-    expect(mrkdwnToHtml(':white_check_mark:')).toBe('\u2705')
-    expect(mrkdwnToHtml(':rocket:')).toBe('\u{1F680}')
+    expect(mrkdwnToHtml(':thinking_face:')).toBe(
+      '<span class="s-emoji">\u{1F914}<span class="s-emoji-tip"><span class="s-emoji-big">\u{1F914}</span><span class="s-emoji-code">:thinking_face:</span></span></span>'
+    )
+    expect(mrkdwnToHtml(':white_check_mark:')).toBe(
+      '<span class="s-emoji">\u2705<span class="s-emoji-tip"><span class="s-emoji-big">\u2705</span><span class="s-emoji-code">:white_check_mark:</span></span></span>'
+    )
+    expect(mrkdwnToHtml(':rocket:')).toBe(
+      '<span class="s-emoji">\u{1F680}<span class="s-emoji-tip"><span class="s-emoji-big">\u{1F680}</span><span class="s-emoji-code">:rocket:</span></span></span>'
+    )
   })
 
   it('preserves unknown emoji shortcodes', () => {

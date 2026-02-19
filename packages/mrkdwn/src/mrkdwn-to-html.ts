@@ -126,7 +126,8 @@ function formatInline(text: string): string {
   // Emoji: :name:
   text = text.replace(/:([a-z0-9_+-]+):/g, (_match, name: string) => {
     const emoji = EMOJI_MAP[name]
-    return emoji ?? `:${name}:`
+    if (!emoji) return `:${name}:`
+    return `<span class="s-emoji">${emoji}<span class="s-emoji-tip"><span class="s-emoji-big">${emoji}</span><span class="s-emoji-code">:${name}:</span></span></span>`
   })
 
   // Restore inline code placeholders
