@@ -19,15 +19,22 @@
   }
 
   $effect(() => {
+    const controller = new AbortController()
+    imageSize = null
     const url = `${EMULATOR_API_URL}/api/simulator/image-size?url=${encodeURIComponent(block.image_url)}`
-    fetch(url)
+    fetch(url, { signal: controller.signal })
       .then((res) => res.json())
       .then((data: { ok: boolean; size?: number }) => {
-        if (data.ok && data.size) {
+        if (data.ok && data.size != null) {
           imageSize = formatBytes(data.size)
         }
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          console.warn('Failed to fetch image size:', err)
+        }
+      })
+    return () => controller.abort()
   })
 </script>
 
