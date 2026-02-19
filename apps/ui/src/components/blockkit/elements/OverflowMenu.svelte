@@ -94,7 +94,7 @@
 <div class="inline-flex" bind:this={containerRef}>
   <button
     type="button"
-    class="h-[34px] px-2 rounded-lg border border-white/20 bg-slack-input text-slack-text-muted hover:bg-white/10 hover:text-slack-text transition-colors inline-flex items-center"
+    class="h-8 px-2 rounded-lg border border-white/20 bg-slack-input text-slack-text-muted hover:bg-white/10 hover:text-slack-text transition-colors inline-flex items-center"
     onclick={toggle}
     bind:this={triggerRef}
     aria-label="More options"
@@ -121,5 +121,9 @@
 </div>
 
 {#if showingConfirm && element.confirm}
-  <ConfirmDialog confirm={element.confirm} onConfirm={handleConfirm} onDeny={handleDeny} />
+  <ConfirmDialog
+    confirm={element.confirm}
+    onConfirm={handleConfirm}
+    onDeny={handleDeny}
+  />
 {/if}

@@ -36,7 +36,7 @@
 
 <button
   type="button"
-  class="px-3 py-1.5 rounded text-sm font-medium transition-colors
+  class="h-8 px-3 rounded text-sm font-medium transition-colors
     {element.style === 'primary'
     ? 'bg-slack-accent text-white hover:bg-slack-accent-hover'
     : element.style === 'danger'
@@ -48,5 +48,9 @@
 </button>
 
 {#if showingConfirm && element.confirm}
-  <ConfirmDialog confirm={element.confirm} onConfirm={handleConfirm} onDeny={handleDeny} />
+  <ConfirmDialog
+    confirm={element.confirm}
+    onConfirm={handleConfirm}
+    onDeny={handleDeny}
+  />
 {/if}

@@ -261,6 +261,14 @@ export type SlackBlockElement =
   | SlackDatePickerElement
   | SlackTimePickerElement
   | SlackDateTimePickerElement
+  | SlackUsersSelectElement
+  | SlackConversationsSelectElement
+  | SlackChannelsSelectElement
+  | SlackExternalSelectElement
+  | SlackMultiUsersSelectElement
+  | SlackMultiConversationsSelectElement
+  | SlackMultiChannelsSelectElement
+  | SlackMultiExternalSelectElement
 
 export interface SlackButtonElement {
   type: 'button'
@@ -321,6 +329,14 @@ export type SlackInputElement =
   | SlackDatePickerElement
   | SlackTimePickerElement
   | SlackDateTimePickerElement
+  | SlackUsersSelectElement
+  | SlackConversationsSelectElement
+  | SlackChannelsSelectElement
+  | SlackExternalSelectElement
+  | SlackMultiUsersSelectElement
+  | SlackMultiConversationsSelectElement
+  | SlackMultiChannelsSelectElement
+  | SlackMultiExternalSelectElement
 
 export interface SlackPlainTextInputElement {
   type: 'plain_text_input'
@@ -418,6 +434,79 @@ export interface SlackDateTimePickerElement {
   confirm?: SlackConfirmDialog
   focus_on_load?: boolean
 }
+
+// Workspace select elements (non-interactive placeholders)
+export interface SlackUsersSelectElement {
+  type: 'users_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_user?: string
+}
+
+export interface SlackConversationsSelectElement {
+  type: 'conversations_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_conversation?: string
+}
+
+export interface SlackChannelsSelectElement {
+  type: 'channels_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_channel?: string
+}
+
+export interface SlackExternalSelectElement {
+  type: 'external_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_option?: SlackOption
+  min_query_length?: number
+}
+
+export interface SlackMultiUsersSelectElement {
+  type: 'multi_users_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_users?: string[]
+  max_selected_items?: number
+}
+
+export interface SlackMultiConversationsSelectElement {
+  type: 'multi_conversations_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_conversations?: string[]
+  max_selected_items?: number
+}
+
+export interface SlackMultiChannelsSelectElement {
+  type: 'multi_channels_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_channels?: string[]
+  max_selected_items?: number
+}
+
+export interface SlackMultiExternalSelectElement {
+  type: 'multi_external_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_options?: SlackOption[]
+  min_query_length?: number
+  max_selected_items?: number
+}
+
+export type SlackWorkspaceSelectElement =
+  | SlackUsersSelectElement
+  | SlackConversationsSelectElement
+  | SlackChannelsSelectElement
+  | SlackExternalSelectElement
+  | SlackMultiUsersSelectElement
+  | SlackMultiConversationsSelectElement
+  | SlackMultiChannelsSelectElement
+  | SlackMultiExternalSelectElement
 
 // Uploaded file representation for form values
 export interface UploadedFile {

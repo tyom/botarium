@@ -8,10 +8,12 @@
     SlackCheckboxesElement,
     SlackDatePickerElement,
     SlackTimePickerElement,
+    SlackWorkspaceSelectElement,
   } from '../../../lib/types'
   import { renderMrkdwn } from '../context'
   import Button from '../elements/Button.svelte'
   import StaticSelect from '../elements/StaticSelect.svelte'
+  import WorkspaceSelect from '../elements/WorkspaceSelect.svelte'
   import ImageElement from '../elements/ImageElement.svelte'
   import OverflowMenu from '../elements/OverflowMenu.svelte'
   import RadioButtonGroup from '../elements/RadioButtonGroup.svelte'
@@ -93,6 +95,11 @@
           onChange={(val) => onAction?.(tp.action_id, val)}
         />
       </div>
+    {:else if block.accessory.type === 'users_select' || block.accessory.type === 'conversations_select' || block.accessory.type === 'channels_select' || block.accessory.type === 'external_select' || block.accessory.type === 'multi_users_select' || block.accessory.type === 'multi_conversations_select' || block.accessory.type === 'multi_channels_select' || block.accessory.type === 'multi_external_select'}
+      {@const ws = block.accessory as SlackWorkspaceSelectElement}
+      <div class="shrink-0">
+        <WorkspaceSelect placeholder={ws.placeholder} compact />
+      </div>
     {:else if block.accessory.type === 'image'}
       <ImageElement
         imageUrl={block.accessory.image_url}
@@ -134,7 +141,9 @@
     {/if}
   </div>
 {:else}
-  <div class="p-section_block flex items-start justify-between gap-4 max-w-[620px]">
+  <div
+    class="p-section_block flex items-start justify-between gap-4 max-w-[620px]"
+  >
     <div class="p-section_block__text_content">
       {@render textContent()}
     </div>

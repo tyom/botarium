@@ -1,5 +1,9 @@
 <script lang="ts">
-  import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from '@lucide/svelte'
+  import {
+    Calendar as CalendarIcon,
+    ChevronLeft,
+    ChevronRight,
+  } from '@lucide/svelte'
   import { Calendar, TimeField } from 'bits-ui'
   import { CalendarDate, Time, type DateValue } from '@internationalized/date'
   import type { SlackDateTimePickerElement } from '../../../lib/types'
@@ -169,8 +173,8 @@
 <div class="inline-flex" bind:this={containerRef}>
   <button
     type="button"
-    class="flex items-center gap-2 rounded-lg border border-white/20 bg-slack-input text-slack-text hover:bg-white/10 transition-colors
-      {compact ? 'px-2.5 py-1.5 text-sm' : 'px-3 py-2 text-sm'}"
+    class="flex items-center gap-2 rounded-lg border border-white/20 bg-slack-input text-slack-text hover:bg-white/10 transition-colors h-8
+      {compact ? 'px-2.5 text-sm' : 'px-3 py-2 text-sm'}"
     onclick={toggle}
     bind:this={triggerRef}
     aria-label="Select date and time"
@@ -182,11 +186,10 @@
     </span>
   </button>
   {#if isOpen}
-    <div
-      style={menuStyle}
-      class="z-200"
-    >
-      <div class="bg-slack-sidebar border border-white/20 rounded-lg shadow-lg flex flex-col">
+    <div style={menuStyle} class="z-200">
+      <div
+        class="bg-slack-sidebar border border-white/20 rounded-lg shadow-lg flex flex-col"
+      >
         <!-- Calendar -->
         <div class="p-3">
           <Calendar.Root
@@ -198,11 +201,15 @@
           >
             {#snippet children({ months, weekdays })}
               <Calendar.Header class="flex items-center justify-between mb-2">
-                <Calendar.PrevButton class="p-1 rounded hover:bg-white/10 text-slack-text-muted hover:text-slack-text transition-colors">
+                <Calendar.PrevButton
+                  class="p-1 rounded hover:bg-white/10 text-slack-text-muted hover:text-slack-text transition-colors"
+                >
                   <ChevronLeft size={16} />
                 </Calendar.PrevButton>
                 <Calendar.Heading class="text-sm font-medium text-slack-text" />
-                <Calendar.NextButton class="p-1 rounded hover:bg-white/10 text-slack-text-muted hover:text-slack-text transition-colors">
+                <Calendar.NextButton
+                  class="p-1 rounded hover:bg-white/10 text-slack-text-muted hover:text-slack-text transition-colors"
+                >
                   <ChevronRight size={16} />
                 </Calendar.NextButton>
               </Calendar.Header>
@@ -211,22 +218,30 @@
                   <Calendar.GridHead>
                     <Calendar.GridRow class="flex">
                       {#each weekdays as weekday (weekday)}
-                        <Calendar.HeadCell class="w-8 h-8 flex items-center justify-center text-xs text-slack-text-muted font-medium">
+                        <Calendar.HeadCell
+                          class="w-8 h-8 flex items-center justify-center text-xs text-slack-text-muted font-medium"
+                        >
                           {weekday}
                         </Calendar.HeadCell>
                       {/each}
                     </Calendar.GridRow>
                   </Calendar.GridHead>
                   <Calendar.GridBody>
-                    {#each month.weeks as weekDates (weekDates.map(d => d.toString()).join('-'))}
+                    {#each month.weeks as weekDates (weekDates
+                      .map((d) => d.toString())
+                      .join('-'))}
                       <Calendar.GridRow class="flex">
                         {#each weekDates as date (date.toString())}
                           <Calendar.Cell {date} month={month.value} class="p-0">
                             {#snippet children({ selected, disabled })}
                               <Calendar.Day
                                 class="w-8 h-8 flex items-center justify-center rounded text-sm transition-colors
-                                  {selected ? 'bg-slack-accent text-white font-medium' : ''}
-                                  {disabled ? 'text-white/20 cursor-not-allowed' : 'text-slack-text hover:bg-white/10 cursor-pointer'}"
+                                  {selected
+                                  ? 'bg-slack-accent text-white font-medium'
+                                  : ''}
+                                  {disabled
+                                  ? 'text-white/20 cursor-not-allowed'
+                                  : 'text-slack-text hover:bg-white/10 cursor-pointer'}"
                               >
                                 {date.day}
                               </Calendar.Day>
@@ -281,8 +296,8 @@
             type="button"
             class="w-full py-1.5 rounded-lg text-sm font-medium transition-colors
               {selectedDate && selectedTime
-                ? 'bg-slack-accent text-white hover:bg-slack-accent-hover cursor-pointer'
-                : 'bg-white/5 text-slack-text-muted cursor-not-allowed'}"
+              ? 'bg-slack-accent text-white hover:bg-slack-accent-hover cursor-pointer'
+              : 'bg-white/5 text-slack-text-muted cursor-not-allowed'}"
             disabled={!selectedDate || !selectedTime}
             onclick={handleDone}
           >
@@ -295,5 +310,9 @@
 </div>
 
 {#if showingConfirm && element.confirm}
-  <ConfirmDialog confirm={element.confirm} onConfirm={handleConfirm} onDeny={handleDeny} />
+  <ConfirmDialog
+    confirm={element.confirm}
+    onConfirm={handleConfirm}
+    onDeny={handleDeny}
+  />
 {/if}

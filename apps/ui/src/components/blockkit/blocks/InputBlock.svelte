@@ -12,12 +12,14 @@
     SlackDatePickerElement,
     SlackTimePickerElement,
     SlackDateTimePickerElement,
+    SlackWorkspaceSelectElement,
     SlackOption,
     UploadedFile,
   } from '../../../lib/types'
   import { renderText, type FormValues, type FileValues } from '../context'
   import PlainTextInput from '../elements/PlainTextInput.svelte'
   import StaticSelect from '../elements/StaticSelect.svelte'
+  import WorkspaceSelect from '../elements/WorkspaceSelect.svelte'
   import FileInput from '../elements/FileInput.svelte'
   import Checkboxes from '../elements/Checkboxes.svelte'
   import NumberInput from '../elements/NumberInput.svelte'
@@ -169,6 +171,9 @@
       value={getInputValue(el.action_id)}
       onChange={(val) => onInputChange?.(blockId, el.action_id, val)}
     />
+  {:else if block.element.type === 'users_select' || block.element.type === 'conversations_select' || block.element.type === 'channels_select' || block.element.type === 'external_select' || block.element.type === 'multi_users_select' || block.element.type === 'multi_conversations_select' || block.element.type === 'multi_channels_select' || block.element.type === 'multi_external_select'}
+    {@const ws = block.element as SlackWorkspaceSelectElement}
+    <WorkspaceSelect placeholder={ws.placeholder} />
   {/if}
 
   {#if block.hint}

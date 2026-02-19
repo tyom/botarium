@@ -127,8 +127,8 @@
 <div class="inline-flex" bind:this={containerRef}>
   <button
     type="button"
-    class="flex items-center gap-2 rounded-lg border border-white/20 bg-slack-input text-slack-text hover:bg-white/10 transition-colors
-      {compact ? 'px-2.5 py-1.5 text-sm' : 'px-3 py-2 text-sm'}"
+    class="flex items-center gap-2 rounded-lg border border-white/20 bg-slack-input text-slack-text hover:bg-white/10 transition-colors h-8
+      {compact ? 'px-2.5 text-sm' : 'px-3 text-sm'}"
     onclick={toggle}
     bind:this={triggerRef}
     aria-label="Select a time"
@@ -140,11 +140,10 @@
     </span>
   </button>
   {#if isOpen}
-    <div
-      style={menuStyle}
-      class="z-200"
-    >
-      <div class="bg-slack-sidebar border border-white/20 rounded-lg shadow-lg flex flex-col">
+    <div style={menuStyle} class="z-200">
+      <div
+        class="bg-slack-sidebar border border-white/20 rounded-lg shadow-lg flex flex-col"
+      >
         <!-- Time field -->
         <div class="px-3 py-2.5">
           <TimeField.Root
@@ -180,8 +179,8 @@
             type="button"
             class="w-full py-1.5 rounded-lg text-sm font-medium transition-colors
               {localTime
-                ? 'bg-slack-accent text-white hover:bg-slack-accent-hover cursor-pointer'
-                : 'bg-white/5 text-slack-text-muted cursor-not-allowed'}"
+              ? 'bg-slack-accent text-white hover:bg-slack-accent-hover cursor-pointer'
+              : 'bg-white/5 text-slack-text-muted cursor-not-allowed'}"
             disabled={!localTime}
             onclick={handleDone}
           >
@@ -194,5 +193,9 @@
 </div>
 
 {#if showingConfirm && element.confirm}
-  <ConfirmDialog confirm={element.confirm} onConfirm={handleConfirm} onDeny={handleDeny} />
+  <ConfirmDialog
+    confirm={element.confirm}
+    onConfirm={handleConfirm}
+    onDeny={handleDeny}
+  />
 {/if}

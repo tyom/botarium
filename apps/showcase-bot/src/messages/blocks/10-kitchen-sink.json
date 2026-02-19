@@ -400,31 +400,49 @@
       "type": "actions",
       "elements": [
         {
-          "type": "conversations_select",
+          "type": "external_select",
           "placeholder": {
             "type": "plain_text",
-            "text": "Select a conversation",
+            "text": "Search external data",
             "emoji": true
           },
-          "action_id": "showcase_kitchen_sink_0"
+          "action_id": "actionId-4"
         },
         {
-          "type": "channels_select",
+          "type": "multi_users_select",
           "placeholder": {
             "type": "plain_text",
-            "text": "Select a channel",
+            "text": "Select users",
             "emoji": true
           },
-          "action_id": "showcase_kitchen_sink_1"
+          "action_id": "actionId-5"
         },
         {
-          "type": "users_select",
+          "type": "multi_conversations_select",
           "placeholder": {
             "type": "plain_text",
-            "text": "Select a user",
+            "text": "Select conversations",
             "emoji": true
           },
-          "action_id": "showcase_kitchen_sink_2"
+          "action_id": "actionId-6"
+        },
+        {
+          "type": "multi_channels_select",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Select channels",
+            "emoji": true
+          },
+          "action_id": "actionId-7"
+        },
+        {
+          "type": "multi_external_select",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Search external items",
+            "emoji": true
+          },
+          "action_id": "actionId-8"
         },
         {
           "type": "static_select",

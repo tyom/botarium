@@ -9,9 +9,11 @@
     SlackDatePickerElement,
     SlackTimePickerElement,
     SlackDateTimePickerElement,
+    SlackWorkspaceSelectElement,
   } from '../../../lib/types'
   import Button from '../elements/Button.svelte'
   import StaticSelect from '../elements/StaticSelect.svelte'
+  import WorkspaceSelect from '../elements/WorkspaceSelect.svelte'
   import OverflowMenu from '../elements/OverflowMenu.svelte'
   import RadioButtonGroup from '../elements/RadioButtonGroup.svelte'
   import Checkboxes from '../elements/Checkboxes.svelte'
@@ -38,6 +40,9 @@
         compact
         onChange={(value) => onAction?.(sel.action_id, value)}
       />
+    {:else if element.type === 'users_select' || element.type === 'conversations_select' || element.type === 'channels_select' || element.type === 'external_select' || element.type === 'multi_users_select' || element.type === 'multi_conversations_select' || element.type === 'multi_channels_select' || element.type === 'multi_external_select'}
+      {@const ws = element as SlackWorkspaceSelectElement}
+      <WorkspaceSelect placeholder={ws.placeholder} compact />
     {:else if element.type === 'overflow'}
       {@const ovf = element as SlackOverflowElement}
       <OverflowMenu
