@@ -176,7 +176,7 @@ export function mrkdwnToHtml(text: string): string {
     }
 
     // Blockquote: lines starting with >
-    if (/^&gt;\s?/.test(escapeHtml(line)) || /^>\s?/.test(line)) {
+    if (/^>\s?/.test(line)) {
       const quoteLines: string[] = []
       while (i < lines.length && /^>\s?/.test(lines[i] ?? '')) {
         quoteLines.push(formatInline((lines[i] ?? '').replace(/^>\s?/, '')))

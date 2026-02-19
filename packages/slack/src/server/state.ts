@@ -106,6 +106,9 @@ export class EmulatorState {
    * Add a user-created channel to in-memory state and persist
    */
   addCustomChannel(id: string, name: string): SlackChannel {
+    const existing = this.channels.get(id)
+    if (existing) return existing
+
     const channel: SlackChannel = {
       id,
       name,

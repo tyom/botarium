@@ -38,7 +38,8 @@ function renderInlineToken(token: Token): string {
     }
     case 'image': {
       const t = token as Tokens.Image
-      return `<${t.href}|${t.text || 'image'}>`
+      const alt = (t.text || 'image').replace(/[|>]/g, '')
+      return `<${t.href}|${alt || 'image'}>`
     }
     case 'text': {
       const t = token as Tokens.Text

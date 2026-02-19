@@ -69,6 +69,18 @@ describe('markdownToMrkdwn', () => {
     )
   })
 
+  it('sanitises image alt text containing | and >', () => {
+    expect(markdownToMrkdwn('![a|b>c](https://example.com/img.png)')).toBe(
+      '<https://example.com/img.png|abc>'
+    )
+  })
+
+  it('falls back to "image" when alt text is only special characters', () => {
+    expect(markdownToMrkdwn('![|>](https://example.com/img.png)')).toBe(
+      '<https://example.com/img.png|image>'
+    )
+  })
+
   it('handles nested unordered lists with indentation', () => {
     const result = markdownToMrkdwn('- Parent\n  - Child\n  - Child 2\n- Next')
     expect(result).toContain('• Parent')
