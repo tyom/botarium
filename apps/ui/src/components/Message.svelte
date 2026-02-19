@@ -187,10 +187,13 @@
     }
 
     if (elementType === 'datetimepicker') {
+      const n = value ? Number(value) : NaN
       return {
         blockId,
         elementType,
-        actionValue: { selected_date_time: Number(value) },
+        actionValue: !isNaN(n)
+          ? { selected_date_time: n }
+          : { selected_date_time: undefined },
       }
     }
 

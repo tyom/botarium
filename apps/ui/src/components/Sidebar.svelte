@@ -68,17 +68,20 @@
     }
   }
 
-  function handleDeleteChannel() {
+  async function handleDeleteChannel() {
     if (!contextMenu) return
     const { channelId, channelName } = contextMenu
-    contextMenu = null
     if (
       window.confirm(
         `Delete #${channelName}? All messages in this channel will be lost.`
       )
     ) {
-      removeChannel(channelId)
+      const success = await removeChannel(channelId)
+      if (!success) {
+        window.alert(`Failed to delete #${channelName}.`)
+      }
     }
+    contextMenu = null
   }
 
   function handleCloseContextMenu() {
@@ -164,14 +167,17 @@
                 size={14}
                 label="Delete #{channel.name}"
                 class="opacity-0 group-hover:opacity-100 transition-opacity mr-2"
-                onclick={(e) => {
+                onclick={async (e) => {
                   e.stopPropagation()
                   if (
                     window.confirm(
                       `Delete #${channel.name}? All messages in this channel will be lost.`
                     )
                   ) {
-                    removeChannel(channel.id)
+                    const success = await removeChannel(channel.id)
+                    if (!success) {
+                      window.alert(`Failed to delete #${channel.name}.`)
+                    }
                   }
                 }}
               />

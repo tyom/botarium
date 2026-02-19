@@ -203,11 +203,13 @@
 
     // Convert datetimepicker string values to numeric selected_date_time
     // (Slack API expects selected_date_time as a number)
-    for (const block of simulatorState.activeModal.view.blocks) {
+    const blocks = simulatorState.activeModal.view.blocks
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i]
       if (block?.type === 'input') {
         const el = (block as SlackInputBlock).element
         if (el?.type === 'datetimepicker') {
-          const blockId = block.block_id || ''
+          const blockId = block.block_id ?? `block-${i}`
           const entry = mergedValues[blockId]?.[el.action_id] as
             | { value?: string }
             | undefined

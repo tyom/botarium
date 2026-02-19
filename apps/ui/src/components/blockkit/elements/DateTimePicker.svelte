@@ -43,7 +43,10 @@
     return element.initial_date_time
   })
 
-  // Selected date state, initialized from timestamp
+  // Committed state: the last confirmed/applied values shown in the trigger button
+  let committedDate = $state<CalendarDate | undefined>(undefined)
+  let committedTime = $state<Time | undefined>(undefined)
+  // Draft state used inside the picker dialog
   let selectedDate = $state<CalendarDate | undefined>(undefined)
   let selectedTime = $state<Time | undefined>(undefined)
   // Initialize from timestamp when it changes
@@ -51,28 +54,32 @@
     const ts = initialTimestamp
     if (ts != null) {
       const parsed = parseTimestamp(ts)
+      committedDate = parsed.date
+      committedTime = parsed.time
       selectedDate = parsed.date
       selectedTime = parsed.time
     } else {
+      committedDate = undefined
+      committedTime = undefined
       selectedDate = undefined
       selectedTime = undefined
     }
   })
 
-  // Display text: formatted date+time or placeholder
+  // Display text: based on committed state (not draft) so it only updates after confirm
   const displayText = $derived.by(() => {
-    if (selectedDate && selectedTime) {
-      const y = selectedDate.year
-      const m = String(selectedDate.month).padStart(2, '0')
-      const d = String(selectedDate.day).padStart(2, '0')
-      const h = String(selectedTime.hour).padStart(2, '0')
-      const min = String(selectedTime.minute).padStart(2, '0')
+    if (committedDate && committedTime) {
+      const y = committedDate.year
+      const m = String(committedDate.month).padStart(2, '0')
+      const d = String(committedDate.day).padStart(2, '0')
+      const h = String(committedTime.hour).padStart(2, '0')
+      const min = String(committedTime.minute).padStart(2, '0')
       return `${y}-${m}-${d} ${h}:${min}`
     }
     return 'Select date and time'
   })
 
-  const hasValue = $derived(selectedDate != null && selectedTime != null)
+  const hasValue = $derived(committedDate != null && committedTime != null)
 
   function toggle(e: MouseEvent) {
     e.stopPropagation()
@@ -119,20 +126,28 @@
 
   function handleDone() {
     if (!selectedDate || !selectedTime) return
+    const draftDate = selectedDate
+    const draftTime = selectedTime
     const timestamp = Math.floor(
       new Date(
-        selectedDate.year,
-        selectedDate.month - 1,
-        selectedDate.day,
-        selectedTime.hour,
-        selectedTime.minute
+        draftDate.year,
+        draftDate.month - 1,
+        draftDate.day,
+        draftTime.hour,
+        draftTime.minute
       ).getTime() / 1000
     )
     isOpen = false
     if (element.confirm) {
-      pendingAction = () => onChange?.(String(timestamp))
+      pendingAction = () => {
+        committedDate = draftDate
+        committedTime = draftTime
+        onChange?.(String(timestamp))
+      }
       showingConfirm = true
     } else {
+      committedDate = draftDate
+      committedTime = draftTime
       onChange?.(String(timestamp))
     }
   }
@@ -144,6 +159,9 @@
   }
 
   function handleDeny() {
+    // Restore draft state from committed values
+    selectedDate = committedDate
+    selectedTime = committedTime
     pendingAction = null
     showingConfirm = false
   }
