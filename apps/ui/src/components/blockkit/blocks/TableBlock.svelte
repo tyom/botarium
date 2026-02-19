@@ -58,34 +58,27 @@
 
 <style>
   .table-wrapper {
+    display: inline-block;
     overflow-x: auto;
+    max-width: 100%;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.13);
+    background: var(--color-slack-bg);
   }
 
   table {
-    width: 100%;
     border-collapse: collapse;
     color: var(--text-primary);
   }
 
   th,
   td {
-    padding: 8px 12px;
+    padding: 4px 8px;
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   th {
-    background: rgba(255, 255, 255, 0.06);
     font-weight: 600;
-  }
-
-  td {
-    background: rgba(255, 255, 255, 0.02);
-  }
-
-  tr.data-row:hover td {
-    background: rgba(255, 255, 255, 0.05);
   }
 
   /* Reset rich-text wrapper margins inside table cells */
