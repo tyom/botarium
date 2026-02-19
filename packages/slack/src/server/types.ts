@@ -449,13 +449,6 @@ export const DEFAULT_WORKSPACE_CONFIG: WorkspaceConfig = {
       is_member: true,
     },
     {
-      id: 'C_RANDOM',
-      name: 'random',
-      is_channel: true,
-      is_im: false,
-      is_member: true,
-    },
-    {
       id: 'C_SHOWCASE',
       name: 'showcase',
       is_channel: true,
