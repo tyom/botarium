@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'bun:test'
 import { mrkdwnToHtml } from './mrkdwn-to-html'
 
+const BR = '<span class="c-mrkdwn__br"></span>'
+
 describe('mrkdwnToHtml', () => {
   it('returns empty string for empty input', () => {
     expect(mrkdwnToHtml('')).toBe('')
@@ -76,7 +78,7 @@ describe('mrkdwnToHtml', () => {
 
   it('renders multi-line blockquote', () => {
     expect(mrkdwnToHtml('> line 1\n> line 2')).toBe(
-      '<blockquote>line 1<br>line 2</blockquote>'
+      `<blockquote>line 1${BR}line 2</blockquote>`
     )
   })
 
@@ -135,13 +137,13 @@ describe('mrkdwnToHtml', () => {
   })
 
   it('renders line breaks', () => {
-    expect(mrkdwnToHtml('line1\nline2')).toBe('line1<br>line2')
+    expect(mrkdwnToHtml('line1\nline2')).toBe(`line1${BR}line2`)
   })
 
-  it('removes br adjacent to block elements', () => {
+  it('removes line-break spans adjacent to block elements', () => {
     const result = mrkdwnToHtml('text\n- item1\n- item2\nmore')
-    expect(result).not.toMatch(/<br><ul>/)
-    expect(result).not.toMatch(/<\/ul><br>/)
+    expect(result).not.toContain(`${BR}<ul>`)
+    expect(result).not.toContain(`</ul>${BR}`)
   })
 
   it('renders emoji shortcodes', () => {
@@ -173,7 +175,7 @@ describe('mrkdwnToHtml', () => {
 
   it('renders task list checkboxes with line breaks', () => {
     expect(mrkdwnToHtml('☑ Done\n☐ Not done\n☐ Also not done')).toBe(
-      '☑ Done<br>☐ Not done<br>☐ Also not done'
+      `☑ Done${BR}☐ Not done${BR}☐ Also not done`
     )
   })
 })

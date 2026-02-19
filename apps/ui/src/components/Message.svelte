@@ -94,9 +94,6 @@
     // Use unified renderMrkdwn for core mrkdwn-to-HTML conversion
     let html = renderMrkdwn({ type: 'mrkdwn', text })
 
-    // Post-processing: paragraph gaps (replace double-br with block-level gap)
-    html = html.replace(/<br><br>/g, '<span class="p-gap"></span>')
-
     // Wrap @mentions in highlight span AFTER markdown processing
     const escapedUserName = userName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const mentionRegex = new RegExp(`@${escapedUserName}`, 'g')
@@ -515,12 +512,6 @@
 </ContextMenu.Root>
 
 <style>
-  /* Message-specific styles for dynamic content (mrkdwn styles are in app.css) */
-  .message-text :global(.p-gap) {
-    display: block;
-    height: 0.8em;
-  }
-
   .message-text :global(.slack-mention) {
     background: rgba(29, 155, 209, 0.2);
     color: #1d9bd1;

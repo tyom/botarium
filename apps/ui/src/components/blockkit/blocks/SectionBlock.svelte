@@ -36,7 +36,7 @@
 
 {#snippet textContent()}
   {#if block.text}
-    <div class="mrkdwn text-slack-text whitespace-pre-wrap">
+    <div class="mrkdwn text-slack-text">
       {@html renderMrkdwn(block.text)}
     </div>
   {/if}

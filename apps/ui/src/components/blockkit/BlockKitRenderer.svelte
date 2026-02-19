@@ -68,7 +68,7 @@
   }
 </script>
 
-<div class="space-y-2">
+<div class="flex flex-col">
   {#each blocks as block, index (getBlockId(block, index))}
     {#if block.type === 'section'}
       <SectionBlock block={block as SlackSectionBlock} {onAction} />

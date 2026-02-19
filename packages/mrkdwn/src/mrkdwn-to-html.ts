@@ -157,6 +157,9 @@ export function mrkdwnToHtml(text: string): string {
     return `\uE000CB${idx}\uE000`
   })
 
+  // Line-break span used instead of <br> for CSS-controllable spacing
+  const BR = '<span class="c-mrkdwn__br"></span>'
+
   // Phase 2: Process line-by-line for block-level elements
   const lines = text.split('\n')
   const output: string[] = []
@@ -179,7 +182,7 @@ export function mrkdwnToHtml(text: string): string {
         quoteLines.push(formatInline((lines[i] ?? '').replace(/^>\s?/, '')))
         i++
       }
-      output.push(`<blockquote>${quoteLines.join('<br>')}</blockquote>`)
+      output.push(`<blockquote>${quoteLines.join(BR)}</blockquote>`)
       continue
     }
 
@@ -214,24 +217,41 @@ export function mrkdwnToHtml(text: string): string {
     i++
   }
 
-  // Phase 3: Join lines with <br>, then clean up block-level margins
-  let html = output.join('<br>')
+  const BR_RE = new RegExp(BR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
 
-  // Remove <br> adjacent to block elements
-  html = html.replace(/(<br>)+(<(?:ul|ol|blockquote|pre)>)/g, '$2')
-  html = html.replace(/(<\/(?:ul|ol|blockquote|pre)>)(<br>)+/g, '$1')
-  // Also clean up code block placeholders adjacent to <br>
-  html = html.replace(/(<br>)+(\uE000CB\d+\uE000)/g, '$2')
-  html = html.replace(/(\uE000CB\d+\uE000)(<br>)+/g, '$1')
+  // Phase 3: Join lines with line-break spans, then clean up block-level margins
+  let html = output.join(BR)
+
+  // Collapse consecutive line-break spans (from empty lines) into one
+  html = html.replace(new RegExp(`(${BR_RE.source}){2,}`, 'g'), BR)
+
+  // Remove line-break spans adjacent to block elements
+  html = html.replace(
+    new RegExp(`(${BR_RE.source})+(<(?:ul|ol|blockquote|pre)>)`, 'g'),
+    '$2'
+  )
+  html = html.replace(
+    new RegExp(`(<\\/(?:ul|ol|blockquote|pre)>)(${BR_RE.source})+`, 'g'),
+    '$1'
+  )
+  // Also clean up code block placeholders adjacent to line-break spans
+  html = html.replace(
+    new RegExp(`(${BR_RE.source})+(\uE000CB\\d+\uE000)`, 'g'),
+    '$2'
+  )
+  html = html.replace(
+    new RegExp(`(\uE000CB\\d+\uE000)(${BR_RE.source})+`, 'g'),
+    '$1'
+  )
 
   // Phase 4: Restore code block placeholders
   html = html.replace(/\uE000CB(\d+)\uE000/g, (_match, idx: string) => {
     return codeBlockPh[parseInt(idx, 10)] ?? ''
   })
 
-  // Final cleanup: remove <br> adjacent to restored block elements
-  html = html.replace(/(<br>)+(<pre>)/g, '$2')
-  html = html.replace(/(<\/pre>)(<br>)+/g, '$1')
+  // Final cleanup: remove line-break spans adjacent to restored block elements
+  html = html.replace(new RegExp(`(${BR_RE.source})+(<pre>)`, 'g'), '$2')
+  html = html.replace(new RegExp(`(<\\/pre>)(${BR_RE.source})+`, 'g'), '$1')
 
   return html
 }

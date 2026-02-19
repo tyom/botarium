@@ -310,6 +310,11 @@
 }
 
 /* Mrkdwn rendered text styles (shared across messages, blocks, modals) */
+.mrkdwn .c-mrkdwn__br {
+  display: block;
+  height: 8px;
+}
+
 .mrkdwn > :is(pre, blockquote, ul, ol) {
   margin: 8px 0;
 }
