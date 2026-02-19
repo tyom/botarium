@@ -228,8 +228,17 @@ async function main() {
       }
 
       // Send help text to bot DM so it's not empty on first open
+      // If the last message is already the help text, replace it (avoids duplicates across restarts)
       const dmChannel = `D_${config.simulator.id}`
       try {
+        const history = await app.client.conversations.history({
+          channel: dmChannel,
+          limit: 1,
+        })
+        const lastMessage = history.messages?.[0]
+        if (lastMessage?.ts && lastMessage.text === HELP_TEXT) {
+          await app.client.chat.delete({ channel: dmChannel, ts: lastMessage.ts })
+        }
         await app.client.chat.postMessage({
           channel: dmChannel,
           text: HELP_TEXT,
