@@ -106,6 +106,7 @@ export type SlackBlock =
   | SlackImageBlock
   | SlackHeaderBlock
   | SlackRichTextBlock
+  | SlackTableBlock
 
 export interface SlackSectionBlock {
   type: 'section'
@@ -248,6 +249,25 @@ export interface SlackRichTextBlock {
   type: 'rich_text'
   block_id?: string
   elements: RichTextBlockElement[]
+}
+
+// Raw text element (used in table cells)
+export interface SlackRawTextElement {
+  type: 'raw_text'
+  text: string
+}
+
+// Table block types
+export interface SlackTableColumnSettings {
+  align?: 'left' | 'center' | 'right'
+  is_wrapped?: boolean
+}
+
+export interface SlackTableBlock {
+  type: 'table'
+  block_id?: string
+  rows: (SlackRichTextBlock | SlackRawTextElement)[][]
+  column_settings?: SlackTableColumnSettings[]
 }
 
 // Block elements

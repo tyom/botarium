@@ -8,6 +8,7 @@
     SlackImageBlock,
     SlackHeaderBlock,
     SlackRichTextBlock,
+    SlackTableBlock,
     SlackOption,
     UploadedFile,
   } from '../../lib/types'
@@ -22,6 +23,7 @@
   import ImageBlock from './blocks/ImageBlock.svelte'
   import HeaderBlock from './blocks/HeaderBlock.svelte'
   import RichTextBlock from './blocks/RichTextBlock.svelte'
+  import TableBlock from './blocks/TableBlock.svelte'
 
   interface Props {
     blocks: SlackBlock[]
@@ -91,6 +93,8 @@
       <HeaderBlock block={block as SlackHeaderBlock} />
     {:else if block.type === 'rich_text'}
       <RichTextBlock block={block as SlackRichTextBlock} />
+    {:else if block.type === 'table'}
+      <TableBlock block={block as SlackTableBlock} />
     {:else}
       <!-- Unknown block type -->
       {@const unknownBlock = block as { type: string }}
