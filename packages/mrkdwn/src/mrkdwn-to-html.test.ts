@@ -34,19 +34,19 @@ describe('mrkdwnToHtml', () => {
 
   it('renders link with label', () => {
     expect(mrkdwnToHtml('<https://example.com|Example>')).toBe(
-      '<a href="https://example.com" target="_blank">Example</a>'
+      '<a href="https://example.com" target="_blank" rel="noopener noreferrer">Example</a>'
     )
   })
 
   it('renders link without label', () => {
     expect(mrkdwnToHtml('<https://example.com>')).toBe(
-      '<a href="https://example.com" target="_blank">https://example.com</a>'
+      '<a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a>'
     )
   })
 
   it('renders mailto link', () => {
     expect(mrkdwnToHtml('<mailto:test@example.com|Email>')).toBe(
-      '<a href="mailto:test@example.com" target="_blank">Email</a>'
+      '<a href="mailto:test@example.com" target="_blank" rel="noopener noreferrer">Email</a>'
     )
   })
 

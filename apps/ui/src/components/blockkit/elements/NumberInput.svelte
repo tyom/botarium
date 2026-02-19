@@ -10,7 +10,7 @@
 
   let { element, value, onChange }: Props = $props()
 
-  const displayValue = $derived(value || element.initial_value || '')
+  const displayValue = $derived(value ?? element.initial_value ?? '')
 </script>
 
 <input

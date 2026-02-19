@@ -372,7 +372,7 @@
             "emoji": true
           },
           "initial_conversation": "G12345678",
-          "action_id": "showcase_kitchen_sink_0"
+          "action_id": "showcase_kitchen_sink_convo_0"
         },
         {
           "type": "users_select",

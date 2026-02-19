@@ -497,10 +497,15 @@ export async function startEmulatorServer(
           )
         }
         try {
-          const res = await fetch(imageUrl, { method: 'HEAD' })
+          const res = await fetch(imageUrl, {
+            method: 'HEAD',
+            signal: AbortSignal.timeout(5000),
+          })
           let size = Number(res.headers.get('content-length') || 0)
           if (!size) {
-            const full = await fetch(imageUrl)
+            const full = await fetch(imageUrl, {
+              signal: AbortSignal.timeout(5000),
+            })
             const blob = await full.blob()
             size = blob.size
           }

@@ -48,14 +48,14 @@
     if (element.confirm) {
       pendingAction = () => {
         if (option.url) {
-          window.open(option.url, '_blank')
+          window.open(option.url, '_blank', 'noopener,noreferrer')
         }
         onSelect?.(option)
       }
       showingConfirm = true
     } else {
       if (option.url) {
-        window.open(option.url, '_blank')
+        window.open(option.url, '_blank', 'noopener,noreferrer')
       }
       onSelect?.(option)
     }

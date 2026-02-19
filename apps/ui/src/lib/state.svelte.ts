@@ -97,7 +97,10 @@ export function updateMessage(
   const msg = channelMsgs?.get(ts)
   if (msg && channelMsgs) {
     // Create new object reference to trigger Svelte reactivity (same pattern as addReactionToMessage)
-    channelMsgs.set(ts, { ...msg, ...updates })
+    const defined = Object.fromEntries(
+      Object.entries(updates).filter(([, v]) => v !== undefined)
+    )
+    channelMsgs.set(ts, { ...msg, ...defined })
   }
 }
 

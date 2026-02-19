@@ -22,9 +22,12 @@
 
   let showingConfirm = $state(false)
   let pendingAction: (() => void) | null = $state(null)
+  let selectRef: HTMLSelectElement
 
   function handleChange(newValue: string) {
     if (element.confirm) {
+      // Reset visual selection before showing confirm dialog
+      if (selectRef) selectRef.value = selectedValue
       pendingAction = () => onChange?.(newValue)
       showingConfirm = true
     } else {
@@ -39,6 +42,7 @@
   }
 
   function handleDeny() {
+    if (selectRef) selectRef.value = selectedValue
     pendingAction = null
     showingConfirm = false
   }
@@ -51,6 +55,7 @@
     {compact && 'text-sm'}"
   value={selectedValue}
   onchange={(e) => handleChange(e.currentTarget.value)}
+  bind:this={selectRef}
 >
   {#if element.placeholder}
     <option value="" disabled>{renderText(element.placeholder)}</option>

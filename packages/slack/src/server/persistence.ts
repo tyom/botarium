@@ -529,7 +529,7 @@ export class EmulatorPersistence {
 
     const now = new Date().toISOString()
     this.db.run(
-      `INSERT INTO simulator_channels (id, name, is_preset, created_at) VALUES (?, ?, 0, ?)`,
+      `INSERT OR IGNORE INTO simulator_channels (id, name, is_preset, created_at) VALUES (?, ?, 0, ?)`,
       [id, name, now]
     )
     persistenceLogger.info(`Added channel: ${name} (${id})`)

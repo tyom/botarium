@@ -32,7 +32,7 @@
       'u',
       'ul',
     ],
-    ALLOWED_ATTR: ['href', 'target', 'class', 'style'],
+    ALLOWED_ATTR: ['href', 'target', 'class', 'style', 'rel'],
   }
 
   function escapeHtml(text: string): string {
@@ -64,7 +64,7 @@
       }
       case 'link': {
         const linkText = escapeHtml(el.text || el.url)
-        const inner = `<a href="${escapeHtml(el.url)}" target="_blank" class="s-link">${linkText}</a>`
+        const inner = `<a href="${escapeHtml(el.url)}" target="_blank" rel="noopener noreferrer" class="s-link">${linkText}</a>`
         return applyStyles(inner, el.style)
       }
       case 'emoji': {

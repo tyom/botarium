@@ -468,7 +468,7 @@ export class SlackWebAPI {
       )
     }
 
-    const deleted = this.state.deleteMessage(ts)
+    const deleted = this.state.deleteMessageByChannelAndTs(channel, ts)
     if (!deleted) {
       return Response.json(
         { ok: false, error: 'message_not_found' },

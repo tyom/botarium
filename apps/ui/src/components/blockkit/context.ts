@@ -27,7 +27,7 @@ const SANITIZE_CONFIG = {
     'strong',
     'ul',
   ],
-  ALLOWED_ATTR: ['href', 'target', 'class'],
+  ALLOWED_ATTR: ['href', 'target', 'class', 'rel'],
 }
 
 /**

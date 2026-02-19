@@ -31,7 +31,7 @@ You can try pasting examples from Slack's [Block Kit Builder](https://app.slack.
 
 All interactive elements use action IDs prefixed with `showcase_`. A single catch-all handler matches this prefix:
 
-```
+```js
 app.action(/^showcase_/, ...)
 ```
 
@@ -76,7 +76,7 @@ In simulator mode, token and secret values are generated automatically.
 
 ## Project structure
 
-```
+```text
 src/
   app.ts                          # Entry point, Bolt app setup, startup sequence
   settings.ts                     # Environment variable validation (zod)

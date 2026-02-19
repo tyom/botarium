@@ -36,6 +36,9 @@
     {#if block.title}{renderText(block.title)}{/if}
     {#if imageSize}({imageSize}){/if}
     <button
+      type="button"
+      aria-label="Toggle image details"
+      aria-expanded={!collapsed}
       class="text-sm text-[#1d9bd1] hover:underline cursor-pointer mb-1"
       onclick={() => (collapsed = !collapsed)}
     >
