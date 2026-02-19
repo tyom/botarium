@@ -69,9 +69,83 @@ export class EmulatorState {
   async enablePersistence(dataDir: string): Promise<void> {
     this.persistence = new EmulatorPersistence(dataDir)
     await this.persistence.initialize()
+    // Load channels first so they're available before messages
+    await this.loadPersistedChannels()
     // Load files first so they're available when attaching to messages
     await this.loadPersistedFiles()
     await this.loadPersistedMessages()
+  }
+
+  /**
+   * Load channels from persistence into memory
+   * Adds any persisted channels that aren't already in the in-memory channels map
+   */
+  private async loadPersistedChannels(): Promise<void> {
+    if (!this.persistence) return
+
+    const records = await this.persistence.loadChannels()
+    for (const record of records) {
+      if (!this.channels.has(record.id)) {
+        const channel: SlackChannel = {
+          id: record.id,
+          name: record.name,
+          is_channel: true,
+          is_im: false,
+          is_member: true,
+        }
+        this.channels.set(record.id, channel)
+        if (!this.messages.has(record.id)) {
+          this.messages.set(record.id, [])
+        }
+      }
+    }
+    stateLogger.info(`Loaded ${records.length} channels from persistence`)
+  }
+
+  /**
+   * Add a user-created channel to in-memory state and persist
+   */
+  addCustomChannel(id: string, name: string): SlackChannel {
+    const channel: SlackChannel = {
+      id,
+      name,
+      is_channel: true,
+      is_im: false,
+      is_member: true,
+    }
+    this.channels.set(id, channel)
+    this.messages.set(id, [])
+
+    if (this.persistence) {
+      this.persistence.addChannel(id, name).catch((err) => {
+        stateLogger.error({ err }, 'Failed to persist channel')
+      })
+    }
+
+    return channel
+  }
+
+  /**
+   * Remove a user-created channel from in-memory state and persist
+   * Refuses to remove preset channels (C_GENERAL, C_SHOWCASE)
+   */
+  removeCustomChannel(id: string): boolean {
+    // Refuse to remove preset channels
+    if (id === 'C_GENERAL' || id === 'C_SHOWCASE') return false
+
+    const channel = this.channels.get(id)
+    if (!channel) return false
+
+    this.channels.delete(id)
+    this.messages.delete(id)
+
+    if (this.persistence) {
+      this.persistence.removeChannel(id).catch((err) => {
+        stateLogger.error({ err }, 'Failed to remove channel from persistence')
+      })
+    }
+
+    return true
   }
 
   /**
