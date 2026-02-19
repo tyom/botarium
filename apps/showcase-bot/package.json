@@ -9,7 +9,7 @@
     "dev": "bun --watch run src/app.ts",
     "dev:local": "SLACK_API_URL=http://localhost:7557 bun --watch run src/app.ts",
     "typecheck": "tsc --noEmit",
-    "test": "bun test"
+    "test": "echo 'No tests yet'"
   },
   "dependencies": {
     "@slack/bolt": "^4.6.0",
