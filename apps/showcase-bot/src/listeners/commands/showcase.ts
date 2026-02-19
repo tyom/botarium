@@ -239,11 +239,7 @@ export function register(app: App) {
 
       case 'help':
       case '':
-        await postHelpMessage(
-          client,
-          command.channel_id,
-          command.user_id
-        )
+        await postHelpMessage(client, command.channel_id, command.user_id)
         break
 
       default:

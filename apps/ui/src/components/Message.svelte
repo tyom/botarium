@@ -37,7 +37,14 @@
     onOpenThread?: (ts: string) => void
     onDelete?: (ts: string) => void
     onGenerateImage?: (message: SimulatorMessage) => void
-    onImagePreview?: (imageUrl: string, imageAlt: string, userName?: string, isBot?: boolean, timestamp?: string, channelName?: string) => void
+    onImagePreview?: (
+      imageUrl: string,
+      imageAlt: string,
+      userName?: string,
+      isBot?: boolean,
+      timestamp?: string,
+      channelName?: string
+    ) => void
   }
 
   const EMOJI_MAP: Record<string, string> = {
@@ -369,7 +376,15 @@
               <BlockKitRenderer
                 blocks={message.blocks ?? []}
                 onAction={handleMessageBlockAction}
-                onImagePreview={(url, alt) => onImagePreview?.(url, alt, displayName, isBot, formatRelativeTime(message.ts), getChannelDisplayName())}
+                onImagePreview={(url, alt) =>
+                  onImagePreview?.(
+                    url,
+                    alt,
+                    displayName,
+                    isBot,
+                    formatRelativeTime(message.ts),
+                    getChannelDisplayName()
+                  )}
               />
             </div>
           {:else}

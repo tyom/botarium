@@ -163,7 +163,11 @@
                 class="opacity-0 group-hover:opacity-100 transition-opacity mr-2"
                 onclick={(e) => {
                   e.stopPropagation()
-                  if (window.confirm(`Delete #${channel.name}? All messages in this channel will be lost.`)) {
+                  if (
+                    window.confirm(
+                      `Delete #${channel.name}? All messages in this channel will be lost.`
+                    )
+                  ) {
                     removeChannel(channel.id)
                   }
                 }}

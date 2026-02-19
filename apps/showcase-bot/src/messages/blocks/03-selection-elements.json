@@ -3,7 +3,11 @@
   "blocks": [
     {
       "type": "header",
-      "text": { "type": "plain_text", "text": "Selection Elements", "emoji": true }
+      "text": {
+        "type": "plain_text",
+        "text": "Selection Elements",
+        "emoji": true
+      }
     },
     {
       "type": "actions",
@@ -18,15 +22,27 @@
           "action_id": "showcase_static_select",
           "options": [
             {
-              "text": { "type": "plain_text", "text": "Option A", "emoji": true },
+              "text": {
+                "type": "plain_text",
+                "text": "Option A",
+                "emoji": true
+              },
               "value": "option_a"
             },
             {
-              "text": { "type": "plain_text", "text": "Option B", "emoji": true },
+              "text": {
+                "type": "plain_text",
+                "text": "Option B",
+                "emoji": true
+              },
               "value": "option_b"
             },
             {
-              "text": { "type": "plain_text", "text": "Option C", "emoji": true },
+              "text": {
+                "type": "plain_text",
+                "text": "Option C",
+                "emoji": true
+              },
               "value": "option_c"
             }
           ]
@@ -40,7 +56,11 @@
               "value": "edit"
             },
             {
-              "text": { "type": "plain_text", "text": "Archive", "emoji": true },
+              "text": {
+                "type": "plain_text",
+                "text": "Archive",
+                "emoji": true
+              },
               "value": "archive"
             },
             {

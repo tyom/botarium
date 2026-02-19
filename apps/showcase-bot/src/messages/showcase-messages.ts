@@ -23,9 +23,11 @@ function resolveTemplates(raw: string): string {
 }
 
 const blocksDir = join(import.meta.dir, 'blocks')
-const files = readdirSync(blocksDir).filter(f => f.endsWith('.json')).sort()
+const files = readdirSync(blocksDir)
+  .filter((f) => f.endsWith('.json'))
+  .sort()
 
-export const showcaseMessages: ShowcaseMessage[] = files.map(file => {
+export const showcaseMessages: ShowcaseMessage[] = files.map((file) => {
   const raw = readFileSync(join(blocksDir, file), 'utf-8')
   return JSON.parse(resolveTemplates(raw))
 })

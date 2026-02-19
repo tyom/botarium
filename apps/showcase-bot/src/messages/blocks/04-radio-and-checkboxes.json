@@ -11,7 +11,10 @@
     },
     {
       "type": "section",
-      "text": { "type": "mrkdwn", "text": "*Size Selection* (radio buttons accessory)" },
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Size Selection* (radio buttons accessory)"
+      },
       "accessory": {
         "type": "radio_buttons",
         "action_id": "showcase_radio_size",
@@ -88,15 +91,27 @@
           "action_id": "showcase_checkbox_features",
           "options": [
             {
-              "text": { "type": "plain_text", "text": "Dark mode", "emoji": true },
+              "text": {
+                "type": "plain_text",
+                "text": "Dark mode",
+                "emoji": true
+              },
               "value": "dark_mode"
             },
             {
-              "text": { "type": "plain_text", "text": "Notifications", "emoji": true },
+              "text": {
+                "type": "plain_text",
+                "text": "Notifications",
+                "emoji": true
+              },
               "value": "notifications"
             },
             {
-              "text": { "type": "plain_text", "text": "Auto-save", "emoji": true },
+              "text": {
+                "type": "plain_text",
+                "text": "Auto-save",
+                "emoji": true
+              },
               "value": "auto_save"
             }
           ]

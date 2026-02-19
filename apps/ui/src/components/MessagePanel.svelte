@@ -40,7 +40,12 @@
 </script>
 
 <script lang="ts">
-  import { EllipsisVertical, MessageSquareText, Sparkles, Trash2 } from '@lucide/svelte'
+  import {
+    EllipsisVertical,
+    MessageSquareText,
+    Sparkles,
+    Trash2,
+  } from '@lucide/svelte'
   import { tick } from 'svelte'
   import {
     clearChannelMessages,
@@ -65,7 +70,14 @@
     activeThreadTs?: string | null
     onShowLogs?: () => void
     onOpenThread?: (ts: string) => void
-    onImagePreview?: (imageUrl: string, imageAlt: string, userName?: string, isBot?: boolean, timestamp?: string, channelName?: string) => void
+    onImagePreview?: (
+      imageUrl: string,
+      imageAlt: string,
+      userName?: string,
+      isBot?: boolean,
+      timestamp?: string,
+      channelName?: string
+    ) => void
   }
 
   let {
@@ -183,9 +195,7 @@
 <svelte:window onclick={handleClickOutside} />
 
 <div class="flex flex-col flex-1 min-h-0 bg-slack-bg cursor-default">
-  <header
-    class="px-5 pt-3 border-b border-slack-border shrink-0 drag"
-  >
+  <header class="px-5 pt-3 border-b border-slack-border shrink-0 drag">
     <div class="flex items-center justify-between">
       <h2 class="m-0 text-lg font-bold text-slack-text flex items-center gap-2">
         {#if currentChannel?.type === 'dm'}

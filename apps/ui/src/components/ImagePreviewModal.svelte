@@ -72,7 +72,10 @@
       return Math.max(0, (panel - zoomed) / 2 - SMALL_IMAGE_PADDING)
     }
 
-    return { maxX: axisMax(zoomedWidth, panelRect.width), maxY: axisMax(zoomedHeight, panelRect.height) }
+    return {
+      maxX: axisMax(zoomedWidth, panelRect.width),
+      maxY: axisMax(zoomedHeight, panelRect.height),
+    }
   }
 
   function clampPan(pos: { x: number; y: number }) {
@@ -211,68 +214,68 @@
     onclick={handleBackdropClick}
     aria-modal="true"
   >
-  <!-- Author info top-left -->
-  {#if userName}
-    <div class="absolute top-3 left-4 flex items-center gap-2.5 z-10">
-      <div
-        class="size-7 rounded-lg text-white flex items-center justify-center font-bold text-xs shrink-0 {isBot
-          ? 'bg-slack-bot-avatar'
-          : 'bg-slack-user-avatar'}"
-      >
-        {#if isBot}
-          <Sparkles size={14} />
-        {:else}
-          {avatarLetter}
-        {/if}
+    <!-- Author info top-left -->
+    {#if userName}
+      <div class="absolute top-3 left-4 flex items-center gap-2.5 z-10">
+        <div
+          class="size-7 rounded-lg text-white flex items-center justify-center font-bold text-xs shrink-0 {isBot
+            ? 'bg-slack-bot-avatar'
+            : 'bg-slack-user-avatar'}"
+        >
+          {#if isBot}
+            <Sparkles size={14} />
+          {:else}
+            {avatarLetter}
+          {/if}
+        </div>
+        <div class="flex flex-col">
+          <span class="text-white text-sm font-bold">{userName}</span>
+          {#if timestamp || channelName}
+            <span class="text-white/50 text-xs flex items-center gap-1">
+              {#if timestamp}{timestamp}{/if}
+              {#if timestamp && channelName}<span>in</span>{/if}
+              {#if channelName}
+                <span>{channelName}</span>
+              {/if}
+            </span>
+          {/if}
+        </div>
       </div>
-      <div class="flex flex-col">
-        <span class="text-white text-sm font-bold">{userName}</span>
-        {#if timestamp || channelName}
-          <span class="text-white/50 text-xs flex items-center gap-1">
-            {#if timestamp}{timestamp}{/if}
-            {#if timestamp && channelName}<span>in</span>{/if}
-            {#if channelName}
-              <span>{channelName}</span>
-            {/if}
-          </span>
-        {/if}
-      </div>
+    {/if}
+
+    <!-- Close button -->
+    <button
+      class="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors z-10"
+      onclick={onClose}
+      aria-label="Close"
+    >
+      <X size={24} />
+    </button>
+
+    <!-- Image container -->
+    <div
+      class={cursorClass}
+      onclick={handleImageClick}
+      onkeydown={handleImageKeydown}
+      onmousedown={handleMouseDown}
+      role="button"
+      tabindex="0"
+      aria-label={isZoomed ? 'Click to zoom out' : 'Click to zoom in'}
+    >
+      <img
+        bind:this={imageEl}
+        src={imageUrl}
+        alt={imageAlt}
+        class="select-none"
+        class:transition-transform={!isPanning && !isWheeling}
+        class:duration-200={!isPanning && !isWheeling}
+        style:transform={isZoomed
+          ? `scale(2) translate(${panPosition.x / 2}px, ${panPosition.y / 2}px)`
+          : 'scale(1)'}
+        style:max-height="calc(100vh - 160px)"
+        style:max-width="calc(100vw - 160px)"
+        draggable="false"
+      />
     </div>
-  {/if}
-
-  <!-- Close button -->
-  <button
-    class="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors z-10"
-    onclick={onClose}
-    aria-label="Close"
-  >
-    <X size={24} />
-  </button>
-
-  <!-- Image container -->
-  <div
-    class={cursorClass}
-    onclick={handleImageClick}
-    onkeydown={handleImageKeydown}
-    onmousedown={handleMouseDown}
-    role="button"
-    tabindex="0"
-    aria-label={isZoomed ? 'Click to zoom out' : 'Click to zoom in'}
-  >
-    <img
-      bind:this={imageEl}
-      src={imageUrl}
-      alt={imageAlt}
-      class="select-none"
-      class:transition-transform={!isPanning && !isWheeling}
-      class:duration-200={!isPanning && !isWheeling}
-      style:transform={isZoomed
-        ? `scale(2) translate(${panPosition.x / 2}px, ${panPosition.y / 2}px)`
-        : 'scale(1)'}
-      style:max-height="calc(100vh - 160px)"
-      style:max-width="calc(100vw - 160px)"
-      draggable="false"
-    />
-  </div>
   </div>
 </div>

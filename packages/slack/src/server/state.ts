@@ -530,7 +530,7 @@ export class EmulatorState {
     const channelMessages = this.messages.get(channel)
     if (!channelMessages) return false
 
-    const messageIndex = channelMessages.findIndex(msg => msg.ts === ts)
+    const messageIndex = channelMessages.findIndex((msg) => msg.ts === ts)
     if (messageIndex === -1) return false
 
     channelMessages.splice(messageIndex, 1)
@@ -538,10 +538,7 @@ export class EmulatorState {
     // Persist deletion
     if (this.persistence) {
       this.persistence.deleteMessage(ts).catch((err) => {
-        stateLogger.error(
-          { err },
-          'Failed to delete message from persistence'
-        )
+        stateLogger.error({ err }, 'Failed to delete message from persistence')
       })
     }
 

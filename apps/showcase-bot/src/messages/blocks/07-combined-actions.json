@@ -3,7 +3,11 @@
   "blocks": [
     {
       "type": "header",
-      "text": { "type": "plain_text", "text": "Combined Actions", "emoji": true }
+      "text": {
+        "type": "plain_text",
+        "text": "Combined Actions",
+        "emoji": true
+      }
     },
     {
       "type": "actions",

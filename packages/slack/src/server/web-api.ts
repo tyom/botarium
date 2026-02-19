@@ -306,7 +306,13 @@ export class SlackWebAPI {
     // Slack allows either text or blocks (or both)
     if (!channel || (!text && !blocks)) {
       webApiLogger.error(
-        { channel, text, hasChannel: !!channel, hasText: !!text, hasBlocks: !!blocks },
+        {
+          channel,
+          text,
+          hasChannel: !!channel,
+          hasText: !!text,
+          hasBlocks: !!blocks,
+        },
         'chat.postMessage missing required argument'
       )
       return Response.json(
@@ -474,10 +480,7 @@ export class SlackWebAPI {
     this.state.emitEvent({ type: 'message_delete', ts, channel })
 
     webApiLogger.debug(`chat.delete: ${channel} ${ts}`)
-    return Response.json(
-      { ok: true, channel, ts },
-      { headers: corsHeaders() }
-    )
+    return Response.json({ ok: true, channel, ts }, { headers: corsHeaders() })
   }
 
   private async reactionsAdd(
@@ -646,10 +649,7 @@ export class SlackWebAPI {
     return view
   }
 
-  private viewsOpen(
-    body: ViewsOpenRequest,
-    token: string | null
-  ): Response {
+  private viewsOpen(body: ViewsOpenRequest, token: string | null): Response {
     const { trigger_id, view: rawView } = body
     webApiLogger.info({ trigger_id, hasView: !!rawView }, 'views.open called')
     const view = this.parseViewIfString(rawView as SlackView | string)
@@ -723,10 +723,7 @@ export class SlackWebAPI {
     return Response.json(response, { headers: corsHeaders() })
   }
 
-  private viewsPush(
-    body: ViewsOpenRequest,
-    token: string | null
-  ): Response {
+  private viewsPush(body: ViewsOpenRequest, token: string | null): Response {
     // views.push is similar to views.open but pushes onto a stack
     // For now, implement same as views.open
     return this.viewsOpen(body, token)
@@ -1469,7 +1466,10 @@ export class SlackWebAPI {
     // Dispatch to the bot that owns this command (or broadcast as fallback)
     const targetBot = this.state.getBotForCommand(command)
     webApiLogger.info(
-      { connectedBots: this.socketMode.getConnectionCount(), targetBot: targetBot?.id },
+      {
+        connectedBots: this.socketMode.getConnectionCount(),
+        targetBot: targetBot?.id,
+      },
       'Dispatching slash command'
     )
     await this.socketMode.dispatchSlashCommand(payload, targetBot?.id)
@@ -1655,9 +1655,7 @@ export class SlackWebAPI {
       }
       elementInfoMap.get(blockId)!.set(actionId, {
         type: element.type as string,
-        options: element.options as
-          | Array<Record<string, unknown>>
-          | undefined,
+        options: element.options as Array<Record<string, unknown>> | undefined,
       })
     }
 
@@ -1714,7 +1712,10 @@ export class SlackWebAPI {
                 selected_time: (val.value as string) || null,
                 type: elementInfo.type,
               }
-            } else if (elementInfo.type === 'datetimepicker' && 'value' in val) {
+            } else if (
+              elementInfo.type === 'datetimepicker' &&
+              'value' in val
+            ) {
               result[blockId][actionId] = {
                 selected_date_time: val.value ? Number(val.value) : null,
                 type: elementInfo.type,
@@ -1881,8 +1882,9 @@ export class SlackWebAPI {
       })
 
       // Extract bot ID from message user (U_{botId} -> botId)
-      const messageBotId =
-        msg.user?.startsWith('U_') ? msg.user.slice(2) : undefined
+      const messageBotId = msg.user?.startsWith('U_')
+        ? msg.user.slice(2)
+        : undefined
 
       // Dispatch block_actions to the bot that sent this message
       await this.socketMode.dispatchInteractive(

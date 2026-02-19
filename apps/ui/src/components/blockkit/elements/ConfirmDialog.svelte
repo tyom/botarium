@@ -30,7 +30,9 @@
   class="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]"
   onclick={handleBackdropClick}
 >
-  <div class="bg-slack-bg border border-white/20 rounded-xl max-w-sm w-full p-5 shadow-2xl">
+  <div
+    class="bg-slack-bg border border-white/20 rounded-xl max-w-sm w-full p-5 shadow-2xl"
+  >
     <h3 class="text-lg font-semibold text-slack-text mb-2">
       {renderText(dialog.title)}
     </h3>

@@ -237,7 +237,10 @@ async function main() {
         })
         const lastMessage = history.messages?.[0]
         if (lastMessage?.ts && lastMessage.text === HELP_TEXT) {
-          await app.client.chat.delete({ channel: dmChannel, ts: lastMessage.ts })
+          await app.client.chat.delete({
+            channel: dmChannel,
+            ts: lastMessage.ts,
+          })
         }
         await app.client.chat.postMessage({
           channel: dmChannel,

@@ -23,9 +23,7 @@ describe('mrkdwnToHtml', () => {
   })
 
   it('renders code block', () => {
-    expect(mrkdwnToHtml('```\ncode\n```')).toBe(
-      '<pre><code>code</code></pre>',
-    )
+    expect(mrkdwnToHtml('```\ncode\n```')).toBe('<pre><code>code</code></pre>')
   })
 
   it('renders code block without leading newline', () => {
@@ -34,85 +32,81 @@ describe('mrkdwnToHtml', () => {
 
   it('renders link with label', () => {
     expect(mrkdwnToHtml('<https://example.com|Example>')).toBe(
-      '<a href="https://example.com" target="_blank">Example</a>',
+      '<a href="https://example.com" target="_blank">Example</a>'
     )
   })
 
   it('renders link without label', () => {
     expect(mrkdwnToHtml('<https://example.com>')).toBe(
-      '<a href="https://example.com" target="_blank">https://example.com</a>',
+      '<a href="https://example.com" target="_blank">https://example.com</a>'
     )
   })
 
   it('renders mailto link', () => {
     expect(mrkdwnToHtml('<mailto:test@example.com|Email>')).toBe(
-      '<a href="mailto:test@example.com" target="_blank">Email</a>',
+      '<a href="mailto:test@example.com" target="_blank">Email</a>'
     )
   })
 
   it('renders user mention', () => {
-    expect(mrkdwnToHtml('<@U123>')).toBe(
-      '<span class="s-mention">@U123</span>',
-    )
+    expect(mrkdwnToHtml('<@U123>')).toBe('<span class="s-mention">@U123</span>')
   })
 
   it('renders channel mention', () => {
     expect(mrkdwnToHtml('<#C123|general>')).toBe(
-      '<span class="s-mention">#general</span>',
+      '<span class="s-mention">#general</span>'
     )
   })
 
   it('renders special commands', () => {
-    expect(mrkdwnToHtml('<!here>')).toBe(
-      '<span class="s-mention">@here</span>',
-    )
+    expect(mrkdwnToHtml('<!here>')).toBe('<span class="s-mention">@here</span>')
     expect(mrkdwnToHtml('<!channel>')).toBe(
-      '<span class="s-mention">@channel</span>',
+      '<span class="s-mention">@channel</span>'
     )
     expect(mrkdwnToHtml('<!everyone>')).toBe(
-      '<span class="s-mention">@everyone</span>',
+      '<span class="s-mention">@everyone</span>'
     )
   })
 
   it('renders blockquote', () => {
     expect(mrkdwnToHtml('> quoted text')).toBe(
-      '<blockquote>quoted text</blockquote>',
+      '<blockquote>quoted text</blockquote>'
     )
   })
 
   it('renders multi-line blockquote', () => {
     expect(mrkdwnToHtml('> line 1\n> line 2')).toBe(
-      '<blockquote>line 1<br>line 2</blockquote>',
+      '<blockquote>line 1<br>line 2</blockquote>'
     )
   })
 
   it('renders bullet list with bullet char', () => {
     expect(mrkdwnToHtml('\u2022 item1\n\u2022 item2')).toBe(
-      '<ul><li>item1</li><li>item2</li></ul>',
+      '<ul><li>item1</li><li>item2</li></ul>'
     )
   })
 
   it('renders bullet list with dash', () => {
     expect(mrkdwnToHtml('- item1\n- item2')).toBe(
-      '<ul><li>item1</li><li>item2</li></ul>',
+      '<ul><li>item1</li><li>item2</li></ul>'
     )
   })
 
   it('renders bullet list with asterisk', () => {
     expect(mrkdwnToHtml('* item1\n* item2')).toBe(
-      '<ul><li>item1</li><li>item2</li></ul>',
+      '<ul><li>item1</li><li>item2</li></ul>'
     )
   })
 
   it('renders numbered list', () => {
     expect(mrkdwnToHtml('1. first\n2. second')).toBe(
-      '<ol><li>first</li><li>second</li></ol>',
+      '<ol><li>first</li><li>second</li></ol>'
     )
   })
 
   it('renders mixed formatting', () => {
     expect(mrkdwnToHtml('*bold* and _italic_')).toBe(
-      '<strong>bold</strong> and <em>italic</em>',
+      '<strong>bold</strong> and <em>italic</em>'
     )
   })
 
@@ -128,7 +122,7 @@ describe('mrkdwnToHtml', () => {
 
   it('does not format inside code blocks', () => {
     expect(mrkdwnToHtml('```\n*not bold*\n```')).toBe(
-      '<pre><code>*not bold*</code></pre>',
+      '<pre><code>*not bold*</code></pre>'
     )
   })
 
@@ -162,20 +156,18 @@ describe('mrkdwnToHtml', () => {
 
   it('handles code block with surrounding text', () => {
     const result = mrkdwnToHtml('before\n```\ncode\n```\nafter')
-    expect(result).toBe(
-      'before<pre><code>code</code></pre>after',
-    )
+    expect(result).toBe('before<pre><code>code</code></pre>after')
   })
 
   it('handles inline formatting within list items', () => {
     expect(mrkdwnToHtml('- *bold item*\n- _italic item_')).toBe(
-      '<ul><li><strong>bold item</strong></li><li><em>italic item</em></li></ul>',
+      '<ul><li><strong>bold item</strong></li><li><em>italic item</em></li></ul>'
     )
   })
 
   it('renders task list checkboxes with line breaks', () => {
     expect(mrkdwnToHtml('☑ Done\n☐ Not done\n☐ Also not done')).toBe(
-      '☑ Done<br>☐ Not done<br>☐ Also not done',
+      '☑ Done<br>☐ Not done<br>☐ Also not done'
     )
   })
 })

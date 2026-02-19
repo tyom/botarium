@@ -41,7 +41,10 @@
     },
     {
       "type": "section",
-      "text": { "type": "mrkdwn", "text": "*Delivery Date* (datepicker accessory)" },
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Delivery Date* (datepicker accessory)"
+      },
       "accessory": {
         "type": "datepicker",
         "action_id": "showcase_datepicker_accessory",

@@ -63,7 +63,13 @@
         <Checkboxes
           element={cb}
           selectedOptions={undefined}
-          onChange={(options) => onAction?.(cb.action_id, JSON.stringify(options.map(o => ({ text: o.text, value: o.value }))))}
+          onChange={(options) =>
+            onAction?.(
+              cb.action_id,
+              JSON.stringify(
+                options.map((o) => ({ text: o.text, value: o.value }))
+              )
+            )}
         />
       </div>
     {:else if element.type === 'datepicker'}

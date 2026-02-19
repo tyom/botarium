@@ -634,10 +634,7 @@ export class SocketModeServer {
             viewId
           ),
           new Promise<void>((_, reject) =>
-            setTimeout(
-              () => reject(new Error('Dispatch timeout')),
-              10000
-            )
+            setTimeout(() => reject(new Error('Dispatch timeout')), 10000)
           ),
         ])
         socketModeLogger.debug(
