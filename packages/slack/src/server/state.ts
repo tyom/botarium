@@ -481,7 +481,9 @@ export class EmulatorState {
   }
 
   getChannelMessages(channel: string, limit?: number): SlackMessage[] {
-    const messages = this.messages.get(channel) ?? []
+    const messages = (this.messages.get(channel) ?? []).filter(
+      (m) => m.subtype !== 'ephemeral'
+    )
     if (limit) {
       return messages.slice(-limit)
     }
@@ -490,7 +492,11 @@ export class EmulatorState {
 
   getThreadMessages(channel: string, threadTs: string): SlackMessage[] {
     const messages = this.messages.get(channel) ?? []
-    return messages.filter((m) => m.ts === threadTs || m.thread_ts === threadTs)
+    return messages.filter(
+      (m) =>
+        (m.ts === threadTs || m.thread_ts === threadTs) &&
+        m.subtype !== 'ephemeral'
+    )
   }
 
   getAllMessages(): SlackMessage[] {

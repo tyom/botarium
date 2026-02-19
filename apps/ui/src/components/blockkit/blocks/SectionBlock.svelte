@@ -98,7 +98,11 @@
     {:else if block.accessory.type === 'users_select' || block.accessory.type === 'conversations_select' || block.accessory.type === 'channels_select' || block.accessory.type === 'external_select' || block.accessory.type === 'multi_users_select' || block.accessory.type === 'multi_conversations_select' || block.accessory.type === 'multi_channels_select' || block.accessory.type === 'multi_external_select'}
       {@const ws = block.accessory as SlackWorkspaceSelectElement}
       <div class="shrink-0">
-        <WorkspaceSelect placeholder={ws.placeholder} compact />
+        <WorkspaceSelect
+          placeholder={ws.placeholder}
+          compact
+          onChange={(value) => onAction?.(ws.action_id, value)}
+        />
       </div>
     {:else if block.accessory.type === 'image'}
       <ImageElement

@@ -79,11 +79,11 @@ function formatInline(text: string): string {
 
   // Links: <url|label> and <url>
   text = text.replace(
-    /&lt;((?:https?|mailto):[^|&]+)\|([^&]+)&gt;/g,
+    /&lt;((?:https?|mailto):.*?)\|(.*?)&gt;/g,
     '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>'
   )
   text = text.replace(
-    /&lt;((?:https?|mailto):[^&]+)&gt;/g,
+    /&lt;((?:https?|mailto):.*?)&gt;/g,
     '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
   )
 

@@ -47,9 +47,11 @@
     showCreateModal = true
   }
 
-  function handleCreateChannel(name: string) {
-    addChannel(name)
-    showCreateModal = false
+  async function handleCreateChannel(name: string) {
+    const channel = await addChannel(name)
+    if (channel) {
+      showCreateModal = false
+    }
   }
 
   function handleContextMenu(
