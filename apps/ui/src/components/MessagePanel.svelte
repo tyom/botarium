@@ -203,9 +203,7 @@
 <svelte:window onclick={handleClickOutside} />
 
 <div class="relative flex flex-col flex-1 min-h-0 bg-slack-bg cursor-default">
-  <header
-    class="px-5 pt-3 border-b border-slack-border shrink-0 drag"
-  >
+  <header class="px-5 pt-3 border-b border-slack-border shrink-0 drag">
     <div class="flex items-center justify-between">
       <h2 class="m-0 text-lg font-bold text-slack-text flex items-center gap-2">
         {#if currentChannel?.type === 'dm'}
@@ -282,7 +280,7 @@
       </div>
     {:else if messages.length > 0}
       {#each messages as message, i (message.ts)}
-        {#if i === 0 || getDateKey(message.ts) !== getDateKey(messages[i - 1].ts)}
+        {#if i === 0 || getDateKey(message.ts) !== getDateKey(messages[i - 1]!.ts)}
           <DaySeparator label={formatDateLabel(message.ts)} />
         {/if}
         <Message
