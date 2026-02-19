@@ -19,7 +19,7 @@
   }
 </script>
 
-<div class="table-wrapper">
+<div class="table-wrapper self-start">
   <table>
     {#if block.rows.length > 0}
       <thead>
@@ -67,14 +67,25 @@
   }
 
   table {
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     color: var(--text-primary);
   }
 
   th,
   td {
     padding: 4px 8px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  th:last-child,
+  td:last-child {
+    border-right: none;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
   }
 
   th {
