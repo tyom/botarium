@@ -14,7 +14,7 @@
 </script>
 
 <div
-  class="flex flex-wrap items-center gap-2 text-xs text-slack-text-muted my-2 max-w-[620px]"
+  class="flex flex-wrap items-center gap-2 text-sm text-slack-text-muted my-2 max-w-[620px]"
 >
   {#each block.elements as el, i (i)}
     {#if 'text' in el}
