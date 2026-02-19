@@ -7,6 +7,11 @@
 
 import { Lexer, type Token, type Tokens } from 'marked'
 
+/** Escape characters that have special meaning in Slack mrkdwn */
+function escapeMrkdwn(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
 /** Render a single inline token to mrkdwn */
 function renderInlineToken(token: Token): string {
   switch (token.type) {
@@ -40,17 +45,17 @@ function renderInlineToken(token: Token): string {
       if ('tokens' in t && t.tokens) {
         return renderTokens(t.tokens)
       }
-      return t.text
+      return escapeMrkdwn(t.text)
     }
     case 'br':
       return '\n'
     case 'escape': {
       const t = token as Tokens.Escape
-      return t.text
+      return escapeMrkdwn(t.text)
     }
     case 'html': {
       const t = token as Tokens.HTML
-      return t.text.replace(/<[^>]+>/g, '')
+      return escapeMrkdwn(t.text.replace(/<[^>]+>/g, ''))
     }
     default:
       return 'raw' in token ? String(token.raw) : ''
@@ -88,7 +93,7 @@ function renderList(token: Tokens.List, depth: number): string {
         if ('tokens' in t && t.tokens) {
           textParts.push(renderTokens(t.tokens))
         } else {
-          textParts.push(t.text)
+          textParts.push(escapeMrkdwn(t.text))
         }
       } else {
         textParts.push(renderBlockToken(child, depth).trim())

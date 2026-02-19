@@ -105,7 +105,7 @@
   {#if isOpen}
     <div
       style={menuStyle}
-      class="min-w-36 bg-slack-sidebar border border-white/20 rounded-md shadow-lg z-200"
+      class="min-w-36 bg-slack-sidebar border border-white/20 rounded-md shadow-lg z-100"
     >
       {#each element.options as option (option.value)}
         <button

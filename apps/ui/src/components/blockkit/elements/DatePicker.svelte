@@ -137,7 +137,7 @@
     </span>
   </button>
   {#if isOpen}
-    <div style={menuStyle} class="z-200">
+    <div style={menuStyle} class="z-100">
       <Calendar.Root
         type="single"
         value={calendarValue}

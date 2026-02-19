@@ -200,6 +200,26 @@
     const mergedValues: Record<string, Record<string, unknown>> = {
       ...formValues,
     }
+
+    // Convert datetimepicker string values to numeric selected_date_time
+    // (Slack API expects selected_date_time as a number)
+    for (const block of simulatorState.activeModal.view.blocks) {
+      if (block?.type === 'input') {
+        const el = (block as SlackInputBlock).element
+        if (el?.type === 'datetimepicker') {
+          const blockId = block.block_id || ''
+          const entry = mergedValues[blockId]?.[el.action_id] as
+            | { value?: string }
+            | undefined
+          if (entry?.value && mergedValues[blockId]) {
+            mergedValues[blockId][el.action_id] = {
+              selected_date_time: Number(entry.value),
+            }
+          }
+        }
+      }
+    }
+
     for (const [blockId, actionValues] of Object.entries(fileFormValues)) {
       if (!mergedValues[blockId]) {
         mergedValues[blockId] = {}

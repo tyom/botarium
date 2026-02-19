@@ -183,7 +183,7 @@
     </span>
   </button>
   {#if isOpen}
-    <div style={menuStyle} class="z-200">
+    <div style={menuStyle} class="z-100">
       <div
         class="bg-slack-sidebar border border-white/20 rounded-lg shadow-lg flex flex-col"
       >
