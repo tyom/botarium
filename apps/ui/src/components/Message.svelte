@@ -27,7 +27,11 @@
   } from '../lib/dispatcher.svelte'
   import BlockKitRenderer from './blockkit/BlockKitRenderer.svelte'
   import { renderMrkdwn } from './blockkit/context'
-  import { formatTimestamp, formatRelativeTime } from '../lib/time'
+  import {
+    formatTimestamp,
+    formatRelativeTime,
+    formatFullDate,
+  } from '../lib/time'
   import * as ContextMenu from '$lib/components/ui/context-menu'
 
   interface Props {
@@ -81,6 +85,7 @@
   })
   let avatarLetter = $derived(displayName.charAt(0).toUpperCase())
   let timestamp = $derived(formatTimestamp(message.ts))
+  let fullDate = $derived(formatFullDate(message.ts))
   let formattedText = $derived.by(() => {
     // Replace internal user IDs BEFORE markdown processing (handles <@userId> format)
     const userName = simulatorState.simulatedUserName || 'You'
@@ -366,7 +371,9 @@
                 >APP</span
               >
             {/if}
-            <span class="text-xs text-slack-text-muted">{timestamp}</span>
+            <span class="text-xs text-slack-text-muted" title={fullDate}
+              >{timestamp}</span
+            >
           </div>
           {#if hasBlocks}
             <div class="mt-1">

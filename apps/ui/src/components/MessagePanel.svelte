@@ -63,6 +63,8 @@
     simulatorState,
   } from '../lib/state.svelte'
   import type { Channel } from '../lib/types'
+  import { formatDateLabel, getDateKey } from '../lib/time'
+  import DaySeparator from './DaySeparator.svelte'
   import Message from './Message.svelte'
 
   interface Props {
@@ -270,7 +272,10 @@
         </p>
       </div>
     {:else if messages.length > 0}
-      {#each messages as message (message.ts)}
+      {#each messages as message, i (message.ts)}
+        {#if i === 0 || getDateKey(message.ts) !== getDateKey(messages[i - 1].ts)}
+          <DaySeparator label={formatDateLabel(message.ts)} />
+        {/if}
         <Message
           {message}
           replyCount={getReplyCount(simulatorState.currentChannel, message.ts)}
