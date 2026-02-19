@@ -27,6 +27,14 @@ settings:
       group: bot
       required: true
 
+  bot_description:
+    value: Sends categorized Block Kit example messages for visual verification.
+    schema:
+      type: string
+      label: Bot Description
+      description: Short description shown in the DM about section
+      group: bot
+
 # Group definitions with display order
 groups:
   - id: bot

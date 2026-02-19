@@ -86,6 +86,7 @@ export interface ShortcutDefinition {
 export interface SlackAppConfig {
   app: {
     name: string
+    description?: string
     id?: string // Bot identifier in simulator (from config.yaml simulator.id)
     configPort?: number // Port for bot's config HTTP server (usually bot port + 1)
   }

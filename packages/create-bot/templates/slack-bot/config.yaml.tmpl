@@ -28,6 +28,14 @@ settings:
       description: Display name for the bot in conversations
       group: bot
       required: true
+
+  bot_description:
+    value: ''
+    schema:
+      type: string
+      label: Bot Description
+      description: Short description shown in the DM about section
+      group: bot
 {{#if isAi}}
 
   bot_personality:

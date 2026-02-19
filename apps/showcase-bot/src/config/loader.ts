@@ -97,10 +97,13 @@ export const config = rawConfig as ConfigFile
 
 // Get bot name from settings (with fallback)
 const botName = (config.settings.bot_name?.value as string) ?? 'Showcase Bot'
+const botDescription = config.settings.bot_description?.value as
+  | string
+  | undefined
 
 // Convenience exports for Slack config
 // Include app info for emulator registration (derived from bot_name setting)
 export const slackConfig = {
-  app: { name: botName, id: config.simulator.id },
+  app: { name: botName, description: botDescription, id: config.simulator.id },
   ...config.slack,
 }

@@ -62,6 +62,7 @@ export interface Shortcut {
 export interface SlackAppConfig {
   app: {
     name: string
+    description?: string
   }
   commands: SlashCommand[]
   shortcuts: Shortcut[]
@@ -575,6 +576,7 @@ export interface UploadedFile {
 export interface ConnectedBotInfo {
   id: string
   name: string
+  description?: string
   connectedAt: string
   status: 'connecting' | 'connected' | 'disconnected'
   commands: number

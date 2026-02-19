@@ -291,7 +291,7 @@ function handleSSEEvent(event: {
   bot?: {
     id: string
     appConfig: {
-      app: { name: string }
+      app: { name: string; description?: string }
       commands?: Array<{ command: string; description: string }>
       shortcuts?: Array<{ callback_id: string; name: string }>
     }
@@ -416,6 +416,7 @@ function handleSSEEvent(event: {
         const botInfo: ConnectedBotInfo = {
           id: event.bot.id,
           name: event.bot.appConfig.app.name,
+          description: event.bot.appConfig.app.description,
           connectedAt: event.bot.connectedAt,
           status: event.bot.status,
           commands: event.bot.appConfig.commands?.length ?? 0,

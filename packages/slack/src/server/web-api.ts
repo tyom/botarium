@@ -1403,6 +1403,7 @@ export class SlackWebAPI {
     const bots = this.state.getBots().map((bot) => ({
       id: bot.id,
       name: bot.appConfig.app.name,
+      description: bot.appConfig.app.description,
       connectedAt: bot.connectedAt.toISOString(),
       status: bot.status,
       commands: bot.appConfig.commands?.length ?? 0,
