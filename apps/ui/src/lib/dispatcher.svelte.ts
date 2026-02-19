@@ -22,6 +22,10 @@ import {
   markBotDisconnected,
   restoreMessages,
   isBotUserId,
+  setChannels,
+  addChannelToState,
+  removeChannelFromState,
+  switchChannel,
 } from './state.svelte'
 import type {
   SimulatorMessage,
@@ -31,6 +35,7 @@ import type {
   SlackAppConfig,
   SlackBlock,
   ConnectedBotInfo,
+  Channel,
 } from './types'
 import { INTERNAL_SIMULATED_USER_ID } from './settings-store'
 import { dispatcherLogger, sseLogger } from './logger'
@@ -606,6 +611,94 @@ async function loadConnectedBotsWithRetry(
     }
   }
   return []
+}
+
+// =============================================================================
+// Channel Management Functions
+// =============================================================================
+
+/**
+ * Load channels from the emulator API
+ */
+export async function loadChannels(): Promise<Channel[]> {
+  try {
+    const response = await fetch(`${EMULATOR_API_URL}/api/simulator/channels`)
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+    const data = await response.json()
+    const channels = (data.channels ?? []).map(
+      (c: { id: string; name: string; isPreset: boolean }) => ({
+        id: c.id,
+        name: c.name,
+        type: 'channel' as const,
+        isPreset: c.isPreset,
+      })
+    )
+    setChannels(channels)
+    dispatcherLogger.info(`Loaded ${channels.length} channel(s)`)
+    return channels
+  } catch (error) {
+    dispatcherLogger.error('Failed to load channels:', error)
+    return []
+  }
+}
+
+/**
+ * Add a new channel via the emulator API
+ * On success, adds to state and switches to the new channel
+ */
+export async function addChannel(name: string): Promise<Channel | null> {
+  try {
+    const response = await fetch(`${EMULATOR_API_URL}/api/simulator/channels`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    if (!response.ok) {
+      const data = await response.json()
+      dispatcherLogger.error(`Failed to add channel: ${data.error}`)
+      return null
+    }
+    const data = await response.json()
+    const channel: Channel = {
+      id: data.channel.id,
+      name: data.channel.name,
+      type: 'channel',
+      isPreset: false,
+    }
+    addChannelToState(channel)
+    switchChannel(channel.id)
+    dispatcherLogger.info(`Added channel: #${channel.name}`)
+    return channel
+  } catch (error) {
+    dispatcherLogger.error('Failed to add channel:', error)
+    return null
+  }
+}
+
+/**
+ * Remove a channel via the emulator API
+ * On success, removes from state (state auto-switches to #general if needed)
+ */
+export async function removeChannel(id: string): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `${EMULATOR_API_URL}/api/simulator/channels/${encodeURIComponent(id)}`,
+      { method: 'DELETE' }
+    )
+    if (!response.ok) {
+      const data = await response.json()
+      dispatcherLogger.error(`Failed to remove channel: ${data.error}`)
+      return false
+    }
+    removeChannelFromState(id)
+    dispatcherLogger.info(`Removed channel: ${id}`)
+    return true
+  } catch (error) {
+    dispatcherLogger.error('Failed to remove channel:', error)
+    return false
+  }
 }
 
 /**

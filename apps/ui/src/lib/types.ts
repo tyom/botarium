@@ -29,12 +29,16 @@ export interface Channel {
   id: string
   name: string
   type: 'channel' | 'dm'
+  isPreset?: boolean
 }
 
-export const CHANNELS: Channel[] = [
-  { id: 'C_GENERAL', name: 'general', type: 'channel' },
-  { id: 'C_SHOWCASE', name: 'showcase', type: 'channel' },
+export const PRESET_CHANNELS: Channel[] = [
+  { id: 'C_GENERAL', name: 'general', type: 'channel', isPreset: true },
+  { id: 'C_SHOWCASE', name: 'showcase', type: 'channel', isPreset: true },
 ]
+
+/** @deprecated Use simulatorState.channels instead */
+export const CHANNELS = PRESET_CHANNELS
 
 export const BOT_USER_ID = 'U_BOT'
 export const BOT_NAME = 'Bot' // Default, overridden by app config

@@ -8,6 +8,7 @@
     loadCommands,
     loadAppConfig,
     loadConnectedBots,
+    loadChannels,
   } from '../lib/dispatcher.svelte'
   import { isElectron, getElectronAPI } from '../lib/electron-api'
   import {
@@ -22,7 +23,7 @@
     restoreMessages,
     simulatorState,
   } from '../lib/state.svelte'
-  import { CHANNELS } from '../lib/types'
+  import type { Channel } from '../lib/types'
   import InputBar from './InputBar.svelte'
   import LoadingSpinner from './LoadingSpinner.svelte'
   import LogPanel from './LogPanel.svelte'
@@ -59,8 +60,8 @@
 
   // Check if input should be disabled (bot DM channel and all bots disconnected)
   let isBotInputDisabled = $derived(() => {
-    const currentChannel = CHANNELS.find(
-      (c) => c.id === simulatorState.currentChannel
+    const currentChannel = simulatorState.channels.find(
+      (c: Channel) => c.id === simulatorState.currentChannel
     )
     if (currentChannel?.type !== 'dm') return false
     return (
@@ -136,9 +137,14 @@
     }
     simulatorState.messagesLoaded = true
 
-    // Load available slash commands, app config, and connected bots from emulator
+    // Load available slash commands, app config, connected bots, and channels from emulator
     // These will be populated after bot registers them
-    await Promise.all([loadCommands(), loadAppConfig(), loadConnectedBots()])
+    await Promise.all([
+      loadCommands(),
+      loadAppConfig(),
+      loadConnectedBots(),
+      loadChannels(),
+    ])
   }
 
   async function handleSend(text: string) {

@@ -9,8 +9,9 @@ import type {
   SlackView,
   SlackAppConfig,
   ConnectedBotInfo,
+  Channel,
 } from './types'
-import { BOT_USER_ID, BOT_NAME, CHANNELS } from './types'
+import { BOT_USER_ID, BOT_NAME, PRESET_CHANNELS } from './types'
 import {
   INTERNAL_SIMULATED_USER_ID,
   DEFAULT_SIMULATED_USER_NAME,
@@ -36,6 +37,10 @@ export const simulatorState = $state({
   currentThreadTs: null as string | null,
   isDM: false,
   isTyping: false,
+
+  // Channel list (loaded from API, includes preset + user-created)
+  channels: [...PRESET_CHANNELS] as Channel[],
+  channelsLoaded: false,
 
   // Messages indexed by channel, then by ts
   messages: new SvelteMap<string, SvelteMap<string, SimulatorMessage>>(),
@@ -181,7 +186,37 @@ export function getChannelDisplayName(): string {
     const bot = simulatorState.connectedBots.get(botId)
     return bot?.name ?? simulatorState.botName
   }
+  // Look up channel name from dynamic channels list
+  const channel = simulatorState.channels.find(
+    (c) => c.id === simulatorState.currentChannel
+  )
+  if (channel) return '#' + channel.name
   return '#' + simulatorState.currentChannel.replace(/^C_/, '').toLowerCase()
+}
+
+// =============================================================================
+// Channel State Management
+// =============================================================================
+
+// Set channels (called after loading from API)
+export function setChannels(channels: Channel[]): void {
+  simulatorState.channels = channels
+  simulatorState.channelsLoaded = true
+}
+
+// Add a channel to state
+export function addChannelToState(channel: Channel): void {
+  simulatorState.channels = [...simulatorState.channels, channel]
+}
+
+// Remove a channel from state, switching to #general if the deleted channel was active
+export function removeChannelFromState(channelId: string): void {
+  simulatorState.channels = simulatorState.channels.filter(
+    (c) => c.id !== channelId
+  )
+  if (simulatorState.currentChannel === channelId) {
+    switchChannel('C_GENERAL')
+  }
 }
 
 // Build URL hash from current state
@@ -211,8 +246,13 @@ export function parseHash(hash: string): {
     return { channelId, threadTs }
   }
 
-  // Regular channels must exist in CHANNELS array
-  if (!CHANNELS.some((c) => c.id === channelId)) {
+  // Regular channels must exist in channels list
+  // If channels aren't loaded yet, accept any C_ channel ID (validated once channels load)
+  if (simulatorState.channelsLoaded) {
+    if (!simulatorState.channels.some((c) => c.id === channelId)) {
+      return { channelId: null, threadTs: null }
+    }
+  } else if (!channelId.startsWith('C_')) {
     return { channelId: null, threadTs: null }
   }
 

@@ -57,7 +57,7 @@
     hasThreadDraft,
     simulatorState,
   } from '../lib/state.svelte'
-  import { CHANNELS } from '../lib/types'
+  import type { Channel } from '../lib/types'
   import Message from './Message.svelte'
 
   interface Props {
@@ -112,7 +112,9 @@
   let messages = $derived(getParentMessages(simulatorState.currentChannel))
   let channelName = $derived(getChannelDisplayName())
   let currentChannel = $derived(
-    CHANNELS.find((c) => c.id === simulatorState.currentChannel)
+    simulatorState.channels.find(
+      (c: Channel) => c.id === simulatorState.currentChannel
+    )
   )
   let isBotDisconnected = $derived(
     simulatorState.connectedBots.size > 0 &&
