@@ -36,7 +36,7 @@
 
 <button
   type="button"
-  class="h-8 px-3 rounded text-sm font-medium transition-colors
+  class="h-8 px-3 rounded text-sm font-medium transition-colors cursor-pointer
     {element.style === 'primary'
     ? 'bg-slack-accent text-white hover:bg-slack-accent-hover'
     : element.style === 'danger'

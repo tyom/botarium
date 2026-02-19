@@ -99,6 +99,37 @@ export interface SlackView {
   external_id?: string
 }
 
+// Context actions element types (AI-assistant-style action blocks)
+export interface SlackFeedbackButtonsElement {
+  type: 'feedback_buttons'
+  action_id: string
+  positive_button: {
+    text: SlackViewTextObject
+    value: string
+  }
+  negative_button: {
+    text: SlackViewTextObject
+    value: string
+  }
+}
+
+export interface SlackIconButtonElement {
+  type: 'icon_button'
+  action_id: string
+  icon: string
+  text: SlackViewTextObject
+}
+
+export type SlackContextActionElement =
+  | SlackFeedbackButtonsElement
+  | SlackIconButtonElement
+
+export interface SlackContextActionsBlock {
+  type: 'context_actions'
+  block_id?: string
+  elements: SlackContextActionElement[]
+}
+
 // Block Kit block types
 export type SlackBlock =
   | SlackSectionBlock
@@ -106,6 +137,7 @@ export type SlackBlock =
   | SlackActionsBlock
   | SlackDividerBlock
   | SlackContextBlock
+  | SlackContextActionsBlock
   | SlackImageBlock
   | SlackHeaderBlock
   | SlackRichTextBlock

@@ -5,6 +5,7 @@
     SlackInputBlock,
     SlackActionsBlock,
     SlackContextBlock,
+    SlackContextActionsBlock,
     SlackImageBlock,
     SlackHeaderBlock,
     SlackRichTextBlock,
@@ -24,6 +25,7 @@
   import HeaderBlock from './blocks/HeaderBlock.svelte'
   import RichTextBlock from './blocks/RichTextBlock.svelte'
   import TableBlock from './blocks/TableBlock.svelte'
+  import ContextActionsBlock from './blocks/ContextActionsBlock.svelte'
 
   interface Props {
     blocks: SlackBlock[]
@@ -66,7 +68,7 @@
   }
 </script>
 
-<div class="space-y-1">
+<div class="space-y-2">
   {#each blocks as block, index (getBlockId(block, index))}
     {#if block.type === 'section'}
       <SectionBlock block={block as SlackSectionBlock} {onAction} />
@@ -95,6 +97,11 @@
       <RichTextBlock block={block as SlackRichTextBlock} />
     {:else if block.type === 'table'}
       <TableBlock block={block as SlackTableBlock} />
+    {:else if block.type === 'context_actions'}
+      <ContextActionsBlock
+        block={block as SlackContextActionsBlock}
+        {onAction}
+      />
     {:else}
       <!-- Unknown block type -->
       {@const unknownBlock = block as { type: string }}
