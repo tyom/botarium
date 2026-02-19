@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { Plus, Settings, Sparkles } from '@lucide/svelte'
+  import { Plus, Settings, Sparkles, X } from '@lucide/svelte'
   import type { Channel } from '../lib/types'
   import { simulatorState, switchChannel } from '../lib/state.svelte'
   import { addChannel, removeChannel } from '../lib/dispatcher.svelte'
   import IconButton from './IconButton.svelte'
   import BotStatusIndicator from './BotStatusIndicator.svelte'
+  import CreateChannelModal from './CreateChannelModal.svelte'
   import { isElectron } from '../lib/electron-api'
 
   interface Props {
@@ -15,9 +16,7 @@
 
   let { onChannelSelect, onOpenSettings, onOpenAppSettings }: Props = $props()
 
-  // Add channel input state
-  let showAddInput = $state(false)
-  let newChannelName = $state('')
+  let showCreateModal = $state(false)
 
   // Context menu state
   let contextMenu = $state<{
@@ -45,32 +44,12 @@
   }
 
   function handleAddClick() {
-    showAddInput = true
-    newChannelName = ''
+    showCreateModal = true
   }
 
-  function handleAddInputKeyDown(event: KeyboardEvent) {
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      const name = newChannelName
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9-_]/g, '')
-      if (name) {
-        addChannel(name)
-      }
-      showAddInput = false
-      newChannelName = ''
-    } else if (event.key === 'Escape') {
-      showAddInput = false
-      newChannelName = ''
-    }
-  }
-
-  function handleAddInputBlur() {
-    showAddInput = false
-    newChannelName = ''
+  function handleCreateChannel(name: string) {
+    addChannel(name)
+    showCreateModal = false
   }
 
   function handleContextMenu(
@@ -134,12 +113,12 @@
         section.type !== 'dm' || simulatorState.connectedBots.size > 0}
       {#if hasBotsForApps}
         <div
-          class="pt-4 px-5 pb-1 text-sm font-semibold text-(--sidebar-muted) uppercase tracking-wide flex items-center justify-between"
+          class="pt-4 pl-5 pr-3 pb-1 text-sm font-semibold text-(--sidebar-muted) uppercase tracking-wide flex items-center justify-between"
         >
           <span>{section.label}</span>
           {#if section.type === 'channel'}
             <button
-              class="bg-transparent border-none p-0 cursor-pointer flex items-center justify-center text-(--sidebar-muted) hover:text-(--sidebar-text) transition-colors"
+              class="bg-transparent border-none p-1 rounded cursor-pointer flex items-center justify-center text-(--sidebar-muted) hover:text-(--sidebar-text) hover:bg-(--sidebar-hover) transition-colors"
               aria-label="Add channel"
               onclick={handleAddClick}
             >
@@ -149,25 +128,6 @@
         </div>
       {/if}
       {#if section.type === 'channel'}
-        {#if showAddInput}
-          <div class="px-5 py-1">
-            <div
-              class="flex items-center gap-1 rounded bg-(--sidebar-hover) px-2 py-1"
-            >
-              <span class="text-(--sidebar-muted) text-sm font-medium">#</span>
-              <!-- svelte-ignore a11y_autofocus -->
-              <input
-                type="text"
-                class="flex-1 bg-transparent border-none outline-none text-sm text-(--sidebar-text) placeholder:text-(--sidebar-muted)"
-                placeholder="channel-name"
-                bind:value={newChannelName}
-                onkeydown={handleAddInputKeyDown}
-                onblur={handleAddInputBlur}
-                autofocus
-              />
-            </div>
-          </div>
-        {/if}
         {#each simulatorState.channels.filter((c) => c.type === 'channel') as channel (channel.id)}
           {@const isActive = simulatorState.currentChannel === channel.id}
           <div
@@ -195,6 +155,20 @@
                 {channel.name}
               </span>
             </button>
+            {#if !channel.isPreset}
+              <IconButton
+                icon={X}
+                size={14}
+                label="Delete #{channel.name}"
+                class="opacity-0 group-hover:opacity-100 transition-opacity mr-2"
+                onclick={(e) => {
+                  e.stopPropagation()
+                  if (window.confirm(`Delete #${channel.name}? All messages in this channel will be lost.`)) {
+                    removeChannel(channel.id)
+                  }
+                }}
+              />
+            {/if}
           </div>
         {/each}
       {:else}
@@ -252,6 +226,13 @@
 
   <BotStatusIndicator />
 </aside>
+
+{#if showCreateModal}
+  <CreateChannelModal
+    onClose={() => (showCreateModal = false)}
+    onCreate={handleCreateChannel}
+  />
+{/if}
 
 <!-- Context menu for user-created channels -->
 {#if contextMenu}
