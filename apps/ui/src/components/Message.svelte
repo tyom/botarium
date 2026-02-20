@@ -27,6 +27,7 @@
     updateFileExpanded,
     sendMessageBlockAction,
   } from '../lib/dispatcher.svelte'
+  import { resolveEmoji } from '@botarium/mrkdwn'
   import BlockKitRenderer from './blockkit/BlockKitRenderer.svelte'
   import { renderMrkdwn } from './blockkit/context'
   import {
@@ -51,14 +52,6 @@
       timestamp?: string,
       channelName?: string
     ) => void
-  }
-
-  const EMOJI_MAP: Record<string, string> = {
-    thinking_face: '🤔',
-    white_check_mark: '✅',
-    clock1: '🕐',
-    clock2: '🕑',
-    clock3: '🕒',
   }
 
   let {
@@ -344,7 +337,7 @@
   }
 
   function getEmoji(name: string): string {
-    return EMOJI_MAP[name] || `:${name}:`
+    return resolveEmoji(name) ?? `:${name}:`
   }
 </script>
 

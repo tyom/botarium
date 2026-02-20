@@ -17,6 +17,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "gemoji": "^8.1.0",
     "marked": "^15.0.0"
   }
 }
