@@ -215,9 +215,7 @@
             | undefined
           if (entry && mergedValues[blockId]) {
             mergedValues[blockId][el.action_id] = {
-              selected_date_time: entry.value
-                ? Number(entry.value)
-                : undefined,
+              selected_date_time: entry.value ? Number(entry.value) : undefined,
             }
           }
         }
