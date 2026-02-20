@@ -12,6 +12,7 @@
     SlackBlock,
     SlackInputBlock,
     SlackCheckboxesElement,
+    SlackRadioButtonsElement,
     UploadedFile,
   } from '../lib/types'
 
@@ -89,6 +90,45 @@
           values[blockId][element.action_id] = {
             selected_options: checkboxElement.initial_options ?? [],
           }
+        } else if (
+          element.type === 'number_input' ||
+          element.type === 'email_text_input' ||
+          element.type === 'url_text_input'
+        ) {
+          values[blockId][element.action_id] = {
+            value:
+              ('initial_value' in element
+                ? (element as { initial_value?: string }).initial_value
+                : undefined) ?? '',
+          }
+        } else if (element.type === 'radio_buttons') {
+          const radioElement = element as SlackRadioButtonsElement
+          values[blockId][element.action_id] = {
+            selected_option: radioElement.initial_option,
+            value: radioElement.initial_option?.value,
+          }
+        } else if (element.type === 'datepicker') {
+          values[blockId][element.action_id] = {
+            value:
+              ('initial_date' in element
+                ? (element as { initial_date?: string }).initial_date
+                : undefined) ?? '',
+          }
+        } else if (element.type === 'timepicker') {
+          values[blockId][element.action_id] = {
+            value:
+              ('initial_time' in element
+                ? (element as { initial_time?: string }).initial_time
+                : undefined) ?? '',
+          }
+        } else if (element.type === 'datetimepicker') {
+          const initialTimestamp =
+            'initial_date_time' in element
+              ? (element as { initial_date_time?: number }).initial_date_time
+              : undefined
+          values[blockId][element.action_id] = {
+            value: initialTimestamp != null ? String(initialTimestamp) : '',
+          }
         }
       }
     }
@@ -133,6 +173,20 @@
     formValues[blockId][actionId] = { selected_options: selectedOptions }
   }
 
+  function handleRadioChange(
+    blockId: string,
+    actionId: string,
+    option: SlackOption
+  ) {
+    if (!formValues[blockId]) {
+      formValues[blockId] = {}
+    }
+    formValues[blockId][actionId] = {
+      selected_option: option,
+      value: option.value,
+    }
+  }
+
   async function handleAction(actionId: string, value: string) {
     if (!simulatorState.activeModal) return
     await sendBlockAction(simulatorState.activeModal.viewId, actionId, value)
@@ -146,6 +200,28 @@
     const mergedValues: Record<string, Record<string, unknown>> = {
       ...formValues,
     }
+
+    // Convert datetimepicker string values to numeric selected_date_time
+    // (Slack API expects selected_date_time as a number)
+    const blocks = simulatorState.activeModal.view.blocks
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i]
+      if (block?.type === 'input') {
+        const el = (block as SlackInputBlock).element
+        if (el?.type === 'datetimepicker') {
+          const blockId = block.block_id ?? `block-${i}`
+          const entry = mergedValues[blockId]?.[el.action_id] as
+            | { value?: string }
+            | undefined
+          if (entry && mergedValues[blockId]) {
+            mergedValues[blockId][el.action_id] = {
+              selected_date_time: entry.value ? Number(entry.value) : undefined,
+            }
+          }
+        }
+      }
+    }
+
     for (const [blockId, actionValues] of Object.entries(fileFormValues)) {
       if (!mergedValues[blockId]) {
         mergedValues[blockId] = {}
@@ -220,6 +296,7 @@
           onInputChange={handleInputChange}
           onFileChange={handleFileChange}
           onCheckboxChange={handleCheckboxChange}
+          onRadioChange={handleRadioChange}
         />
       </div>
 

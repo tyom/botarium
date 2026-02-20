@@ -63,6 +63,7 @@ export interface SlackMessage {
     mimetype?: string
     url_private?: string
   }>
+  blocks?: unknown[]
 }
 
 // =============================================================================
@@ -85,6 +86,7 @@ export interface ShortcutDefinition {
 export interface SlackAppConfig {
   app: {
     name: string
+    description?: string
     id?: string // Bot identifier in simulator (from config.yaml simulator.id)
     configPort?: number // Port for bot's config HTTP server (usually bot port + 1)
   }
@@ -163,6 +165,7 @@ export interface ViewState {
   triggerId: string
   userId: string
   channelId?: string
+  botId?: string // ID of the bot that opened this view (for targeted dispatch)
 }
 
 export interface ViewsOpenRequest {
@@ -382,6 +385,8 @@ export interface SimulatorEvent {
     | 'view_update'
     | 'view_close'
     | 'file_shared'
+    | 'message_update'
+    | 'message_delete'
     | 'bot_connecting' // WebSocket connected, waiting for config registration
     | 'bot_connected'
     | 'bot_disconnected'
@@ -390,6 +395,8 @@ export interface SimulatorEvent {
   user?: string
   reaction?: string
   item_ts?: string
+  // Delete-related fields
+  ts?: string
   // View-related fields
   viewId?: string
   view?: SlackView
@@ -443,8 +450,8 @@ export const DEFAULT_WORKSPACE_CONFIG: WorkspaceConfig = {
       is_member: true,
     },
     {
-      id: 'C_RANDOM',
-      name: 'random',
+      id: 'C_SHOWCASE',
+      name: 'showcase',
       is_channel: true,
       is_im: false,
       is_member: true,

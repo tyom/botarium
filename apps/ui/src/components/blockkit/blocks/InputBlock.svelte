@@ -5,14 +5,30 @@
     SlackStaticSelectElement,
     SlackFileInputElement,
     SlackCheckboxesElement,
+    SlackNumberInputElement,
+    SlackEmailInputElement,
+    SlackUrlInputElement,
+    SlackRadioButtonsElement,
+    SlackDatePickerElement,
+    SlackTimePickerElement,
+    SlackDateTimePickerElement,
+    SlackWorkspaceSelectElement,
     SlackOption,
     UploadedFile,
   } from '../../../lib/types'
   import { renderText, type FormValues, type FileValues } from '../context'
   import PlainTextInput from '../elements/PlainTextInput.svelte'
   import StaticSelect from '../elements/StaticSelect.svelte'
+  import WorkspaceSelect from '../elements/WorkspaceSelect.svelte'
   import FileInput from '../elements/FileInput.svelte'
   import Checkboxes from '../elements/Checkboxes.svelte'
+  import NumberInput from '../elements/NumberInput.svelte'
+  import EmailInput from '../elements/EmailInput.svelte'
+  import UrlInput from '../elements/UrlInput.svelte'
+  import RadioButtonGroup from '../elements/RadioButtonGroup.svelte'
+  import DatePicker from '../elements/DatePicker.svelte'
+  import TimePicker from '../elements/TimePicker.svelte'
+  import DateTimePicker from '../elements/DateTimePicker.svelte'
 
   interface Props {
     block: SlackInputBlock
@@ -30,6 +46,11 @@
       actionId: string,
       selectedOptions: SlackOption[]
     ) => void
+    onRadioChange?: (
+      blockId: string,
+      actionId: string,
+      option: SlackOption
+    ) => void
   }
 
   let {
@@ -40,6 +61,7 @@
     onInputChange,
     onFileChange,
     onCheckboxChange,
+    onRadioChange,
   }: Props = $props()
 
   function getInputValue(actionId: string): string {
@@ -59,7 +81,7 @@
   }
 </script>
 
-<div>
+<div class="max-w-[620px]">
   {#if block.element.type !== 'file_input'}
     <!-- svelte-ignore a11y_label_has_associated_control -->
     <label class="block text-sm text-slack-text-muted mb-1.5">
@@ -99,6 +121,61 @@
       element={el}
       selectedOptions={getSelectedOptions(el.action_id)}
       onChange={(options) => onCheckboxChange?.(blockId, el.action_id, options)}
+    />
+  {:else if block.element.type === 'number_input'}
+    {@const el = block.element as SlackNumberInputElement}
+    <NumberInput
+      element={el}
+      value={getInputValue(el.action_id)}
+      onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
+    />
+  {:else if block.element.type === 'email_text_input'}
+    {@const el = block.element as SlackEmailInputElement}
+    <EmailInput
+      element={el}
+      value={getInputValue(el.action_id)}
+      onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
+    />
+  {:else if block.element.type === 'url_text_input'}
+    {@const el = block.element as SlackUrlInputElement}
+    <UrlInput
+      element={el}
+      value={getInputValue(el.action_id)}
+      onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
+    />
+  {:else if block.element.type === 'radio_buttons'}
+    {@const el = block.element as SlackRadioButtonsElement}
+    <RadioButtonGroup
+      element={el}
+      selectedOption={getSelectedOption(el.action_id)}
+      onChange={(option) => onRadioChange?.(blockId, el.action_id, option)}
+    />
+  {:else if block.element.type === 'datepicker'}
+    {@const el = block.element as SlackDatePickerElement}
+    <DatePicker
+      element={el}
+      value={getInputValue(el.action_id)}
+      onChange={(val) => onInputChange?.(blockId, el.action_id, val)}
+    />
+  {:else if block.element.type === 'timepicker'}
+    {@const el = block.element as SlackTimePickerElement}
+    <TimePicker
+      element={el}
+      value={getInputValue(el.action_id)}
+      onChange={(val) => onInputChange?.(blockId, el.action_id, val)}
+    />
+  {:else if block.element.type === 'datetimepicker'}
+    {@const el = block.element as SlackDateTimePickerElement}
+    <DateTimePicker
+      element={el}
+      value={getInputValue(el.action_id)}
+      onChange={(val) => onInputChange?.(blockId, el.action_id, val)}
+    />
+  {:else if block.element.type === 'users_select' || block.element.type === 'conversations_select' || block.element.type === 'channels_select' || block.element.type === 'external_select' || block.element.type === 'multi_users_select' || block.element.type === 'multi_conversations_select' || block.element.type === 'multi_channels_select' || block.element.type === 'multi_external_select'}
+    {@const ws = block.element as SlackWorkspaceSelectElement}
+    <WorkspaceSelect
+      placeholder={ws.placeholder}
+      onChange={(value) => onInputChange?.(blockId, ws.action_id, value)}
     />
   {/if}
 

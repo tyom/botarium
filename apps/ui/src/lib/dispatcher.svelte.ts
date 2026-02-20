@@ -6,6 +6,7 @@
 import {
   simulatorState,
   addMessage,
+  updateMessage,
   deleteMessageFromState,
   clearChannelMessagesFromState,
   addReactionToMessage,
@@ -21,6 +22,10 @@ import {
   markBotDisconnected,
   restoreMessages,
   isBotUserId,
+  setChannels,
+  addChannelToState,
+  removeChannelFromState,
+  switchChannel,
 } from './state.svelte'
 import type {
   SimulatorMessage,
@@ -28,7 +33,9 @@ import type {
   SlackView,
   SlackFile,
   SlackAppConfig,
+  SlackBlock,
   ConnectedBotInfo,
+  Channel,
 } from './types'
 import { INTERNAL_SIMULATED_USER_ID } from './settings-store'
 import { dispatcherLogger, sseLogger } from './logger'
@@ -43,7 +50,9 @@ interface StoredMessage {
   channel: string
   user: string
   text: string
+  subtype?: string
   threadTs?: string
+  blocks?: unknown[]
   reactions?: Array<{ name: string; count: number }>
   file?: {
     id: string
@@ -267,9 +276,12 @@ function handleSSEEvent(event: {
     user: string
     text: string
     ts: string
+    subtype?: string
     thread_ts?: string
+    blocks?: unknown[]
   }
   channel?: string
+  ts?: string
   item_ts?: string
   user?: string
   reaction?: string
@@ -279,7 +291,7 @@ function handleSSEEvent(event: {
   bot?: {
     id: string
     appConfig: {
-      app: { name: string }
+      app: { name: string; description?: string }
       commands?: Array<{ command: string; description: string }>
       shortcuts?: Array<{ callback_id: string; name: string }>
     }
@@ -307,8 +319,10 @@ function handleSSEEvent(event: {
             ts: msg.ts,
             user: msg.user,
             text: msg.text,
+            subtype: msg.subtype,
             thread_ts: msg.thread_ts,
             channel: msg.channel,
+            blocks: msg.blocks as SlackBlock[] | undefined,
           })
         }
       }
@@ -334,7 +348,24 @@ function handleSSEEvent(event: {
           thread_ts: msg.thread_ts,
           channel: msg.channel,
           file,
+          blocks: msg.blocks as SlackBlock[] | undefined,
         })
+      }
+      break
+
+    case 'message_update':
+      if (event.message) {
+        const msg = event.message
+        updateMessage(msg.channel, msg.ts, {
+          text: msg.text,
+          blocks: msg.blocks as SlackBlock[] | undefined,
+        })
+      }
+      break
+
+    case 'message_delete':
+      if (event.channel && event.ts) {
+        deleteMessageFromState(event.channel, event.ts)
       }
       break
 
@@ -385,6 +416,7 @@ function handleSSEEvent(event: {
         const botInfo: ConnectedBotInfo = {
           id: event.bot.id,
           name: event.bot.appConfig.app.name,
+          description: event.bot.appConfig.app.description,
           connectedAt: event.bot.connectedAt,
           status: event.bot.status,
           commands: event.bot.appConfig.commands?.length ?? 0,
@@ -583,6 +615,94 @@ async function loadConnectedBotsWithRetry(
   return []
 }
 
+// =============================================================================
+// Channel Management Functions
+// =============================================================================
+
+/**
+ * Load channels from the emulator API
+ */
+export async function loadChannels(): Promise<Channel[]> {
+  try {
+    const response = await fetch(`${EMULATOR_API_URL}/api/simulator/channels`)
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+    const data = await response.json()
+    const channels = (data.channels ?? []).map(
+      (c: { id: string; name: string; isPreset: boolean }) => ({
+        id: c.id,
+        name: c.name,
+        type: 'channel' as const,
+        isPreset: c.isPreset,
+      })
+    )
+    setChannels(channels)
+    dispatcherLogger.info(`Loaded ${channels.length} channel(s)`)
+    return channels
+  } catch (error) {
+    dispatcherLogger.error('Failed to load channels:', error)
+    return []
+  }
+}
+
+/**
+ * Add a new channel via the emulator API
+ * On success, adds to state and switches to the new channel
+ */
+export async function addChannel(name: string): Promise<Channel | null> {
+  try {
+    const response = await fetch(`${EMULATOR_API_URL}/api/simulator/channels`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+    if (!response.ok) {
+      const data = await response.json()
+      dispatcherLogger.error(`Failed to add channel: ${data.error}`)
+      return null
+    }
+    const data = await response.json()
+    const channel: Channel = {
+      id: data.channel.id,
+      name: data.channel.name,
+      type: 'channel',
+      isPreset: false,
+    }
+    addChannelToState(channel)
+    switchChannel(channel.id)
+    dispatcherLogger.info(`Added channel: #${channel.name}`)
+    return channel
+  } catch (error) {
+    dispatcherLogger.error('Failed to add channel:', error)
+    return null
+  }
+}
+
+/**
+ * Remove a channel via the emulator API
+ * On success, removes from state (state auto-switches to #general if needed)
+ */
+export async function removeChannel(id: string): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `${EMULATOR_API_URL}/api/simulator/channels/${encodeURIComponent(id)}`,
+      { method: 'DELETE' }
+    )
+    if (!response.ok) {
+      const data = await response.json()
+      dispatcherLogger.error(`Failed to remove channel: ${data.error}`)
+      return false
+    }
+    removeChannelFromState(id)
+    dispatcherLogger.info(`Removed channel: ${id}`)
+    return true
+  } catch (error) {
+    dispatcherLogger.error('Failed to remove channel:', error)
+    return false
+  }
+}
+
 /**
  * Execute a slash command via the emulator
  */
@@ -711,6 +831,58 @@ export async function sendBlockAction(
     return true
   } catch (error) {
     dispatcherLogger.error('Failed to send block action:', error)
+    return false
+  }
+}
+
+/**
+ * Send a block action from within a message (e.g., button click in message blocks)
+ * Unlike sendBlockAction (for modals), this sends message_ts + channel_id context
+ */
+export async function sendMessageBlockAction(
+  messageTs: string,
+  channelId: string,
+  actionId: string,
+  blockId: string,
+  elementType: string,
+  actionValue: {
+    value?: string
+    selected_option?: { text: { type: string; text: string }; value: string }
+    selected_options?: Array<{
+      text: { type: string; text: string }
+      value: string
+    }>
+    selected_date?: string
+    selected_time?: string
+    selected_date_time?: number
+  }
+): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `${EMULATOR_API_URL}/api/simulator/block-action`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message_ts: messageTs,
+          channel_id: channelId,
+          action_id: actionId,
+          block_id: blockId,
+          element_type: elementType,
+          ...actionValue,
+          user: simulatorState.simulatedUserId,
+        }),
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`)
+    }
+
+    dispatcherLogger.info(`Message block action sent: ${actionId}`)
+    return true
+  } catch (error) {
+    dispatcherLogger.error('Failed to send message block action:', error)
     return false
   }
 }

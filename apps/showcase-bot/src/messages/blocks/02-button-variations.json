@@ -1,0 +1,34 @@
+{
+  "fallbackText": "Button Variations",
+  "blocks": [
+    {
+      "type": "header",
+      "text": { "type": "plain_text", "text": "Buttons", "emoji": true }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": { "type": "plain_text", "text": "Primary", "emoji": true },
+          "style": "primary",
+          "action_id": "showcase_button_primary",
+          "value": "primary_clicked"
+        },
+        {
+          "type": "button",
+          "text": { "type": "plain_text", "text": "Danger", "emoji": true },
+          "style": "danger",
+          "action_id": "showcase_button_danger",
+          "value": "danger_clicked"
+        },
+        {
+          "type": "button",
+          "text": { "type": "plain_text", "text": "Default", "emoji": true },
+          "action_id": "showcase_button_default",
+          "value": "default_clicked"
+        }
+      ]
+    }
+  ]
+}

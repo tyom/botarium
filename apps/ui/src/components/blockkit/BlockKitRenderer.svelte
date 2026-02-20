@@ -5,8 +5,11 @@
     SlackInputBlock,
     SlackActionsBlock,
     SlackContextBlock,
+    SlackContextActionsBlock,
     SlackImageBlock,
     SlackHeaderBlock,
+    SlackRichTextBlock,
+    SlackTableBlock,
     SlackOption,
     UploadedFile,
   } from '../../lib/types'
@@ -20,6 +23,9 @@
   import ContextBlock from './blocks/ContextBlock.svelte'
   import ImageBlock from './blocks/ImageBlock.svelte'
   import HeaderBlock from './blocks/HeaderBlock.svelte'
+  import RichTextBlock from './blocks/RichTextBlock.svelte'
+  import TableBlock from './blocks/TableBlock.svelte'
+  import ContextActionsBlock from './blocks/ContextActionsBlock.svelte'
 
   interface Props {
     blocks: SlackBlock[]
@@ -37,6 +43,12 @@
       actionId: string,
       selectedOptions: SlackOption[]
     ) => void
+    onRadioChange?: (
+      blockId: string,
+      actionId: string,
+      option: SlackOption
+    ) => void
+    onImagePreview?: (imageUrl: string, imageAlt: string) => void
   }
 
   let {
@@ -47,6 +59,8 @@
     onInputChange,
     onFileChange,
     onCheckboxChange,
+    onRadioChange,
+    onImagePreview,
   }: Props = $props()
 
   function getBlockId(block: SlackBlock, index: number): string {
@@ -54,7 +68,7 @@
   }
 </script>
 
-<div class="space-y-4">
+<div class="flex flex-col">
   {#each blocks as block, index (getBlockId(block, index))}
     {#if block.type === 'section'}
       <SectionBlock block={block as SlackSectionBlock} {onAction} />
@@ -67,6 +81,7 @@
         {onInputChange}
         {onFileChange}
         {onCheckboxChange}
+        {onRadioChange}
       />
     {:else if block.type === 'actions'}
       <ActionsBlock block={block as SlackActionsBlock} {onAction} />
@@ -75,9 +90,18 @@
     {:else if block.type === 'context'}
       <ContextBlock block={block as SlackContextBlock} />
     {:else if block.type === 'image'}
-      <ImageBlock block={block as SlackImageBlock} />
+      <ImageBlock block={block as SlackImageBlock} {onImagePreview} />
     {:else if block.type === 'header'}
       <HeaderBlock block={block as SlackHeaderBlock} />
+    {:else if block.type === 'rich_text'}
+      <RichTextBlock block={block as SlackRichTextBlock} />
+    {:else if block.type === 'table'}
+      <TableBlock block={block as SlackTableBlock} />
+    {:else if block.type === 'context_actions'}
+      <ContextActionsBlock
+        block={block as SlackContextActionsBlock}
+        {onAction}
+      />
     {:else}
       <!-- Unknown block type -->
       {@const unknownBlock = block as { type: string }}

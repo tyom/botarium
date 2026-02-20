@@ -263,11 +263,13 @@ export async function startEmulatorServer(
             user: msg.user,
             text: msg.text,
             threadTs: msg.thread_ts,
+            ...(msg.subtype ? { subtype: msg.subtype } : {}),
             reactions: msg.reactions?.map((r) => ({
               name: r.name,
               count: r.count,
             })),
             file: msg.file,
+            ...(msg.blocks ? { blocks: msg.blocks } : {}),
           }))
           return Response.json(response, {
             headers: { 'Access-Control-Allow-Origin': '*' },
@@ -306,6 +308,94 @@ export async function startEmulatorServer(
         return Response.json(
           { success: true },
           { headers: { 'Access-Control-Allow-Origin': '*' } }
+        )
+      }
+
+      // =================================================================
+      // Channel management endpoints (for frontend channel CRUD)
+      // =================================================================
+
+      // List all channels
+      if (path === '/api/simulator/channels' && req.method === 'GET') {
+        const channels = state.getAllChannels().filter((c) => !c.is_im)
+        const response = channels.map((c) => ({
+          id: c.id,
+          name: c.name,
+          isPreset: c.id === 'C_GENERAL' || c.id === 'C_SHOWCASE',
+        }))
+        // Sort: presets first, then alphabetical
+        response.sort((a, b) => {
+          if (a.isPreset !== b.isPreset) return a.isPreset ? -1 : 1
+          return a.name.localeCompare(b.name)
+        })
+        return Response.json(
+          { channels: response },
+          { headers: { 'Access-Control-Allow-Origin': '*' } }
+        )
+      }
+
+      // Create a new channel
+      if (path === '/api/simulator/channels' && req.method === 'POST') {
+        try {
+          const body = (await req.json()) as { name: string }
+          const name = body.name
+            ?.toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^a-z0-9-_]/g, '')
+          if (!name) {
+            return Response.json(
+              { ok: false, error: 'invalid_name' },
+              { status: 400, headers: { 'Access-Control-Allow-Origin': '*' } }
+            )
+          }
+          const id = `C_${name.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`
+
+          // Check if channel already exists
+          if (state.getChannel(id)) {
+            return Response.json(
+              { ok: false, error: 'channel_exists' },
+              { status: 409, headers: { 'Access-Control-Allow-Origin': '*' } }
+            )
+          }
+
+          const channel = state.addCustomChannel(id, name)
+          return Response.json(
+            {
+              ok: true,
+              channel: { id: channel.id, name: channel.name, isPreset: false },
+            },
+            { headers: { 'Access-Control-Allow-Origin': '*' } }
+          )
+        } catch {
+          return Response.json(
+            { ok: false, error: 'invalid_json' },
+            { status: 400, headers: { 'Access-Control-Allow-Origin': '*' } }
+          )
+        }
+      }
+
+      // Delete a channel
+      const channelDeleteMatch = path.match(
+        /^\/api\/simulator\/channels\/([^/]+)$/
+      )
+      if (channelDeleteMatch && req.method === 'DELETE') {
+        const channelId = decodeURIComponent(channelDeleteMatch[1] ?? '')
+
+        // Check if it's a preset channel
+        if (channelId === 'C_GENERAL' || channelId === 'C_SHOWCASE') {
+          return Response.json(
+            { ok: false, error: 'cannot_delete_preset' },
+            { status: 403, headers: { 'Access-Control-Allow-Origin': '*' } }
+          )
+        }
+
+        const success = state.removeCustomChannel(channelId)
+        return Response.json(
+          { ok: success, ...(success ? {} : { error: 'channel_not_found' }) },
+          {
+            status: success ? 200 : 404,
+            headers: { 'Access-Control-Allow-Origin': '*' },
+          }
         )
       }
 
@@ -395,6 +485,40 @@ export async function startEmulatorServer(
           { ok: true },
           { headers: { 'Access-Control-Allow-Origin': '*' } }
         )
+      }
+
+      // Image proxy endpoint (allows UI to fetch external image metadata)
+      if (path === '/api/simulator/image-size' && req.method === 'GET') {
+        const imageUrl = url.searchParams.get('url')
+        if (!imageUrl) {
+          return Response.json(
+            { ok: false, error: 'missing url param' },
+            { status: 400, headers: { 'Access-Control-Allow-Origin': '*' } }
+          )
+        }
+        try {
+          const res = await fetch(imageUrl, {
+            method: 'HEAD',
+            signal: AbortSignal.timeout(5000),
+          })
+          let size = Number(res.headers.get('content-length') || 0)
+          if (!size) {
+            const full = await fetch(imageUrl, {
+              signal: AbortSignal.timeout(5000),
+            })
+            const blob = await full.blob()
+            size = blob.size
+          }
+          return Response.json(
+            { ok: true, size },
+            { headers: { 'Access-Control-Allow-Origin': '*' } }
+          )
+        } catch {
+          return Response.json(
+            { ok: false, error: 'fetch failed' },
+            { status: 502, headers: { 'Access-Control-Allow-Origin': '*' } }
+          )
+        }
       }
 
       // Slack Web API endpoints (with /api/ prefix)

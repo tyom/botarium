@@ -56,7 +56,8 @@ export interface GroupDefinition {
   id: string
   label: string
   order: number
-  collapsed?: boolean
+  collapsible?: boolean
+  expanded?: boolean
 }
 
 // Slack app configuration types

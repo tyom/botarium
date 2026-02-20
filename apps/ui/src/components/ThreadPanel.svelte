@@ -21,7 +21,14 @@
   interface Props {
     threadTs: string
     mockApp: MockApp
-    onImagePreview?: (imageUrl: string, imageAlt: string) => void
+    onImagePreview?: (
+      imageUrl: string,
+      imageAlt: string,
+      userName?: string,
+      isBot?: boolean,
+      timestamp?: string,
+      channelName?: string
+    ) => void
   }
 
   let { threadTs, mockApp, onImagePreview }: Props = $props()

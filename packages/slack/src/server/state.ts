@@ -69,9 +69,86 @@ export class EmulatorState {
   async enablePersistence(dataDir: string): Promise<void> {
     this.persistence = new EmulatorPersistence(dataDir)
     await this.persistence.initialize()
+    // Load channels first so they're available before messages
+    await this.loadPersistedChannels()
     // Load files first so they're available when attaching to messages
     await this.loadPersistedFiles()
     await this.loadPersistedMessages()
+  }
+
+  /**
+   * Load channels from persistence into memory
+   * Adds any persisted channels that aren't already in the in-memory channels map
+   */
+  private async loadPersistedChannels(): Promise<void> {
+    if (!this.persistence) return
+
+    const records = await this.persistence.loadChannels()
+    for (const record of records) {
+      if (!this.channels.has(record.id)) {
+        const channel: SlackChannel = {
+          id: record.id,
+          name: record.name,
+          is_channel: true,
+          is_im: false,
+          is_member: true,
+        }
+        this.channels.set(record.id, channel)
+        if (!this.messages.has(record.id)) {
+          this.messages.set(record.id, [])
+        }
+      }
+    }
+    stateLogger.info(`Loaded ${records.length} channels from persistence`)
+  }
+
+  /**
+   * Add a user-created channel to in-memory state and persist
+   */
+  addCustomChannel(id: string, name: string): SlackChannel {
+    const existing = this.channels.get(id)
+    if (existing) return existing
+
+    const channel: SlackChannel = {
+      id,
+      name,
+      is_channel: true,
+      is_im: false,
+      is_member: true,
+    }
+    this.channels.set(id, channel)
+    this.messages.set(id, [])
+
+    if (this.persistence) {
+      this.persistence.addChannel(id, name).catch((err) => {
+        stateLogger.error({ err }, 'Failed to persist channel')
+      })
+    }
+
+    return channel
+  }
+
+  /**
+   * Remove a user-created channel from in-memory state and persist
+   * Refuses to remove preset channels (C_GENERAL, C_SHOWCASE)
+   */
+  removeCustomChannel(id: string): boolean {
+    // Refuse to remove preset channels
+    if (id === 'C_GENERAL' || id === 'C_SHOWCASE') return false
+
+    const channel = this.channels.get(id)
+    if (!channel) return false
+
+    this.channels.delete(id)
+    this.messages.delete(id)
+
+    if (this.persistence) {
+      this.persistence.removeChannel(id).catch((err) => {
+        stateLogger.error({ err }, 'Failed to remove channel from persistence')
+      })
+    }
+
+    return true
   }
 
   /**
@@ -89,6 +166,7 @@ export class EmulatorState {
         text: record.text,
         ts: record.ts,
         thread_ts: record.threadTs,
+        blocks: record.blocks,
         reactions: record.reactions?.map((reaction) => ({
           name: reaction.name,
           users: reaction.users ?? [],
@@ -188,6 +266,7 @@ export class EmulatorState {
         text: record.text,
         ts: record.ts,
         thread_ts: record.threadTs,
+        blocks: record.blocks,
         reactions: record.reactions?.map((reaction) => ({
           name: reaction.name,
           users: reaction.users ?? [],
@@ -374,6 +453,15 @@ export class EmulatorState {
     return channelMessages?.find((m) => m.ts === ts)
   }
 
+  /** Re-persist a message that was modified in-place (e.g., chat.update) */
+  persistMessage(message: SlackMessage): void {
+    if (this.persistence) {
+      this.persistence.saveMessage(message).catch((err) => {
+        stateLogger.error({ err }, 'Failed to persist message')
+      })
+    }
+  }
+
   /**
    * Store a message without emitting an event
    * Used when we want to emit a different event type (e.g., file_shared)
@@ -396,7 +484,9 @@ export class EmulatorState {
   }
 
   getChannelMessages(channel: string, limit?: number): SlackMessage[] {
-    const messages = this.messages.get(channel) ?? []
+    const messages = (this.messages.get(channel) ?? []).filter(
+      (m) => m.subtype !== 'ephemeral'
+    )
     if (limit) {
       return messages.slice(-limit)
     }
@@ -405,7 +495,11 @@ export class EmulatorState {
 
   getThreadMessages(channel: string, threadTs: string): SlackMessage[] {
     const messages = this.messages.get(channel) ?? []
-    return messages.filter((m) => m.ts === threadTs || m.thread_ts === threadTs)
+    return messages.filter(
+      (m) =>
+        (m.ts === threadTs || m.thread_ts === threadTs) &&
+        m.subtype !== 'ephemeral'
+    )
   }
 
   getAllMessages(): SlackMessage[] {
@@ -436,6 +530,29 @@ export class EmulatorState {
       }
     }
     return false
+  }
+
+  /**
+   * Delete a message by channel and timestamp (for chat.delete API)
+   */
+  deleteMessageByChannelAndTs(channel: string, ts: string): boolean {
+    const channelMessages = this.messages.get(channel)
+    if (!channelMessages) return false
+
+    const messageIndex = channelMessages.findIndex((msg) => msg.ts === ts)
+    if (messageIndex === -1) return false
+
+    channelMessages.splice(messageIndex, 1)
+
+    // Persist deletion
+    if (this.persistence) {
+      this.persistence.deleteMessage(ts).catch((err) => {
+        stateLogger.error({ err }, 'Failed to delete message from persistence')
+      })
+    }
+
+    stateLogger.info({ channel, ts }, 'Message deleted by channel and ts')
+    return true
   }
 
   // ==========================================================================
@@ -706,6 +823,15 @@ export class EmulatorState {
   }
 
   /**
+   * Find a connected bot by its token
+   */
+  getBotByToken(token: string): ConnectedBot | undefined {
+    return Array.from(this.connectedBots.values()).find(
+      (bot) => `xoxb-${bot.id}` === token
+    )
+  }
+
+  /**
    * Get all connected bots
    */
   getBots(): ConnectedBot[] {
@@ -784,6 +910,19 @@ export class EmulatorState {
       }
     }
     return allCommands
+  }
+
+  /**
+   * Find the connected bot that registered a given command
+   */
+  getBotForCommand(command: string): ConnectedBot | undefined {
+    for (const bot of this.connectedBots.values()) {
+      if (bot.status !== 'connected') continue
+      if (bot.appConfig.commands?.some((c) => c.command === command)) {
+        return bot
+      }
+    }
+    return undefined
   }
 
   // ==========================================================================

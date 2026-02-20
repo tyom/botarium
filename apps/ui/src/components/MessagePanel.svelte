@@ -40,7 +40,12 @@
 </script>
 
 <script lang="ts">
-  import { EllipsisVertical, Sparkles, Trash2 } from '@lucide/svelte'
+  import {
+    EllipsisVertical,
+    MessageSquareText,
+    Sparkles,
+    Trash2,
+  } from '@lucide/svelte'
   import { tick } from 'svelte'
   import {
     clearChannelMessages,
@@ -57,7 +62,10 @@
     hasThreadDraft,
     simulatorState,
   } from '../lib/state.svelte'
-  import { CHANNELS } from '../lib/types'
+  import type { Channel } from '../lib/types'
+  import { formatDateLabel, getDateKey } from '../lib/time'
+  import BotAboutHeader from './BotAboutHeader.svelte'
+  import DaySeparator from './DaySeparator.svelte'
   import Message from './Message.svelte'
 
   interface Props {
@@ -65,7 +73,14 @@
     activeThreadTs?: string | null
     onShowLogs?: () => void
     onOpenThread?: (ts: string) => void
-    onImagePreview?: (imageUrl: string, imageAlt: string) => void
+    onImagePreview?: (
+      imageUrl: string,
+      imageAlt: string,
+      userName?: string,
+      isBot?: boolean,
+      timestamp?: string,
+      channelName?: string
+    ) => void
   }
 
   let {
@@ -112,7 +127,9 @@
   let messages = $derived(getParentMessages(simulatorState.currentChannel))
   let channelName = $derived(getChannelDisplayName())
   let currentChannel = $derived(
-    CHANNELS.find((c) => c.id === simulatorState.currentChannel)
+    simulatorState.channels.find(
+      (c: Channel) => c.id === simulatorState.currentChannel
+    )
   )
   let isBotDisconnected = $derived(
     simulatorState.connectedBots.size > 0 &&
@@ -120,6 +137,11 @@
         (bot) => bot.status === 'disconnected'
       )
   )
+  let dmBot = $derived.by(() => {
+    if (!simulatorState.isDM) return undefined
+    const botId = simulatorState.currentChannel.slice(2)
+    return simulatorState.connectedBots.get(botId)
+  })
 
   // Save scroll position on every scroll event
   function handleScroll() {
@@ -180,35 +202,33 @@
 
 <svelte:window onclick={handleClickOutside} />
 
-<div class="flex flex-col flex-1 min-h-0 bg-slack-bg cursor-default">
-  <header
-    class="px-5 py-3 border-b border-slack-border shrink-0 flex items-center justify-between drag"
-  >
-    <h2 class="m-0 text-lg font-bold text-slack-text flex items-center gap-2">
-      {#if currentChannel?.type === 'dm'}
-        <span
-          class="size-5 rounded bg-(--bot-avatar-bg) text-white flex items-center justify-center"
-        >
-          <Sparkles size={12} />
-        </span>
-      {/if}
-      {channelName}
-      {#if currentChannel?.type === 'dm' && isBotDisconnected}
-        <span class="text-sm font-normal text-slack-text-muted">
-          (disconnected)
-        </span>
-      {/if}
-    </h2>
-    <div class="flex items-center gap-2 no-drag">
-      {#if logsHidden && onShowLogs}
-        <button
-          class="bg-slack-sidebar-hover border border-slack-border rounded py-1 px-3 leading-tight text-[13px] text-slack-text-secondary cursor-pointer transition-[background-color,color] duration-100 hover:bg-slack-sidebar-active hover:text-slack-text"
-          onclick={onShowLogs}
-        >
-          Logs
-        </button>
-      {/if}
-      <div class="relative">
+<div class="relative flex flex-col flex-1 min-h-0 bg-slack-bg cursor-default">
+  <header class="px-5 pt-3 border-b border-slack-border shrink-0 drag">
+    <div class="flex items-center justify-between">
+      <h2 class="m-0 text-lg font-bold text-slack-text flex items-center gap-2">
+        {#if currentChannel?.type === 'dm'}
+          <span
+            class="size-5 rounded bg-(--bot-avatar-bg) text-white flex items-center justify-center"
+          >
+            <Sparkles size={12} />
+          </span>
+        {/if}
+        {channelName}
+        {#if currentChannel?.type === 'dm' && isBotDisconnected}
+          <span class="text-sm font-normal text-slack-text-muted">
+            (disconnected)
+          </span>
+        {/if}
+      </h2>
+      <div class="flex items-center gap-2 no-drag">
+        {#if logsHidden && onShowLogs}
+          <button
+            class="bg-slack-sidebar-hover border border-slack-border rounded py-1 px-3 leading-tight text-[13px] text-slack-text-secondary cursor-pointer transition-[background-color,color] duration-100 hover:bg-slack-sidebar-active hover:text-slack-text"
+            onclick={onShowLogs}
+          >
+            Logs
+          </button>
+        {/if}
         <button
           class="flex items-center justify-center p-1 border-none rounded bg-transparent text-slack-text-secondary cursor-pointer transition-[background-color,color] duration-100 hover:bg-slack-sidebar-hover hover:text-slack-text"
           onclick={toggleMenu}
@@ -216,29 +236,38 @@
         >
           <EllipsisVertical size={18} />
         </button>
-        {#if menuOpen}
-          <div
-            class="absolute top-full right-0 mt-1 bg-slack-sidebar border border-slack-border rounded-md shadow-lg overflow-hidden z-100"
-          >
-            <button
-              class="flex items-center gap-2 w-full py-2 px-3 border-none bg-transparent text-log-error text-[13px] cursor-pointer text-left whitespace-nowrap hover:bg-red-500/10"
-              onclick={handleClearMessages}
-            >
-              <Trash2 size={14} />
-              <span>Clear messages</span>
-            </button>
-          </div>
-        {/if}
       </div>
     </div>
+    <div class="flex items-end mt-2">
+      <span class="channel-tab" data-active="true">
+        <MessageSquareText size={14} />
+        Messages
+      </span>
+    </div>
   </header>
+  {#if menuOpen}
+    <div
+      class="absolute top-12 right-5 bg-slack-sidebar border border-slack-border rounded-md shadow-lg overflow-hidden z-50 no-drag"
+    >
+      <button
+        class="flex items-center gap-2 w-full py-2 px-3 border-none bg-transparent text-log-error text-[13px] cursor-pointer text-left whitespace-nowrap hover:bg-red-500/10"
+        onclick={handleClearMessages}
+      >
+        <Trash2 size={14} />
+        <span>Clear messages</span>
+      </button>
+    </div>
+  {/if}
 
   <div
     class="flex-1 min-h-0 overflow-y-auto py-4"
     bind:this={messagesContainer}
     onscroll={handleScroll}
   >
-    {#if simulatorState.messagesLoaded && messages.length === 0}
+    {#if dmBot}
+      <BotAboutHeader bot={dmBot} />
+    {/if}
+    {#if simulatorState.messagesLoaded && messages.length === 0 && !dmBot}
       <div
         class="flex flex-col items-center justify-center h-full text-slack-text-muted text-center p-5"
       >
@@ -250,7 +279,10 @@
         </p>
       </div>
     {:else if messages.length > 0}
-      {#each messages as message (message.ts)}
+      {#each messages as message, i (message.ts)}
+        {#if i === 0 || getDateKey(message.ts) !== getDateKey(messages[i - 1]!.ts)}
+          <DaySeparator label={formatDateLabel(message.ts)} />
+        {/if}
         <Message
           {message}
           replyCount={getReplyCount(simulatorState.currentChannel, message.ts)}

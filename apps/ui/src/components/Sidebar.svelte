@@ -1,9 +1,11 @@
 <script lang="ts">
-  import { Settings, Sparkles } from '@lucide/svelte'
-  import { CHANNELS, type Channel } from '../lib/types'
+  import { Plus, Settings, Sparkles, X } from '@lucide/svelte'
+  import type { Channel } from '../lib/types'
   import { simulatorState, switchChannel } from '../lib/state.svelte'
+  import { addChannel, removeChannel } from '../lib/dispatcher.svelte'
   import IconButton from './IconButton.svelte'
   import BotStatusIndicator from './BotStatusIndicator.svelte'
+  import CreateChannelModal from './CreateChannelModal.svelte'
   import { isElectron } from '../lib/electron-api'
 
   interface Props {
@@ -13,6 +15,16 @@
   }
 
   let { onChannelSelect, onOpenSettings, onOpenAppSettings }: Props = $props()
+
+  let showCreateModal = $state(false)
+
+  // Context menu state
+  let contextMenu = $state<{
+    x: number
+    y: number
+    channelId: string
+    channelName: string
+  } | null>(null)
 
   const sections = [
     { type: 'channel' as const, label: 'Channels' },
@@ -30,7 +42,54 @@
       handleSelect(channel)
     }
   }
+
+  function handleAddClick() {
+    showCreateModal = true
+  }
+
+  async function handleCreateChannel(name: string) {
+    const channel = await addChannel(name)
+    if (channel) {
+      showCreateModal = false
+    }
+  }
+
+  function handleContextMenu(
+    event: MouseEvent,
+    channelId: string,
+    channelName: string
+  ) {
+    event.preventDefault()
+    contextMenu = {
+      x: event.clientX,
+      y: event.clientY,
+      channelId,
+      channelName,
+    }
+  }
+
+  async function handleDeleteChannel() {
+    if (!contextMenu) return
+    const { channelId, channelName } = contextMenu
+    if (
+      window.confirm(
+        `Delete #${channelName}? All messages in this channel will be lost.`
+      )
+    ) {
+      const success = await removeChannel(channelId)
+      if (!success) {
+        window.alert(`Failed to delete #${channelName}.`)
+      }
+    }
+    contextMenu = null
+  }
+
+  function handleCloseContextMenu() {
+    contextMenu = null
+  }
 </script>
+
+<svelte:window onclick={handleCloseContextMenu} />
 
 <aside
   class="w-70 shrink-0 bg-(--sidebar-bg) text-(--sidebar-text) cursor-default flex flex-col h-full border-r border-(--border-color)"
@@ -59,17 +118,30 @@
         section.type !== 'dm' || simulatorState.connectedBots.size > 0}
       {#if hasBotsForApps}
         <div
-          class="pt-4 px-5 pb-1 text-sm font-semibold text-(--sidebar-muted) uppercase tracking-wide"
+          class="pt-4 pl-5 pr-3 pb-1 text-sm font-semibold text-(--sidebar-muted) uppercase tracking-wide flex items-center justify-between"
         >
-          {section.label}
+          <span>{section.label}</span>
+          {#if section.type === 'channel'}
+            <button
+              class="bg-transparent border-none p-1 rounded cursor-pointer flex items-center justify-center text-(--sidebar-muted) hover:text-(--sidebar-text) hover:bg-(--sidebar-hover) transition-colors"
+              aria-label="Add channel"
+              onclick={handleAddClick}
+            >
+              <Plus size={16} />
+            </button>
+          {/if}
         </div>
       {/if}
       {#if section.type === 'channel'}
-        {#each CHANNELS.filter((c) => c.type === 'channel') as channel (channel.id)}
+        {#each simulatorState.channels.filter((c) => c.type === 'channel') as channel (channel.id)}
           {@const isActive = simulatorState.currentChannel === channel.id}
           <div
             class="flex items-center relative hover:bg-(--sidebar-hover) rounded-lg group"
             class:!bg-(--sidebar-active)={isActive}
+            role="group"
+            oncontextmenu={!channel.isPreset
+              ? (e) => handleContextMenu(e, channel.id, channel.name)
+              : undefined}
           >
             <button
               class="flex items-center gap-2 flex-1 px-5 py-1.5 bg-transparent border-none text-[15px] text-left cursor-pointer"
@@ -89,6 +161,27 @@
                 {channel.name}
               </span>
             </button>
+            {#if !channel.isPreset}
+              <IconButton
+                icon={X}
+                size={14}
+                label="Delete #{channel.name}"
+                class="opacity-0 group-hover:opacity-100 transition-opacity mr-2"
+                onclick={async (e) => {
+                  e.stopPropagation()
+                  if (
+                    window.confirm(
+                      `Delete #${channel.name}? All messages in this channel will be lost.`
+                    )
+                  ) {
+                    const success = await removeChannel(channel.id)
+                    if (!success) {
+                      window.alert(`Failed to delete #${channel.name}.`)
+                    }
+                  }
+                }}
+              />
+            {/if}
           </div>
         {/each}
       {:else}
@@ -146,3 +239,25 @@
 
   <BotStatusIndicator />
 </aside>
+
+{#if showCreateModal}
+  <CreateChannelModal
+    onClose={() => (showCreateModal = false)}
+    onCreate={handleCreateChannel}
+  />
+{/if}
+
+<!-- Context menu for user-created channels -->
+{#if contextMenu}
+  <div
+    class="fixed min-w-36 bg-(--main-bg) border border-(--border-color) rounded-md shadow-lg z-1000 overflow-hidden"
+    style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
+  >
+    <button
+      class="block w-full py-2 px-3 bg-transparent border-none text-left text-sm text-red-400 cursor-pointer transition-colors hover:bg-(--sidebar-hover)"
+      onclick={handleDeleteChannel}
+    >
+      Delete channel
+    </button>
+  </div>
+{/if}

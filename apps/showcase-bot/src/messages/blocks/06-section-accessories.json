@@ -1,0 +1,85 @@
+{
+  "fallbackText": "Section Accessories",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "Section Accessories",
+        "emoji": true
+      }
+    },
+    {
+      "type": "section",
+      "text": { "type": "mrkdwn", "text": "Click the action button" },
+      "accessory": {
+        "type": "button",
+        "text": { "type": "plain_text", "text": "Action", "emoji": true },
+        "action_id": "showcase_section_button",
+        "value": "section_button_clicked"
+      }
+    },
+    {
+      "type": "section",
+      "text": { "type": "mrkdwn", "text": "Choose a priority" },
+      "accessory": {
+        "type": "static_select",
+        "action_id": "showcase_section_select",
+        "placeholder": {
+          "type": "plain_text",
+          "text": "Select priority",
+          "emoji": true
+        },
+        "options": [
+          {
+            "text": { "type": "plain_text", "text": "Low", "emoji": true },
+            "value": "low"
+          },
+          {
+            "text": { "type": "plain_text", "text": "Medium", "emoji": true },
+            "value": "medium"
+          },
+          {
+            "text": { "type": "plain_text", "text": "High", "emoji": true },
+            "value": "high"
+          },
+          {
+            "text": { "type": "plain_text", "text": "Critical", "emoji": true },
+            "value": "critical"
+          }
+        ]
+      }
+    },
+    {
+      "type": "section",
+      "text": { "type": "mrkdwn", "text": "More options available" },
+      "accessory": {
+        "type": "overflow",
+        "action_id": "showcase_section_overflow",
+        "options": [
+          {
+            "text": { "type": "plain_text", "text": "Settings", "emoji": true },
+            "value": "settings"
+          },
+          {
+            "text": { "type": "plain_text", "text": "Help", "emoji": true },
+            "value": "help"
+          },
+          {
+            "text": { "type": "plain_text", "text": "About", "emoji": true },
+            "value": "about"
+          }
+        ]
+      }
+    },
+    {
+      "type": "section",
+      "text": { "type": "mrkdwn", "text": "Section with an image accessory" },
+      "accessory": {
+        "type": "image",
+        "image_url": "https://placecats.com/128/128",
+        "alt_text": "A cute cat"
+      }
+    }
+  ]
+}

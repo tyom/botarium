@@ -1,0 +1,122 @@
+{
+  "fallbackText": "Radio Buttons & Checkboxes",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "Radio Buttons & Checkboxes",
+        "emoji": true
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Size Selection* (radio buttons accessory)"
+      },
+      "accessory": {
+        "type": "radio_buttons",
+        "action_id": "showcase_radio_size",
+        "options": [
+          {
+            "text": { "type": "plain_text", "text": "Small", "emoji": true },
+            "description": { "type": "plain_text", "text": "Compact layout" },
+            "value": "small"
+          },
+          {
+            "text": { "type": "plain_text", "text": "Medium", "emoji": true },
+            "description": { "type": "plain_text", "text": "Standard layout" },
+            "value": "medium"
+          },
+          {
+            "text": { "type": "plain_text", "text": "Large", "emoji": true },
+            "description": { "type": "plain_text", "text": "Expanded layout" },
+            "value": "large"
+          }
+        ]
+      }
+    },
+    {
+      "type": "section",
+      "text": {
+        "type": "mrkdwn",
+        "text": "*Notification Preferences* (checkboxes accessory)"
+      },
+      "accessory": {
+        "type": "checkboxes",
+        "action_id": "showcase_checkbox_notifications",
+        "options": [
+          {
+            "text": { "type": "plain_text", "text": "Email", "emoji": true },
+            "description": { "type": "plain_text", "text": "Daily digest" },
+            "value": "email"
+          },
+          {
+            "text": { "type": "plain_text", "text": "SMS", "emoji": true },
+            "description": { "type": "plain_text", "text": "Urgent only" },
+            "value": "sms"
+          },
+          {
+            "text": { "type": "plain_text", "text": "Push", "emoji": true },
+            "description": { "type": "plain_text", "text": "Real-time alerts" },
+            "value": "push"
+          }
+        ]
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "radio_buttons",
+          "action_id": "showcase_radio_priority",
+          "options": [
+            {
+              "text": { "type": "plain_text", "text": "Low", "emoji": true },
+              "value": "low"
+            },
+            {
+              "text": { "type": "plain_text", "text": "Medium", "emoji": true },
+              "value": "medium"
+            },
+            {
+              "text": { "type": "plain_text", "text": "High", "emoji": true },
+              "value": "high"
+            }
+          ]
+        },
+        {
+          "type": "checkboxes",
+          "action_id": "showcase_checkbox_features",
+          "options": [
+            {
+              "text": {
+                "type": "plain_text",
+                "text": "Dark mode",
+                "emoji": true
+              },
+              "value": "dark_mode"
+            },
+            {
+              "text": {
+                "type": "plain_text",
+                "text": "Notifications",
+                "emoji": true
+              },
+              "value": "notifications"
+            },
+            {
+              "text": {
+                "type": "plain_text",
+                "text": "Auto-save",
+                "emoji": true
+              },
+              "value": "auto_save"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

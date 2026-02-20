@@ -1,3 +1,5 @@
+import { mrkdwnToHtml } from '@botarium/mrkdwn'
+import DOMPurify from 'dompurify'
 import type {
   SlackViewTextObject,
   SlackOption,
@@ -7,6 +9,26 @@ import type {
 /**
  * Shared utilities and types for BlockKit components
  */
+
+const SANITIZE_CONFIG = {
+  ALLOWED_TAGS: [
+    'a',
+    'b',
+    'blockquote',
+    'br',
+    'code',
+    'del',
+    'em',
+    'i',
+    'li',
+    'ol',
+    'pre',
+    'span',
+    'strong',
+    'ul',
+  ],
+  ALLOWED_ATTR: ['href', 'target', 'class', 'rel'],
+}
 
 /**
  * Render plain text from a Slack text object
@@ -18,18 +40,24 @@ export function renderText(textObj: SlackViewTextObject | undefined): string {
 
 /**
  * Render text with mrkdwn formatting support.
- * Returns HTML string that should be rendered with {@html}.
+ * Returns sanitized HTML string that should be rendered with {@html}.
+ * Respects the text object type: plain_text is escaped, mrkdwn is parsed.
  */
 export function renderMrkdwn(textObj: SlackViewTextObject | undefined): string {
   if (!textObj) return ''
-  let text = textObj.text
-  // Escape HTML entities first to prevent XSS
-  text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  // Parse mrkdwn bold (*text*) if type is mrkdwn
-  if (textObj.type === 'mrkdwn') {
-    text = text.replace(/\*([^*]+)\*/g, '<strong>$1</strong>')
+
+  // Plain text: escape HTML entities, no mrkdwn parsing
+  if (textObj.type === 'plain_text') {
+    return textObj.text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
   }
-  return text
+
+  // mrkdwn type: parse with @botarium/mrkdwn, sanitize output
+  const html = mrkdwnToHtml(textObj.text)
+
+  return DOMPurify.sanitize(html, SANITIZE_CONFIG)
 }
 
 /**

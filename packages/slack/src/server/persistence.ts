@@ -20,9 +20,11 @@ export interface MessageRecord {
   channel: string
   user: string
   text: string
+  subtype?: string
   threadTs?: string
   reactions?: ReactionRecord[]
   fileId?: string
+  blocks?: unknown[]
 }
 
 export interface FileRecord {
@@ -110,6 +112,20 @@ export class EmulatorPersistence {
     } catch {
       // Column already exists, ignore
     }
+
+    // Migration: add blocks column for BlockKit persistence
+    try {
+      this.db.run(`ALTER TABLE simulator_messages ADD COLUMN blocks TEXT`)
+    } catch {
+      // Column already exists, ignore
+    }
+    // Migration: add subtype column for ephemeral messages
+    try {
+      this.db.run(`ALTER TABLE simulator_messages ADD COLUMN subtype TEXT`)
+    } catch {
+      // Column already exists, ignore
+    }
+
     // Backfill legacy DM rows so they remain visible after upgrade
     this.db.run(
       `UPDATE simulator_messages SET app_id = ? WHERE app_id IS NULL AND channel LIKE 'D_%'`,
@@ -173,6 +189,27 @@ export class EmulatorPersistence {
       'CREATE INDEX IF NOT EXISTS idx_sim_files_app_id ON simulator_files(app_id)'
     )
 
+    // Create simulator_channels table for user-created channels
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS simulator_channels (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        is_preset INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      )
+    `)
+
+    // Seed preset channels if they don't exist
+    const now = new Date().toISOString()
+    this.db.run(
+      `INSERT OR IGNORE INTO simulator_channels (id, name, is_preset, created_at) VALUES ('C_GENERAL', 'general', 1, ?)`,
+      [now]
+    )
+    this.db.run(
+      `INSERT OR IGNORE INTO simulator_channels (id, name, is_preset, created_at) VALUES ('C_SHOWCASE', 'showcase', 1, ?)`,
+      [now]
+    )
+
     persistenceLogger.info(`Initialized at ${dbPath}`)
   }
 
@@ -186,14 +223,15 @@ export class EmulatorPersistence {
       count: r.count,
     }))
     const reactionsJson = reactions ? JSON.stringify(reactions) : null
+    const blocksJson = message.blocks ? JSON.stringify(message.blocks) : null
     const fileId = message.file?.id ?? null
     // DM messages are scoped to app_id, channel messages are global (NULL)
     const appIdValue = this.isDirectMessage(message.channel) ? this.appId : null
 
     this.db.run(
-      `INSERT INTO simulator_messages (ts, channel, user, text, thread_ts, reactions, file_id, app_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(ts) DO UPDATE SET text = excluded.text, reactions = excluded.reactions, file_id = excluded.file_id`,
+      `INSERT INTO simulator_messages (ts, channel, user, text, thread_ts, reactions, file_id, app_id, blocks, subtype, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(ts) DO UPDATE SET text = excluded.text, reactions = excluded.reactions, file_id = excluded.file_id, blocks = excluded.blocks, subtype = excluded.subtype`,
       [
         message.ts,
         message.channel,
@@ -203,6 +241,8 @@ export class EmulatorPersistence {
         reactionsJson,
         fileId,
         appIdValue,
+        blocksJson,
+        message.subtype ?? null,
         now,
       ]
     )
@@ -233,7 +273,7 @@ export class EmulatorPersistence {
     // Load channel messages (always) + DM messages only for current app
     const results = this.db
       .query(
-        `SELECT ts, channel, user, text, thread_ts as threadTs, reactions, file_id as fileId
+        `SELECT ts, channel, user, text, thread_ts as threadTs, reactions, file_id as fileId, blocks, subtype
          FROM simulator_messages
          WHERE channel NOT LIKE 'D_%'
             OR app_id = ?
@@ -247,6 +287,8 @@ export class EmulatorPersistence {
       threadTs: string | null
       reactions: string | null
       fileId: string | null
+      blocks: string | null
+      subtype: string | null
     }>
 
     return results.map((row) => ({
@@ -257,6 +299,8 @@ export class EmulatorPersistence {
       threadTs: row.threadTs ?? undefined,
       reactions: row.reactions ? JSON.parse(row.reactions) : undefined,
       fileId: row.fileId ?? undefined,
+      blocks: row.blocks ? JSON.parse(row.blocks) : undefined,
+      subtype: row.subtype ?? undefined,
     }))
   }
 
@@ -449,6 +493,73 @@ export class EmulatorPersistence {
       // File might not exist on disk
     }
 
+    return result.changes > 0
+  }
+
+  // ==========================================================================
+  // Channel Persistence
+  // ==========================================================================
+
+  /**
+   * Load all channels ordered by preset first, then alphabetical
+   */
+  async loadChannels(): Promise<
+    Array<{ id: string; name: string; isPreset: boolean }>
+  > {
+    if (!this.db) return []
+
+    const results = this.db
+      .query(
+        `SELECT id, name, is_preset FROM simulator_channels ORDER BY is_preset DESC, name ASC`
+      )
+      .all() as Array<{ id: string; name: string; is_preset: number }>
+
+    return results.map((row) => ({
+      id: row.id,
+      name: row.name,
+      isPreset: row.is_preset === 1,
+    }))
+  }
+
+  /**
+   * Add a user-created (non-preset) channel
+   */
+  async addChannel(id: string, name: string): Promise<void> {
+    if (!this.db) return
+
+    const now = new Date().toISOString()
+    this.db.run(
+      `INSERT OR IGNORE INTO simulator_channels (id, name, is_preset, created_at) VALUES (?, ?, 0, ?)`,
+      [id, name, now]
+    )
+    persistenceLogger.info(`Added channel: ${name} (${id})`)
+  }
+
+  /**
+   * Remove a user-created channel (refuses to delete preset channels).
+   * Also deletes all messages in that channel.
+   * Returns true if the channel was deleted.
+   */
+  async removeChannel(id: string): Promise<boolean> {
+    if (!this.db) return false
+
+    // Refuse to delete preset channels
+    const channel = this.db
+      .query(`SELECT is_preset FROM simulator_channels WHERE id = ?`)
+      .get(id) as { is_preset: number } | null
+    if (!channel || channel.is_preset === 1) return false
+
+    // Delete messages in this channel
+    this.db.run(`DELETE FROM simulator_messages WHERE channel = ?`, [id])
+
+    // Delete the channel
+    const result = this.db.run(
+      `DELETE FROM simulator_channels WHERE id = ? AND is_preset = 0`,
+      [id]
+    )
+    if (result.changes > 0) {
+      persistenceLogger.info(`Removed channel: ${id}`)
+    }
     return result.changes > 0
   }
 

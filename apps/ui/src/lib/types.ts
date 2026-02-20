@@ -17,22 +17,28 @@ export interface SimulatorMessage {
   ts: string
   user: string
   text: string
+  subtype?: string
   thread_ts?: string
   channel: string
   reactions: Map<string, number>
   file?: SlackFile
+  blocks?: SlackBlock[]
 }
 
 export interface Channel {
   id: string
   name: string
   type: 'channel' | 'dm'
+  isPreset?: boolean
 }
 
-export const CHANNELS: Channel[] = [
-  { id: 'C_GENERAL', name: 'general', type: 'channel' },
-  { id: 'C_RANDOM', name: 'random', type: 'channel' },
+export const PRESET_CHANNELS: Channel[] = [
+  { id: 'C_GENERAL', name: 'general', type: 'channel', isPreset: true },
+  { id: 'C_SHOWCASE', name: 'showcase', type: 'channel', isPreset: true },
 ]
+
+/** @deprecated Use simulatorState.channels instead */
+export const CHANNELS = PRESET_CHANNELS
 
 export const BOT_USER_ID = 'U_BOT'
 export const BOT_NAME = 'Bot' // Default, overridden by app config
@@ -56,6 +62,7 @@ export interface Shortcut {
 export interface SlackAppConfig {
   app: {
     name: string
+    description?: string
   }
   commands: SlashCommand[]
   shortcuts: Shortcut[]
@@ -68,6 +75,15 @@ export interface SlackViewTextObject {
   type: 'plain_text' | 'mrkdwn'
   text: string
   emoji?: boolean
+}
+
+// Confirm dialog composition object
+export interface SlackConfirmDialog {
+  title: SlackViewTextObject
+  text: SlackViewTextObject
+  confirm: SlackViewTextObject
+  deny: SlackViewTextObject
+  style?: 'primary' | 'danger'
 }
 
 // Slack view / modal structure
@@ -84,6 +100,37 @@ export interface SlackView {
   external_id?: string
 }
 
+// Context actions element types (AI-assistant-style action blocks)
+export interface SlackFeedbackButtonsElement {
+  type: 'feedback_buttons'
+  action_id: string
+  positive_button: {
+    text: SlackViewTextObject
+    value: string
+  }
+  negative_button: {
+    text: SlackViewTextObject
+    value: string
+  }
+}
+
+export interface SlackIconButtonElement {
+  type: 'icon_button'
+  action_id: string
+  icon: string
+  text: SlackViewTextObject
+}
+
+export type SlackContextActionElement =
+  | SlackFeedbackButtonsElement
+  | SlackIconButtonElement
+
+export interface SlackContextActionsBlock {
+  type: 'context_actions'
+  block_id?: string
+  elements: SlackContextActionElement[]
+}
+
 // Block Kit block types
 export type SlackBlock =
   | SlackSectionBlock
@@ -91,8 +138,11 @@ export type SlackBlock =
   | SlackActionsBlock
   | SlackDividerBlock
   | SlackContextBlock
+  | SlackContextActionsBlock
   | SlackImageBlock
   | SlackHeaderBlock
+  | SlackRichTextBlock
+  | SlackTableBlock
 
 export interface SlackSectionBlock {
   type: 'section'
@@ -143,12 +193,138 @@ export interface SlackHeaderBlock {
   text: SlackViewTextObject
 }
 
+// Rich text style applied to inline elements
+export interface RichTextStyle {
+  bold?: boolean
+  italic?: boolean
+  strike?: boolean
+  code?: boolean
+  underline?: boolean
+}
+
+// Rich text inline elements (leaf nodes)
+export interface RichTextTextElement {
+  type: 'text'
+  text: string
+  style?: RichTextStyle
+}
+
+export interface RichTextLinkElement {
+  type: 'link'
+  url: string
+  text?: string
+  style?: RichTextStyle
+}
+
+export interface RichTextEmojiElement {
+  type: 'emoji'
+  name: string
+  unicode?: string
+  style?: RichTextStyle
+}
+
+export interface RichTextUserMentionElement {
+  type: 'user'
+  user_id: string
+  style?: RichTextStyle
+}
+
+export interface RichTextChannelMentionElement {
+  type: 'channel'
+  channel_id: string
+  style?: RichTextStyle
+}
+
+export interface RichTextBroadcastMentionElement {
+  type: 'broadcast'
+  range: 'here' | 'channel' | 'everyone'
+  style?: RichTextStyle
+}
+
+export type RichTextInlineElement =
+  | RichTextTextElement
+  | RichTextLinkElement
+  | RichTextEmojiElement
+  | RichTextUserMentionElement
+  | RichTextChannelMentionElement
+  | RichTextBroadcastMentionElement
+
+// Rich text block-level elements
+export interface RichTextSectionElement {
+  type: 'rich_text_section'
+  elements: RichTextInlineElement[]
+}
+
+export interface RichTextPreformattedElement {
+  type: 'rich_text_preformatted'
+  elements: RichTextInlineElement[]
+  border?: 0 | 1
+}
+
+export interface RichTextQuoteElement {
+  type: 'rich_text_quote'
+  elements: RichTextInlineElement[]
+  border?: 0 | 1
+}
+
+export interface RichTextListElement {
+  type: 'rich_text_list'
+  style: 'bullet' | 'ordered'
+  elements: RichTextSectionElement[]
+  indent?: number
+  border?: 0 | 1
+}
+
+export type RichTextBlockElement =
+  | RichTextSectionElement
+  | RichTextPreformattedElement
+  | RichTextQuoteElement
+  | RichTextListElement
+
+export interface SlackRichTextBlock {
+  type: 'rich_text'
+  block_id?: string
+  elements: RichTextBlockElement[]
+}
+
+// Raw text element (used in table cells)
+export interface SlackRawTextElement {
+  type: 'raw_text'
+  text: string
+}
+
+// Table block types
+export interface SlackTableColumnSettings {
+  align?: 'left' | 'center' | 'right'
+  is_wrapped?: boolean
+}
+
+export interface SlackTableBlock {
+  type: 'table'
+  block_id?: string
+  rows: (SlackRichTextBlock | SlackRawTextElement)[][]
+  column_settings?: SlackTableColumnSettings[]
+}
+
 // Block elements
 export type SlackBlockElement =
   | SlackButtonElement
   | SlackImageElement
   | SlackStaticSelectElement
   | SlackOverflowElement
+  | SlackRadioButtonsElement
+  | SlackCheckboxesElement
+  | SlackDatePickerElement
+  | SlackTimePickerElement
+  | SlackDateTimePickerElement
+  | SlackUsersSelectElement
+  | SlackConversationsSelectElement
+  | SlackChannelsSelectElement
+  | SlackExternalSelectElement
+  | SlackMultiUsersSelectElement
+  | SlackMultiConversationsSelectElement
+  | SlackMultiChannelsSelectElement
+  | SlackMultiExternalSelectElement
 
 export interface SlackButtonElement {
   type: 'button'
@@ -157,6 +333,7 @@ export interface SlackButtonElement {
   value?: string
   style?: 'primary' | 'danger'
   url?: string
+  confirm?: SlackConfirmDialog
 }
 
 export interface SlackImageElement {
@@ -171,18 +348,27 @@ export interface SlackStaticSelectElement {
   placeholder?: SlackViewTextObject
   options: SlackOption[]
   initial_option?: SlackOption
+  confirm?: SlackConfirmDialog
 }
 
 export interface SlackOverflowElement {
   type: 'overflow'
   action_id: string
-  options: SlackOption[]
+  options: SlackOverflowOption[]
+  confirm?: SlackConfirmDialog
 }
 
 export interface SlackOption {
   text: SlackViewTextObject
   value: string
   description?: SlackViewTextObject
+}
+
+export interface SlackOverflowOption {
+  text: SlackViewTextObject
+  value: string
+  description?: SlackViewTextObject
+  url?: string
 }
 
 // Input elements
@@ -192,6 +378,21 @@ export type SlackInputElement =
   | SlackMultiStaticSelectElement
   | SlackFileInputElement
   | SlackCheckboxesElement
+  | SlackRadioButtonsElement
+  | SlackNumberInputElement
+  | SlackEmailInputElement
+  | SlackUrlInputElement
+  | SlackDatePickerElement
+  | SlackTimePickerElement
+  | SlackDateTimePickerElement
+  | SlackUsersSelectElement
+  | SlackConversationsSelectElement
+  | SlackChannelsSelectElement
+  | SlackExternalSelectElement
+  | SlackMultiUsersSelectElement
+  | SlackMultiConversationsSelectElement
+  | SlackMultiChannelsSelectElement
+  | SlackMultiExternalSelectElement
 
 export interface SlackPlainTextInputElement {
   type: 'plain_text_input'
@@ -224,7 +425,144 @@ export interface SlackCheckboxesElement {
   action_id: string
   options: SlackOption[]
   initial_options?: SlackOption[]
+  confirm?: SlackConfirmDialog
 }
+
+export interface SlackRadioButtonsElement {
+  type: 'radio_buttons'
+  action_id: string
+  options: SlackOption[]
+  initial_option?: SlackOption
+  confirm?: SlackConfirmDialog
+  focus_on_load?: boolean
+}
+
+export interface SlackNumberInputElement {
+  type: 'number_input'
+  action_id: string
+  is_decimal_allowed: boolean
+  initial_value?: string
+  min_value?: string
+  max_value?: string
+  placeholder?: SlackViewTextObject
+  focus_on_load?: boolean
+}
+
+export interface SlackEmailInputElement {
+  type: 'email_text_input'
+  action_id: string
+  initial_value?: string
+  placeholder?: SlackViewTextObject
+  focus_on_load?: boolean
+}
+
+export interface SlackUrlInputElement {
+  type: 'url_text_input'
+  action_id: string
+  initial_value?: string
+  placeholder?: SlackViewTextObject
+  focus_on_load?: boolean
+}
+
+export interface SlackDatePickerElement {
+  type: 'datepicker'
+  action_id: string
+  initial_date?: string // YYYY-MM-DD
+  placeholder?: SlackViewTextObject
+  confirm?: SlackConfirmDialog
+  focus_on_load?: boolean
+}
+
+export interface SlackTimePickerElement {
+  type: 'timepicker'
+  action_id: string
+  initial_time?: string // HH:mm (24-hour)
+  placeholder?: SlackViewTextObject
+  confirm?: SlackConfirmDialog
+  focus_on_load?: boolean
+  timezone?: string
+}
+
+export interface SlackDateTimePickerElement {
+  type: 'datetimepicker'
+  action_id: string
+  initial_date_time?: number // UNIX timestamp in seconds
+  confirm?: SlackConfirmDialog
+  focus_on_load?: boolean
+}
+
+// Workspace select elements (non-interactive placeholders)
+export interface SlackUsersSelectElement {
+  type: 'users_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_user?: string
+}
+
+export interface SlackConversationsSelectElement {
+  type: 'conversations_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_conversation?: string
+}
+
+export interface SlackChannelsSelectElement {
+  type: 'channels_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_channel?: string
+}
+
+export interface SlackExternalSelectElement {
+  type: 'external_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_option?: SlackOption
+  min_query_length?: number
+}
+
+export interface SlackMultiUsersSelectElement {
+  type: 'multi_users_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_users?: string[]
+  max_selected_items?: number
+}
+
+export interface SlackMultiConversationsSelectElement {
+  type: 'multi_conversations_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_conversations?: string[]
+  max_selected_items?: number
+}
+
+export interface SlackMultiChannelsSelectElement {
+  type: 'multi_channels_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_channels?: string[]
+  max_selected_items?: number
+}
+
+export interface SlackMultiExternalSelectElement {
+  type: 'multi_external_select'
+  action_id: string
+  placeholder?: SlackViewTextObject
+  initial_options?: SlackOption[]
+  min_query_length?: number
+  max_selected_items?: number
+}
+
+export type SlackWorkspaceSelectElement =
+  | SlackUsersSelectElement
+  | SlackConversationsSelectElement
+  | SlackChannelsSelectElement
+  | SlackExternalSelectElement
+  | SlackMultiUsersSelectElement
+  | SlackMultiConversationsSelectElement
+  | SlackMultiChannelsSelectElement
+  | SlackMultiExternalSelectElement
 
 // Uploaded file representation for form values
 export interface UploadedFile {
@@ -238,6 +576,7 @@ export interface UploadedFile {
 export interface ConnectedBotInfo {
   id: string
   name: string
+  description?: string
   connectedAt: string
   status: 'connecting' | 'connected' | 'disconnected'
   commands: number

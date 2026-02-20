@@ -1,0 +1,76 @@
+{
+  "fallbackText": "Combined Actions",
+  "blocks": [
+    {
+      "type": "header",
+      "text": {
+        "type": "plain_text",
+        "text": "Combined Actions",
+        "emoji": true
+      }
+    },
+    {
+      "type": "actions",
+      "elements": [
+        {
+          "type": "button",
+          "text": { "type": "plain_text", "text": "Submit", "emoji": true },
+          "style": "primary",
+          "action_id": "showcase_combined_button",
+          "value": "submit"
+        },
+        {
+          "type": "static_select",
+          "action_id": "showcase_combined_select",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Pick one",
+            "emoji": true
+          },
+          "options": [
+            {
+              "text": { "type": "plain_text", "text": "Alpha", "emoji": true },
+              "value": "alpha"
+            },
+            {
+              "text": { "type": "plain_text", "text": "Beta", "emoji": true },
+              "value": "beta"
+            },
+            {
+              "text": { "type": "plain_text", "text": "Gamma", "emoji": true },
+              "value": "gamma"
+            }
+          ]
+        },
+        {
+          "type": "datepicker",
+          "action_id": "showcase_combined_datepicker",
+          "initial_date": "{{TODAY_DATE}}",
+          "placeholder": {
+            "type": "plain_text",
+            "text": "Pick a date",
+            "emoji": true
+          }
+        },
+        {
+          "type": "overflow",
+          "action_id": "showcase_combined_overflow",
+          "options": [
+            {
+              "text": { "type": "plain_text", "text": "Export", "emoji": true },
+              "value": "export"
+            },
+            {
+              "text": { "type": "plain_text", "text": "Print", "emoji": true },
+              "value": "print"
+            },
+            {
+              "text": { "type": "plain_text", "text": "Share", "emoji": true },
+              "value": "share"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

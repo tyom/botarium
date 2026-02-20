@@ -95,9 +95,22 @@ export class SlackWebAPI {
     if (contentType.includes('application/x-www-form-urlencoded')) {
       const text = await req.text()
       const params = new URLSearchParams(text)
-      const result: Record<string, string> = {}
+      const result: Record<string, unknown> = {}
       for (const [key, value] of params) {
-        result[key] = value
+        // Slack clients send JSON-encoded fields (blocks, attachments, etc.)
+        // in form data — parse them back into objects/arrays
+        if (
+          (value.startsWith('[') && value.endsWith(']')) ||
+          (value.startsWith('{') && value.endsWith('}'))
+        ) {
+          try {
+            result[key] = JSON.parse(value)
+          } catch {
+            result[key] = value
+          }
+        } else {
+          result[key] = value
+        }
       }
       return result as T
     }
@@ -190,6 +203,12 @@ export class SlackWebAPI {
         case '/api/chat.update':
           return this.chatUpdate(await this.parseBody(req), token)
 
+        case '/api/chat.postEphemeral':
+          return this.chatPostEphemeral(await this.parseBody(req), token)
+
+        case '/api/chat.delete':
+          return this.chatDelete(await this.parseBody(req), token)
+
         case '/api/reactions.add':
           return this.reactionsAdd(await this.parseBody(req), token)
 
@@ -210,13 +229,13 @@ export class SlackWebAPI {
 
         // Views API endpoints
         case '/api/views.open':
-          return this.viewsOpen(await this.parseBody(req))
+          return this.viewsOpen(await this.parseBody(req), token)
 
         case '/api/views.update':
           return this.viewsUpdate(await this.parseBody(req))
 
         case '/api/views.push':
-          return this.viewsPush(await this.parseBody(req))
+          return this.viewsPush(await this.parseBody(req), token)
 
         case '/api/files.uploadV2':
           return this.filesUploadV2(req, token)
@@ -280,13 +299,20 @@ export class SlackWebAPI {
     body: ChatPostMessageRequest,
     token: string | null
   ): Promise<Response> {
-    const { channel, text, thread_ts } = body
+    const { channel, text, thread_ts, blocks } = body
 
     webApiLogger.debug({ body, channel, text }, 'chat.postMessage request')
 
-    if (!channel || !text) {
+    // Slack allows either text or blocks (or both)
+    if (!channel || (!text && !blocks)) {
       webApiLogger.error(
-        { channel, text, hasChannel: !!channel, hasText: !!text },
+        {
+          channel,
+          text,
+          hasChannel: !!channel,
+          hasText: !!text,
+          hasBlocks: !!blocks,
+        },
         'chat.postMessage missing required argument'
       )
       return Response.json(
@@ -297,14 +323,26 @@ export class SlackWebAPI {
 
     const botInfo = this.getBotInfoFromToken(token)
     const ts = this.state.generateTimestamp()
+    const messageText = text || ''
+
+    // Auto-generate block_id for blocks missing one
+    const processedBlocks = blocks
+      ? (blocks as Array<Record<string, unknown>>).map((block, index) => {
+          if (!block.block_id) {
+            return { ...block, block_id: `block_${index}` }
+          }
+          return block
+        })
+      : undefined
 
     const message: SlackMessage = {
       type: 'message',
       channel,
       user: botInfo.id,
-      text,
+      text: messageText,
       ts,
       thread_ts,
+      blocks: processedBlocks,
     }
 
     // Store the message
@@ -316,21 +354,57 @@ export class SlackWebAPI {
       ts,
       message: {
         type: 'message',
-        text,
+        text: messageText,
         user: botInfo.id,
         ts,
       },
     }
 
-    webApiLogger.debug(`chat.postMessage: ${text.substring(0, 50)}...`)
+    webApiLogger.debug(`chat.postMessage: ${messageText.substring(0, 50)}...`)
     return Response.json(response, { headers: corsHeaders() })
+  }
+
+  private async chatPostEphemeral(
+    body: { channel: string; user: string; text?: string; blocks?: unknown[] },
+    token: string | null
+  ): Promise<Response> {
+    const { channel, text, user, blocks } = body
+
+    if (!channel || !user || (!text && !blocks)) {
+      return Response.json(
+        { ok: false, error: 'missing_argument' },
+        { headers: corsHeaders() }
+      )
+    }
+
+    const botInfo = this.getBotInfoFromToken(token)
+    const ts = this.state.generateTimestamp()
+    const messageText = text || ''
+
+    const message: SlackMessage = {
+      type: 'message',
+      subtype: 'ephemeral',
+      channel,
+      user: botInfo.id,
+      text: messageText,
+      ts,
+      blocks: blocks as Array<Record<string, unknown>> | undefined,
+    }
+
+    this.state.addMessage(message)
+
+    webApiLogger.debug(`chat.postEphemeral: ${messageText.substring(0, 50)}...`)
+    return Response.json(
+      { ok: true, channel, ts, message_ts: ts },
+      { headers: corsHeaders() }
+    )
   }
 
   private async chatUpdate(
     body: ChatPostMessageRequest & { ts: string },
     _token: string | null
   ): Promise<Response> {
-    const { channel, text, ts } = body
+    const { channel, text, ts, blocks } = body
 
     if (!channel || !ts) {
       return Response.json(
@@ -352,10 +426,61 @@ export class SlackWebAPI {
       message.text = text
     }
 
+    // Update blocks if provided
+    if (blocks !== undefined) {
+      if (blocks) {
+        // Auto-generate block_id for blocks missing one
+        message.blocks = (blocks as Array<Record<string, unknown>>).map(
+          (block, index) => {
+            if (!block.block_id) {
+              return { ...block, block_id: `block_${index}` }
+            }
+            return block
+          }
+        )
+      } else {
+        delete message.blocks
+      }
+    }
+
+    // Persist updated message (includes blocks changes)
+    this.state.persistMessage(message)
+
+    // Emit message_update event so the UI can re-render
+    this.state.emitEvent({ type: 'message_update', message, channel })
+
     return Response.json(
       { ok: true, channel, ts, text: message.text },
       { headers: corsHeaders() }
     )
+  }
+
+  private async chatDelete(
+    body: { channel: string; ts: string },
+    _token: string | null
+  ): Promise<Response> {
+    const { channel, ts } = body
+
+    if (!channel || !ts) {
+      return Response.json(
+        { ok: false, error: 'missing_required_field' },
+        { headers: corsHeaders() }
+      )
+    }
+
+    const deleted = this.state.deleteMessageByChannelAndTs(channel, ts)
+    if (!deleted) {
+      return Response.json(
+        { ok: false, error: 'message_not_found' },
+        { headers: corsHeaders() }
+      )
+    }
+
+    // Emit SSE event so the frontend removes the message
+    this.state.emitEvent({ type: 'message_delete', ts, channel })
+
+    webApiLogger.debug(`chat.delete: ${channel} ${ts}`)
+    return Response.json({ ok: true, channel, ts }, { headers: corsHeaders() })
   }
 
   private async reactionsAdd(
@@ -441,6 +566,7 @@ export class SlackWebAPI {
         text: m.text,
         ts: m.ts,
         thread_ts: m.thread_ts,
+        ...(m.blocks ? { blocks: m.blocks } : {}),
       })),
       has_more: false,
     }
@@ -469,6 +595,7 @@ export class SlackWebAPI {
         text: m.text,
         ts: m.ts,
         thread_ts: m.thread_ts,
+        ...(m.blocks ? { blocks: m.blocks } : {}),
       })),
       has_more: false,
     }
@@ -522,7 +649,7 @@ export class SlackWebAPI {
     return view
   }
 
-  private viewsOpen(body: ViewsOpenRequest): Response {
+  private viewsOpen(body: ViewsOpenRequest, token: string | null): Response {
     const { trigger_id, view: rawView } = body
     webApiLogger.info({ trigger_id, hasView: !!rawView }, 'views.open called')
     const view = this.parseViewIfString(rawView as SlackView | string)
@@ -548,6 +675,9 @@ export class SlackWebAPI {
     const viewId = this.state.generateViewId()
     webApiLogger.info({ viewId, title: view.title?.text }, 'Creating view')
 
+    // Extract bot ID from token for targeted dispatch
+    const botId = this.extractBotIdFromToken(token)
+
     // Store the view (this emits view_open event via SSE)
     this.state.storeView({
       id: viewId,
@@ -555,8 +685,9 @@ export class SlackWebAPI {
       triggerId: trigger_id,
       userId: context.userId,
       channelId: context.channelId,
+      botId,
     })
-    webApiLogger.info({ viewId }, 'View stored and event emitted')
+    webApiLogger.info({ viewId, botId }, 'View stored and event emitted')
 
     const response: ViewsOpenResponse = {
       ok: true,
@@ -592,10 +723,10 @@ export class SlackWebAPI {
     return Response.json(response, { headers: corsHeaders() })
   }
 
-  private viewsPush(body: ViewsOpenRequest): Response {
+  private viewsPush(body: ViewsOpenRequest, token: string | null): Response {
     // views.push is similar to views.open but pushes onto a stack
     // For now, implement same as views.open
-    return this.viewsOpen(body)
+    return this.viewsOpen(body, token)
   }
 
   private async filesUploadV2(
@@ -1272,6 +1403,7 @@ export class SlackWebAPI {
     const bots = this.state.getBots().map((bot) => ({
       id: bot.id,
       name: bot.appConfig.app.name,
+      description: bot.appConfig.app.description,
       connectedAt: bot.connectedAt.toISOString(),
       status: bot.status,
       commands: bot.appConfig.commands?.length ?? 0,
@@ -1332,12 +1464,16 @@ export class SlackWebAPI {
       api_app_id: 'A_SIMULATOR',
     }
 
-    // Dispatch to connected bots
+    // Dispatch to the bot that owns this command (or broadcast as fallback)
+    const targetBot = this.state.getBotForCommand(command)
     webApiLogger.info(
-      { connectedBots: this.socketMode.getConnectionCount() },
-      'Dispatching slash command to bots'
+      {
+        connectedBots: this.socketMode.getConnectionCount(),
+        targetBot: targetBot?.id,
+      },
+      'Dispatching slash command'
     )
-    await this.socketMode.dispatchSlashCommand(payload)
+    await this.socketMode.dispatchSlashCommand(payload, targetBot?.id)
     webApiLogger.info('Slash command dispatched successfully')
 
     return Response.json(
@@ -1371,21 +1507,28 @@ export class SlackWebAPI {
     // Convert files with dataUrl to stored files with IDs
     const processedValues = await this.processFileUploadsInValues(values)
 
-    // Dispatch view_submission to bot
-    await this.socketMode.dispatchInteractive({
-      type: 'view_submission',
-      view: {
-        ...viewState.view,
-        id: view_id,
-        state: { values: processedValues },
-        private_metadata: viewState.view.private_metadata,
-        callback_id: viewState.view.callback_id,
+    // Add type discriminators to state.values based on element types in the view's blocks
+    const viewBlocks = viewState.view.blocks || []
+    const typedValues = this.addTypeDiscriminators(processedValues, viewBlocks)
+
+    // Dispatch view_submission to the bot that opened this view
+    await this.socketMode.dispatchInteractive(
+      {
+        type: 'view_submission',
+        view: {
+          ...viewState.view,
+          id: view_id,
+          state: { values: typedValues },
+          private_metadata: viewState.view.private_metadata,
+          callback_id: viewState.view.callback_id,
+        },
+        user: {
+          id: viewState.userId,
+          username: 'simulator_user',
+        },
       },
-      user: {
-        id: viewState.userId,
-        username: 'simulator_user',
-      },
-    })
+      viewState.botId
+    )
 
     // Note: Don't close the view here - bot may need to update it
     // (e.g., show "generating" status, then result)
@@ -1484,6 +1627,118 @@ export class SlackWebAPI {
     return processed
   }
 
+  /**
+   * Add type discriminators to state.values based on the element types in the view's blocks.
+   * Slack includes a `type` field in each value object matching the element type
+   * (e.g., "plain_text_input", "static_select", "checkboxes", "file_input").
+   */
+  private addTypeDiscriminators(
+    values: Record<string, Record<string, unknown>>,
+    blocks: unknown[]
+  ): Record<string, Record<string, unknown>> {
+    // Build a lookup of block_id -> element info from the view's blocks
+    const elementInfoMap = new Map<
+      string,
+      Map<string, { type: string; options?: Array<Record<string, unknown>> }>
+    >()
+
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i] as Record<string, unknown>
+      if (block.type !== 'input') continue
+
+      const blockId = (block.block_id as string) || `block-${i}`
+      const element = block.element as Record<string, unknown> | undefined
+      if (!element?.type) continue
+
+      const actionId = (element.action_id as string) || ''
+      if (!elementInfoMap.has(blockId)) {
+        elementInfoMap.set(blockId, new Map())
+      }
+      elementInfoMap.get(blockId)!.set(actionId, {
+        type: element.type as string,
+        options: element.options as Array<Record<string, unknown>> | undefined,
+      })
+    }
+
+    // Add type discriminator and restructure values to match Slack's format
+    const result: Record<string, Record<string, unknown>> = {}
+    for (const [blockId, actionValues] of Object.entries(values)) {
+      result[blockId] = {}
+      for (const [actionId, value] of Object.entries(actionValues)) {
+        if (value && typeof value === 'object') {
+          const elementInfo = elementInfoMap.get(blockId)?.get(actionId)
+          if (elementInfo) {
+            const val = value as Record<string, unknown>
+            // Restructure static_select: { value: "x" } -> { selected_option: {...}, type }
+            if (
+              elementInfo.type === 'static_select' &&
+              'value' in val &&
+              !('selected_option' in val)
+            ) {
+              const selectedValue = val.value as string
+              const option = elementInfo.options?.find(
+                (o) => o.value === selectedValue
+              )
+              result[blockId][actionId] = {
+                selected_option: option || {
+                  text: { type: 'plain_text', text: selectedValue },
+                  value: selectedValue,
+                },
+                type: elementInfo.type,
+              }
+            } else if (
+              elementInfo.type === 'radio_buttons' &&
+              'value' in val &&
+              !('selected_option' in val)
+            ) {
+              // Restructure radio_buttons: { value: "x" } -> { selected_option: {...}, type }
+              const selectedValue = val.value as string
+              const option = elementInfo.options?.find(
+                (o) => o.value === selectedValue
+              )
+              result[blockId][actionId] = {
+                selected_option: option || {
+                  text: { type: 'plain_text', text: selectedValue },
+                  value: selectedValue,
+                },
+                type: elementInfo.type,
+              }
+            } else if (elementInfo.type === 'datepicker' && 'value' in val) {
+              result[blockId][actionId] = {
+                selected_date: (val.value as string) || null,
+                type: elementInfo.type,
+              }
+            } else if (elementInfo.type === 'timepicker' && 'value' in val) {
+              result[blockId][actionId] = {
+                selected_time: (val.value as string) || null,
+                type: elementInfo.type,
+              }
+            } else if (
+              elementInfo.type === 'datetimepicker' &&
+              'value' in val
+            ) {
+              result[blockId][actionId] = {
+                selected_date_time: val.value ? Number(val.value) : null,
+                type: elementInfo.type,
+              }
+            } else {
+              result[blockId][actionId] = {
+                ...val,
+                type: elementInfo.type,
+              }
+            }
+          } else {
+            result[blockId][actionId] = value
+          }
+        } else {
+          result[blockId][actionId] = value
+        }
+      }
+    }
+
+    return result
+  }
+
   handleSimulatorViewClose(body: { view_id: string }): Response {
     const { view_id } = body
 
@@ -1506,57 +1761,165 @@ export class SlackWebAPI {
   }
 
   async handleSimulatorBlockAction(body: {
-    view_id: string
+    // Modal context (existing)
+    view_id?: string
+    // Message context (new)
+    message_ts?: string
+    channel_id?: string
+    // Action fields
     action_id: string
-    value: string
+    block_id?: string
+    element_type?: string // "button", "static_select", "checkboxes", etc.
+    // Element-specific values (UI sends the one that matches element_type)
+    value?: string
+    selected_option?: { text: { type: string; text: string }; value: string }
+    selected_options?: Array<{
+      text: { type: string; text: string }
+      value: string
+    }>
+    // Picker-specific values
+    selected_date?: string
+    selected_time?: string
+    selected_date_time?: number
     user: string
   }): Promise<Response> {
-    const { view_id, action_id, value, user } = body
+    const { action_id, user } = body
 
-    if (!view_id || !action_id) {
+    if (!action_id) {
       return Response.json(
         { ok: false, error: 'missing_argument' },
         { headers: corsHeaders() }
       )
     }
 
-    const viewState = this.state.getView(view_id)
-    if (!viewState) {
+    // Generate a new trigger_id for the action (bot may need it to update view)
+    const triggerId = this.state.generateTriggerId()
+
+    // Build element-specific action object
+    const elementType = body.element_type || 'button'
+    const action: Record<string, unknown> = {
+      type: elementType,
+      action_id,
+      block_id: body.block_id || 'command_block',
+      action_ts: String(Date.now() / 1000),
+    }
+
+    // Include element-specific value fields
+    if (elementType === 'button') {
+      action.value = body.value
+    } else if (elementType === 'static_select') {
+      action.selected_option = body.selected_option
+    } else if (elementType === 'overflow') {
+      action.selected_option = body.selected_option
+    } else if (elementType === 'radio_buttons') {
+      action.selected_option = body.selected_option
+    } else if (elementType === 'checkboxes') {
+      action.selected_options = body.selected_options
+    } else if (elementType === 'datepicker') {
+      action.selected_date = body.selected_date
+    } else if (elementType === 'timepicker') {
+      action.selected_time = body.selected_time
+    } else if (elementType === 'datetimepicker') {
+      action.selected_date_time = body.selected_date_time
+    } else {
+      // For other types, include whichever value fields are present
+      if (body.value !== undefined) action.value = body.value
+      if (body.selected_option !== undefined)
+        action.selected_option = body.selected_option
+      if (body.selected_options !== undefined)
+        action.selected_options = body.selected_options
+    }
+
+    if (body.view_id) {
+      // Modal context path
+      const viewState = this.state.getView(body.view_id)
+      if (!viewState) {
+        return Response.json(
+          { ok: false, error: 'view_not_found' },
+          { headers: corsHeaders() }
+        )
+      }
+
+      this.state.storeTriggerContext(triggerId, {
+        userId: user,
+        channelId: viewState.channelId ?? '',
+      })
+
+      // Dispatch block_actions to the bot that opened this view
+      await this.socketMode.dispatchInteractive(
+        {
+          type: 'block_actions',
+          container: { type: 'view', view_id: body.view_id },
+          view: {
+            ...viewState.view,
+            id: body.view_id,
+            private_metadata: viewState.view.private_metadata,
+          },
+          user: {
+            id: user,
+            username: 'simulator_user',
+          },
+          actions: [action],
+          trigger_id: triggerId,
+        },
+        viewState.botId
+      )
+    } else if (body.message_ts && body.channel_id) {
+      // Message context path
+      const msg = this.state.getMessage(body.channel_id, body.message_ts)
+      if (!msg) {
+        return Response.json(
+          { ok: false, error: 'message_not_found' },
+          { headers: corsHeaders() }
+        )
+      }
+
+      const channelInfo = this.state.getChannel(body.channel_id)
+      const channelName = channelInfo?.name || body.channel_id
+
+      this.state.storeTriggerContext(triggerId, {
+        userId: user,
+        channelId: body.channel_id,
+      })
+
+      // Extract bot ID from message user (U_{botId} -> botId)
+      const messageBotId = msg.user?.startsWith('U_')
+        ? msg.user.slice(2)
+        : undefined
+
+      // Dispatch block_actions to the bot that sent this message
+      await this.socketMode.dispatchInteractive(
+        {
+          type: 'block_actions',
+          container: {
+            type: 'message',
+            message_ts: body.message_ts,
+            channel_id: body.channel_id,
+            is_ephemeral: false,
+          },
+          channel: { id: body.channel_id, name: channelName },
+          message: {
+            type: 'message',
+            text: msg.text,
+            user: msg.user,
+            ts: msg.ts,
+            blocks: msg.blocks,
+          },
+          user: {
+            id: user,
+            username: 'simulator_user',
+          },
+          actions: [action],
+          trigger_id: triggerId,
+        },
+        messageBotId
+      )
+    } else {
       return Response.json(
-        { ok: false, error: 'view_not_found' },
+        { ok: false, error: 'missing_argument' },
         { headers: corsHeaders() }
       )
     }
-
-    // Generate a new trigger_id for the action (bot may need it to update view)
-    const triggerId = this.state.generateTriggerId()
-    this.state.storeTriggerContext(triggerId, {
-      userId: user,
-      channelId: viewState.channelId ?? '',
-    })
-
-    // Dispatch block_actions to bot
-    await this.socketMode.dispatchInteractive({
-      type: 'block_actions',
-      view: {
-        ...viewState.view,
-        id: view_id,
-        private_metadata: viewState.view.private_metadata,
-      },
-      user: {
-        id: user,
-        username: 'simulator_user',
-      },
-      actions: [
-        {
-          type: 'button',
-          action_id,
-          value,
-          block_id: 'command_block',
-        },
-      ],
-      trigger_id: triggerId,
-    })
 
     return Response.json({ ok: true }, { headers: corsHeaders() })
   }

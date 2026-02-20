@@ -8,6 +8,7 @@
     loadCommands,
     loadAppConfig,
     loadConnectedBots,
+    loadChannels,
   } from '../lib/dispatcher.svelte'
   import { isElectron, getElectronAPI } from '../lib/electron-api'
   import {
@@ -22,7 +23,7 @@
     restoreMessages,
     simulatorState,
   } from '../lib/state.svelte'
-  import { CHANNELS } from '../lib/types'
+  import type { Channel } from '../lib/types'
   import InputBar from './InputBar.svelte'
   import LoadingSpinner from './LoadingSpinner.svelte'
   import LogPanel from './LogPanel.svelte'
@@ -45,15 +46,22 @@
   let logPanelVisible = $state(false)
   let rhsTab = $state<'thread' | 'logs'>('thread')
   let mainInputValue = $state('')
-  let previewImage = $state<{ url: string; alt: string } | null>(null)
+  let previewImage = $state<{
+    url: string
+    alt: string
+    userName?: string
+    isBot?: boolean
+    timestamp?: string
+    channelName?: string
+  } | null>(null)
 
   // Derive active thread from centralized state (synced with URL)
   let activeThreadTs = $derived(simulatorState.currentThreadTs)
 
   // Check if input should be disabled (bot DM channel and all bots disconnected)
   let isBotInputDisabled = $derived(() => {
-    const currentChannel = CHANNELS.find(
-      (c) => c.id === simulatorState.currentChannel
+    const currentChannel = simulatorState.channels.find(
+      (c: Channel) => c.id === simulatorState.currentChannel
     )
     if (currentChannel?.type !== 'dm') return false
     return (
@@ -129,9 +137,14 @@
     }
     simulatorState.messagesLoaded = true
 
-    // Load available slash commands, app config, and connected bots from emulator
+    // Load available slash commands, app config, connected bots, and channels from emulator
     // These will be populated after bot registers them
-    await Promise.all([loadCommands(), loadAppConfig(), loadConnectedBots()])
+    await Promise.all([
+      loadCommands(),
+      loadAppConfig(),
+      loadConnectedBots(),
+      loadChannels(),
+    ])
   }
 
   async function handleSend(text: string) {
@@ -176,8 +189,15 @@
     rhsTab = tabId as 'thread' | 'logs'
   }
 
-  function handleImagePreview(url: string, alt: string) {
-    previewImage = { url, alt }
+  function handleImagePreview(
+    url: string,
+    alt: string,
+    userName?: string,
+    isBot?: boolean,
+    timestamp?: string,
+    channelName?: string
+  ) {
+    previewImage = { url, alt, userName, isBot, timestamp, channelName }
   }
 
   function handleCloseImagePreview() {
@@ -320,6 +340,10 @@
   <ImagePreviewModal
     imageUrl={previewImage.url}
     imageAlt={previewImage.alt}
+    userName={previewImage.userName}
+    isBot={previewImage.isBot}
+    timestamp={previewImage.timestamp}
+    channelName={previewImage.channelName}
     onClose={handleCloseImagePreview}
   />
 {/if}

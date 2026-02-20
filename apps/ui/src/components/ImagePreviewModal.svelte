@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { X } from '@lucide/svelte'
+  import { X, Sparkles } from '@lucide/svelte'
   import {
     createKeydownHandler,
     type KeyboardShortcut,
@@ -8,10 +8,24 @@
   interface Props {
     imageUrl: string
     imageAlt?: string
+    userName?: string
+    isBot?: boolean
+    timestamp?: string
+    channelName?: string
     onClose: () => void
   }
 
-  let { imageUrl, imageAlt = '', onClose }: Props = $props()
+  let {
+    imageUrl,
+    imageAlt = '',
+    userName,
+    isBot = false,
+    timestamp,
+    channelName,
+    onClose,
+  }: Props = $props()
+
+  let avatarLetter = $derived(userName ? userName.charAt(0).toUpperCase() : '')
 
   let isZoomed = $state(false)
   let panPosition = $state({ x: 0, y: 0 })
@@ -19,6 +33,7 @@
   let panStart = $state({ x: 0, y: 0 })
   let hasDragged = $state(false)
   let imageEl = $state<HTMLImageElement | null>(null)
+  let panelEl = $state<HTMLDivElement | null>(null)
   let wheelTimeout: ReturnType<typeof setTimeout> | null = $state(null)
   let isWheeling = $state(false)
 
@@ -34,24 +49,33 @@
   ]
   const handleKeyDown = createKeydownHandler(shortcuts)
 
-  // Calculate max pan distance based on image size vs viewport
-  // At 2x zoom, image extends imgBaseSize from center in each direction
-  // Max pan = how far we can translate before showing background
+  // Pan bounds: large images can pan to panel edge, small images stay padded.
+  const SMALL_IMAGE_PADDING = 80
+
   function getPanBounds() {
-    if (!imageEl) return { maxX: 0, maxY: 0 }
+    if (!imageEl || !panelEl) return { maxX: 0, maxY: 0 }
 
-    const rect = imageEl.getBoundingClientRect()
-    // When zoomed, rect is 2x the base display size due to scale(2)
+    const imgRect = imageEl.getBoundingClientRect()
+    const panelRect = panelEl.getBoundingClientRect()
     const scale = isZoomed ? 2 : 1
-    const imgWidth = rect.width / scale
-    const imgHeight = rect.height / scale
+    const baseWidth = imgRect.width / scale
+    const baseHeight = imgRect.height / scale
+    const zoomedWidth = baseWidth * 2
+    const zoomedHeight = baseHeight * 2
 
-    // At 2x zoom, image extends imgWidth/imgHeight from center
-    // Max pan = overflow per side (how far image extends beyond viewport)
-    const maxX = Math.max(0, imgWidth - window.innerWidth / 2)
-    const maxY = Math.max(0, imgHeight - window.innerHeight / 2)
+    function axisMax(zoomed: number, panel: number) {
+      if (zoomed >= panel) {
+        // Large image: can pan until image edge meets panel edge
+        return (zoomed - panel) / 2
+      }
+      // Small image: can pan within a padded inner area
+      return Math.max(0, (panel - zoomed) / 2 - SMALL_IMAGE_PADDING)
+    }
 
-    return { maxX, maxY }
+    return {
+      maxX: axisMax(zoomedWidth, panelRect.width),
+      maxY: axisMax(zoomedHeight, panelRect.height),
+    }
   }
 
   function clampPan(pos: { x: number; y: number }) {
@@ -76,22 +100,25 @@
       isZoomed = false
       panPosition = { x: 0, y: 0 }
     } else {
-      // Calculate cursor offset from viewport center
-      const offsetX = e.clientX - window.innerWidth / 2
-      const offsetY = e.clientY - window.innerHeight / 2
+      if (imageEl && panelEl) {
+        const imgRect = imageEl.getBoundingClientRect()
+        const panelRect = panelEl.getBoundingClientRect()
+        // Cursor offset from panel center
+        const panelCenterX = panelRect.left + panelRect.width / 2
+        const panelCenterY = panelRect.top + panelRect.height / 2
+        const offsetX = e.clientX - panelCenterX
+        const offsetY = e.clientY - panelCenterY
 
-      // Calculate bounds using current 1x dimensions (before zoom)
-      if (imageEl) {
-        const rect = imageEl.getBoundingClientRect()
-        const imgWidth = rect.width
-        const imgHeight = rect.height
-
-        // At 2x zoom, max translate = imgSize - viewportSize/2
-        const maxX = Math.max(0, imgWidth - window.innerWidth / 2)
-        const maxY = Math.max(0, imgHeight - window.innerHeight / 2)
+        const zoomedWidth = imgRect.width * 2
+        const zoomedHeight = imgRect.height * 2
+        function axisMax(zoomed: number, panel: number) {
+          if (zoomed >= panel) return (zoomed - panel) / 2
+          return Math.max(0, (panel - zoomed) / 2 - SMALL_IMAGE_PADDING)
+        }
+        const maxX = axisMax(zoomedWidth, panelRect.width)
+        const maxY = axisMax(zoomedHeight, panelRect.height)
 
         // Pan to keep clicked point stationary after zoom
-        // Offset is negated: if cursor is right of center, pan image left
         panPosition = {
           x: Math.max(-maxX, Math.min(maxX, -offsetX)),
           y: Math.max(-maxY, Math.min(maxY, -offsetY)),
@@ -172,47 +199,83 @@
 <!-- svelte-ignore a11y_interactive_supports_focus -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
-  role="dialog"
-  class="fixed inset-0 bg-black/90 flex items-center justify-center z-70"
+  class="fixed inset-0 z-70"
   onclick={handleBackdropClick}
   onmouseup={handleMouseUp}
   onmousemove={handleMouseMove}
   onmouseleave={handleMouseUp}
   onwheel={handleWheel}
-  aria-modal="true"
+  role="presentation"
 >
-  <!-- Close button -->
-  <button
-    class="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors z-10"
-    onclick={onClose}
-    aria-label="Close"
-  >
-    <X size={24} />
-  </button>
-
-  <!-- Image container -->
   <div
-    class={cursorClass}
-    onclick={handleImageClick}
-    onkeydown={handleImageKeydown}
-    onmousedown={handleMouseDown}
-    role="button"
-    tabindex="0"
-    aria-label={isZoomed ? 'Click to zoom out' : 'Click to zoom in'}
+    bind:this={panelEl}
+    role="dialog"
+    class="absolute inset-[30px] bg-black/70 backdrop-blur-2xl flex items-center justify-center rounded-xl overflow-hidden"
+    onclick={handleBackdropClick}
+    aria-modal="true"
   >
-    <img
-      bind:this={imageEl}
-      src={imageUrl}
-      alt={imageAlt}
-      class="select-none"
-      class:transition-transform={!isPanning && !isWheeling}
-      class:duration-200={!isPanning && !isWheeling}
-      style:transform={isZoomed
-        ? `scale(2) translate(${panPosition.x / 2}px, ${panPosition.y / 2}px)`
-        : 'scale(1)'}
-      style:max-height="90vh"
-      style:max-width="90vw"
-      draggable="false"
-    />
+    <!-- Author info top-left -->
+    {#if userName}
+      <div class="absolute top-3 left-4 flex items-center gap-2.5 z-10">
+        <div
+          class="size-7 rounded-lg text-white flex items-center justify-center font-bold text-xs shrink-0 {isBot
+            ? 'bg-slack-bot-avatar'
+            : 'bg-slack-user-avatar'}"
+        >
+          {#if isBot}
+            <Sparkles size={14} />
+          {:else}
+            {avatarLetter}
+          {/if}
+        </div>
+        <div class="flex flex-col">
+          <span class="text-white text-sm font-bold">{userName}</span>
+          {#if timestamp || channelName}
+            <span class="text-white/50 text-xs flex items-center gap-1">
+              {#if timestamp}{timestamp}{/if}
+              {#if timestamp && channelName}<span>in</span>{/if}
+              {#if channelName}
+                <span>{channelName}</span>
+              {/if}
+            </span>
+          {/if}
+        </div>
+      </div>
+    {/if}
+
+    <!-- Close button -->
+    <button
+      class="absolute top-4 right-4 text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/10 transition-colors z-10"
+      onclick={onClose}
+      aria-label="Close"
+    >
+      <X size={24} />
+    </button>
+
+    <!-- Image container -->
+    <div
+      class={cursorClass}
+      onclick={handleImageClick}
+      onkeydown={handleImageKeydown}
+      onmousedown={handleMouseDown}
+      role="button"
+      tabindex="0"
+      aria-label={isZoomed ? 'Click to zoom out' : 'Click to zoom in'}
+    >
+      <img
+        bind:this={imageEl}
+        src={imageUrl}
+        alt={imageAlt}
+        class="select-none"
+        class:transition-transform={!isPanning && !isWheeling}
+        class:duration-200={!isPanning && !isWheeling}
+        style:transform={isZoomed
+          ? `scale(2) translate(${panPosition.x / 2}px, ${panPosition.y / 2}px)`
+          : 'scale(1)'}
+        style:max-height="calc(100vh - 160px)"
+        style:max-width="calc(100vw - 160px)"
+        draggable="false"
+      />
+    </div>
   </div>
 </div>
