@@ -33,7 +33,7 @@ function renderInlineToken(token: Token): string {
     }
     case 'link': {
       const t = token as Tokens.Link
-      const text = renderTokens(t.tokens ?? [])
+      const text = renderTokens(t.tokens ?? []).replace(/[|>]/g, '')
       return `<${t.href}|${text}>`
     }
     case 'image': {

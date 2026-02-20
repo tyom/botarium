@@ -14,6 +14,7 @@
     SlackSectionBlock,
     SlackActionsBlock,
     SlackContextActionsBlock,
+    SlackInputBlock,
   } from '../lib/types'
   import {
     getMessageShortcut,
@@ -262,6 +263,23 @@
               value
             )
           }
+        }
+      }
+
+      // Check input block element
+      if (block.type === 'input') {
+        const inputBlock = block as SlackInputBlock
+        const el = inputBlock.element
+        if ('action_id' in el && el.action_id === actionId) {
+          return buildActionValue(
+            blockId,
+            el as {
+              type: string
+              action_id: string
+              options?: SlackOption[]
+            },
+            value
+          )
         }
       }
 
