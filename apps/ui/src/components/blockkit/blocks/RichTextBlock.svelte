@@ -1,5 +1,6 @@
 <script lang="ts">
   import DOMPurify from 'dompurify'
+  import { resolveEmoji } from '@botarium/mrkdwn'
   import type {
     RichTextBlockElement,
     RichTextInlineElement,
@@ -68,7 +69,14 @@
         return applyStyles(inner, el.style)
       }
       case 'emoji': {
-        return applyStyles(`:${escapeHtml(el.name)}:`, el.style)
+        const unicode = el.unicode
+          ? String.fromCodePoint(
+              ...el.unicode.split('-').map((s) => parseInt(s, 16)),
+            )
+          : undefined
+        const emoji = resolveEmoji(el.name) ?? unicode
+        const display = emoji ?? `:${escapeHtml(el.name)}:`
+        return applyStyles(display, el.style)
       }
       case 'user': {
         const inner = `<span class="s-mention">@${escapeHtml(el.user_id)}</span>`
