@@ -213,9 +213,11 @@
           const entry = mergedValues[blockId]?.[el.action_id] as
             | { value?: string }
             | undefined
-          if (entry?.value && mergedValues[blockId]) {
+          if (entry && mergedValues[blockId]) {
             mergedValues[blockId][el.action_id] = {
-              selected_date_time: Number(entry.value),
+              selected_date_time: entry.value
+                ? Number(entry.value)
+                : undefined,
             }
           }
         }

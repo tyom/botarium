@@ -172,12 +172,16 @@
       containerRef &&
       !containerRef.contains(event.target as Node)
     ) {
+      selectedDate = committedDate
+      selectedTime = committedTime
       isOpen = false
     }
   }
 
   function handleKeyDown(event: KeyboardEvent) {
     if (event.key === 'Escape' && isOpen) {
+      selectedDate = committedDate
+      selectedTime = committedTime
       isOpen = false
     }
   }
