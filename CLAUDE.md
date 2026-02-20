@@ -33,7 +33,7 @@ Bun monorepo with workspaces in `apps/` and `packages/`.
 
 ### Packages
 
-- **`packages/core`** — Plugin system and CLI entry point. Defines the `BotariumPlugin` interface that platform plugins implement (`createEmulator`, `defaultPort`, `envVarName`). Currently only Slack is implemented but the design supports adding other platforms.
+- **`packages/core`** — Plugin system and CLI entry point. Defines the `BotariumPlugin` interface that platform plugins implement (`createEmulator`, `defaultPort`, `envVarName`). Currently, only Slack is implemented, but the design supports adding other platforms.
 - **`packages/slack`** — Slack API emulator. A Bun HTTP + WebSocket server that implements Slack Web API endpoints, Socket Mode protocol, SSE event broadcasting to the frontend, and optional SQLite persistence. Key files: `server/state.ts` (in-memory state), `server/web-api.ts` (API handlers), `server/socket-mode.ts` (WebSocket protocol), `server/persistence.ts` (SQLite).
 - **`packages/mrkdwn`** — Bidirectional converters: Slack mrkdwn to HTML (for rendering in UI) and Markdown to mrkdwn (for AI responses). Uses `marked` for Markdown parsing.
 - **`packages/create-bot`** — CLI tool (`create-botarium`) that scaffolds new bots via Handlebars templates in `templates/`.
