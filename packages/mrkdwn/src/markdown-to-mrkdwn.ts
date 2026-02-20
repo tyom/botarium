@@ -7,10 +7,7 @@
 
 import { Lexer, type Token, type Tokens } from 'marked'
 
-/** Escape characters that have special meaning in Slack mrkdwn */
-function escapeMrkdwn(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
+import { escapeMrkdwn } from './utils'
 
 /** Render a single inline token to mrkdwn */
 function renderInlineToken(token: Token): string {
