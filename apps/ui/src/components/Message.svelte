@@ -24,12 +24,12 @@
     getBotByUserId,
   } from '../lib/state.svelte'
   import {
-    updateFileExpanded,
     sendMessageBlockAction,
     triggerMessageShortcut,
   } from '../lib/dispatcher.svelte'
   import { resolveEmoji } from '@botarium/mrkdwn'
   import BlockKitRenderer from './blockkit/BlockKitRenderer.svelte'
+  import ImageBlock from './blockkit/blocks/ImageBlock.svelte'
   import { renderMrkdwn } from './blockkit/context'
   import {
     formatTimestamp,
@@ -37,6 +37,7 @@
     formatFullDate,
   } from '../lib/time'
   import * as ContextMenu from '$lib/components/ui/context-menu'
+  import * as DropdownMenu from '$lib/components/ui/dropdown-menu'
 
   interface Props {
     message: SimulatorMessage
@@ -63,8 +64,6 @@
     onImagePreview,
   }: Props = $props()
 
-  let menuOpen = $state(false)
-  let menuButton = $state<HTMLButtonElement | null>(null)
   let imageExpanded = $derived(message.file?.isExpanded ?? true)
 
   let isBot = $derived(isBotUserId(message.user))
@@ -315,13 +314,7 @@
     )
   }
 
-  function toggleMenu(e: MouseEvent) {
-    e.stopPropagation()
-    menuOpen = !menuOpen
-  }
-
   function handleDelete() {
-    menuOpen = false
     onDelete?.(message.ts)
   }
 
@@ -333,18 +326,10 @@
     })
   }
 
-  function handleClickOutside(e: MouseEvent) {
-    if (menuButton && !menuButton.contains(e.target as Node)) {
-      menuOpen = false
-    }
-  }
-
   function getEmoji(name: string): string {
     return resolveEmoji(name) ?? `:${name}:`
   }
 </script>
-
-<svelte:window onclick={handleClickOutside} />
 
 <ContextMenu.Root>
   <ContextMenu.Trigger class="block">
@@ -360,31 +345,65 @@
         </div>
       {/if}
       <div class="flex gap-2">
-        {#if onDelete}
+        {#if onDelete || hasShortcuts}
           <div
             class="absolute -top-3 right-5 z-10 opacity-0 transition-opacity duration-100 bg-slack-bg border border-slack-border rounded-xl p-1 group-hover:opacity-100"
           >
-            <button
-              bind:this={menuButton}
-              class="flex items-center justify-center size-7 p-0 border-none rounded-lg bg-transparent text-slack-text-secondary cursor-pointer transition-colors duration-100 hover:bg-slack-sidebar-hover hover:text-slack-text"
-              onclick={toggleMenu}
-              aria-label="Message options"
-            >
-              <EllipsisVertical size={16} />
-            </button>
-            {#if menuOpen}
-              <div
-                class="absolute top-full right-0 mt-1 bg-slack-sidebar border border-slack-border rounded-md shadow-lg overflow-hidden whitespace-nowrap"
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger
+                class="flex items-center justify-center size-7 p-0 border-none rounded-lg bg-transparent text-slack-text-secondary cursor-pointer transition-colors duration-100 hover:bg-slack-sidebar-hover hover:text-slack-text"
+                aria-label="Message options"
               >
-                <button
-                  class="flex items-center gap-2 w-full py-2 px-3 border-none bg-transparent text-log-error text-[13px] cursor-pointer text-left hover:bg-red-500/10"
-                  onclick={handleDelete}
-                >
-                  <Trash2 size={14} />
-                  <span>Delete</span>
-                </button>
-              </div>
-            {/if}
+                <EllipsisVertical size={16} />
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content align="end">
+                {#if hasShortcuts}
+                  <DropdownMenu.Sub>
+                    <DropdownMenu.SubTrigger
+                      >Connect to apps</DropdownMenu.SubTrigger
+                    >
+                    <DropdownMenu.SubContent class="min-w-[200px]">
+                      {#each shortcutGroups as group, i (group.botId)}
+                        {#if i > 0}
+                          <DropdownMenu.Separator />
+                        {/if}
+                        {#each group.shortcuts as shortcut (shortcut.callback_id)}
+                          <DropdownMenu.Item
+                            onclick={() => handleShortcut(shortcut)}
+                          >
+                            <span class="flex items-center gap-2 w-full">
+                              <span class="shrink-0 text-sm"
+                                >{group.botIcon ||
+                                  group.botName
+                                    .charAt(0)
+                                    .toUpperCase()}</span
+                              >
+                              <span class="font-semibold"
+                                >{shortcut.name}</span
+                              >
+                              <span
+                                class="text-slack-text-muted ml-auto text-xs"
+                                >{group.botName}</span
+                              >
+                            </span>
+                          </DropdownMenu.Item>
+                        {/each}
+                      {/each}
+                    </DropdownMenu.SubContent>
+                  </DropdownMenu.Sub>
+                  <DropdownMenu.Separator />
+                {/if}
+                {#if onDelete}
+                  <DropdownMenu.Item
+                    variant="destructive"
+                    onclick={handleDelete}
+                  >
+                    <Trash2 size={14} />
+                    Delete message
+                  </DropdownMenu.Item>
+                {/if}
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
           </div>
         {/if}
         <div
