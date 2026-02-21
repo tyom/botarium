@@ -68,46 +68,58 @@
   }
 </script>
 
-<div class="flex flex-col">
+<div class="p-block_kit_renderer">
   {#each blocks as block, index (getBlockId(block, index))}
-    {#if block.type === 'section'}
-      <SectionBlock block={block as SlackSectionBlock} {onAction} />
-    {:else if block.type === 'input'}
-      <InputBlock
-        block={block as SlackInputBlock}
-        blockId={getBlockId(block, index)}
-        {values}
-        {fileValues}
-        {onInputChange}
-        {onFileChange}
-        {onCheckboxChange}
-        {onRadioChange}
-      />
-    {:else if block.type === 'actions'}
-      <ActionsBlock block={block as SlackActionsBlock} {onAction} />
-    {:else if block.type === 'divider'}
-      <DividerBlock />
-    {:else if block.type === 'context'}
-      <ContextBlock block={block as SlackContextBlock} />
-    {:else if block.type === 'image'}
-      <ImageBlock block={block as SlackImageBlock} {onImagePreview} />
-    {:else if block.type === 'header'}
-      <HeaderBlock block={block as SlackHeaderBlock} />
-    {:else if block.type === 'rich_text'}
-      <RichTextBlock block={block as SlackRichTextBlock} />
-    {:else if block.type === 'table'}
-      <TableBlock block={block as SlackTableBlock} />
-    {:else if block.type === 'context_actions'}
-      <ContextActionsBlock
-        block={block as SlackContextActionsBlock}
-        {onAction}
-      />
-    {:else}
-      <!-- Unknown block type -->
-      {@const unknownBlock = block as { type: string }}
-      <div class="text-xs text-slack-text-muted italic">
-        Unknown block type: {unknownBlock.type}
-      </div>
-    {/if}
+    <div
+      class="p-block_kit_renderer__block_wrapper"
+      class:p-block_kit_renderer__block_wrapper--first={index === 0}
+    >
+      {#if block.type === 'section'}
+        <SectionBlock block={block as SlackSectionBlock} {onAction} />
+      {:else if block.type === 'input'}
+        <InputBlock
+          block={block as SlackInputBlock}
+          blockId={getBlockId(block, index)}
+          {values}
+          {fileValues}
+          {onInputChange}
+          {onFileChange}
+          {onCheckboxChange}
+          {onRadioChange}
+        />
+      {:else if block.type === 'actions'}
+        <ActionsBlock block={block as SlackActionsBlock} {onAction} />
+      {:else if block.type === 'divider'}
+        <DividerBlock />
+      {:else if block.type === 'context'}
+        <ContextBlock block={block as SlackContextBlock} />
+      {:else if block.type === 'image'}
+        <ImageBlock block={block as SlackImageBlock} {onImagePreview} />
+      {:else if block.type === 'header'}
+        <HeaderBlock block={block as SlackHeaderBlock} />
+      {:else if block.type === 'rich_text'}
+        <RichTextBlock block={block as SlackRichTextBlock} />
+      {:else if block.type === 'table'}
+        <TableBlock block={block as SlackTableBlock} />
+      {:else if block.type === 'context_actions'}
+        <ContextActionsBlock
+          block={block as SlackContextActionsBlock}
+          {onAction}
+        />
+      {:else}
+        <!-- Unknown block type -->
+        {@const unknownBlock = block as { type: string }}
+        <div class="text-xs text-slack-text-muted italic">
+          Unknown block type: {unknownBlock.type}
+        </div>
+      {/if}
+    </div>
   {/each}
 </div>
+
+<style>
+  .p-block_kit_renderer {
+    display: flex;
+    flex-direction: column;
+  }
+</style>

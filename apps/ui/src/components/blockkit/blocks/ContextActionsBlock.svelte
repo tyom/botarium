@@ -18,7 +18,7 @@
   }
 </script>
 
-<div class="flex items-center gap-1 my-1">
+<div class="p-context_actions">
   {#each block.elements as element, i (i)}
     {#if element.type === 'feedback_buttons'}
       {@const fb = element as SlackFeedbackButtonsElement}
@@ -58,6 +58,13 @@
 </div>
 
 <style>
+  .p-context_actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 4px 0;
+  }
+
   .context-action-btn {
     display: inline-flex;
     align-items: center;
