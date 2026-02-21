@@ -580,5 +580,7 @@ export interface ConnectedBotInfo {
   connectedAt: string
   status: 'connecting' | 'connected' | 'disconnected'
   commands: number
-  shortcuts: number
+  shortcuts: Shortcut[]
+  iconEmoji?: string
+  iconUrl?: string
 }

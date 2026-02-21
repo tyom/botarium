@@ -291,9 +291,19 @@ function handleSSEEvent(event: {
   bot?: {
     id: string
     appConfig: {
-      app: { name: string; description?: string }
+      app: {
+        name: string
+        description?: string
+        icon_emoji?: string
+        icon_url?: string
+      }
       commands?: Array<{ command: string; description: string }>
-      shortcuts?: Array<{ callback_id: string; name: string }>
+      shortcuts?: Array<{
+        callback_id: string
+        name: string
+        description: string
+        type: 'message' | 'global'
+      }>
     }
     connectedAt: string
     status: 'connecting' | 'connected' | 'disconnected'
@@ -420,7 +430,9 @@ function handleSSEEvent(event: {
           connectedAt: event.bot.connectedAt,
           status: event.bot.status,
           commands: event.bot.appConfig.commands?.length ?? 0,
-          shortcuts: event.bot.appConfig.shortcuts?.length ?? 0,
+          shortcuts: event.bot.appConfig.shortcuts ?? [],
+          iconEmoji: event.bot.appConfig.app.icon_emoji,
+          iconUrl: event.bot.appConfig.app.icon_url,
         }
         addConnectedBot(botInfo)
         // Also update app config and commands when a bot connects

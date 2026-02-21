@@ -5,6 +5,7 @@
 
 import type {
   SlashCommand,
+  Shortcut,
   SlackView,
   SlackAppConfig,
   ConnectedBotInfo,
@@ -44,20 +45,30 @@ export function setAppConfig(config: SlackAppConfig | null): void {
   }
 }
 
-// Get shortcut by callback_id
-export function getShortcut(
-  callbackId: string
-): SlackAppConfig['shortcuts'][number] | undefined {
-  return simulatorState.appConfig?.shortcuts.find(
-    (s) => s.callback_id === callbackId
-  )
+// Shortcut group for context menu display
+export interface BotShortcutGroup {
+  botId: string
+  botName: string
+  botIcon?: string
+  shortcuts: Shortcut[]
 }
 
-// Get first message shortcut (for context menu)
-export function getMessageShortcut():
-  | SlackAppConfig['shortcuts'][number]
-  | undefined {
-  return simulatorState.appConfig?.shortcuts.find((s) => s.type === 'message')
+// Get all message shortcuts from connected bots, grouped by bot
+export function getAllMessageShortcuts(): BotShortcutGroup[] {
+  const groups: BotShortcutGroup[] = []
+  for (const bot of simulatorState.connectedBots.values()) {
+    if (bot.status !== 'connected') continue
+    const messageShortcuts = bot.shortcuts.filter((s) => s.type === 'message')
+    if (messageShortcuts.length > 0) {
+      groups.push({
+        botId: bot.id,
+        botName: bot.name,
+        botIcon: bot.iconEmoji || bot.iconUrl,
+        shortcuts: messageShortcuts,
+      })
+    }
+  }
+  return groups
 }
 
 // =============================================================================
