@@ -35,6 +35,7 @@
     blockId: string
     values: FormValues
     fileValues: FileValues
+    error?: string
     onInputChange?: (blockId: string, actionId: string, value: string) => void
     onFileChange?: (
       blockId: string,
@@ -58,6 +59,7 @@
     blockId,
     values,
     fileValues,
+    error,
     onInputChange,
     onFileChange,
     onCheckboxChange,
@@ -86,9 +88,6 @@
     <!-- svelte-ignore a11y_label_has_associated_control -->
     <label class="block text-sm text-slack-text-muted mb-1.5">
       {renderText(block.label)}
-      {#if !block.optional}
-        <span class="text-red-400">*</span>
-      {/if}
     </label>
   {/if}
 
@@ -176,7 +175,14 @@
     <WorkspaceSelect placeholder={ws.placeholder} />
   {/if}
 
-  {#if block.hint}
+  {#if error}
+    <p class="flex items-center gap-1 text-sm text-red-400 mt-1">
+      <svg class="size-4 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+      </svg>
+      {error}
+    </p>
+  {:else if block.hint}
     <p class="text-xs text-slack-text-muted mt-1">
       {renderText(block.hint)}
     </p>

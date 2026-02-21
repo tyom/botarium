@@ -36,6 +36,9 @@
     {}
   )
 
+  // Validation errors per block ID
+  let validationErrors = $state<Record<string, string>>({})
+
   /**
    * Extract initial values from modal blocks to pre-populate formValues
    */
@@ -140,7 +143,8 @@
   $effect(() => {
     if (simulatorState.activeModal) {
       formValues = extractInitialValues(simulatorState.activeModal.view.blocks)
-      fileFormValues = {} // Reset file values when modal changes
+      fileFormValues = {}
+      validationErrors = {}
     }
   })
 
@@ -149,6 +153,7 @@
       formValues[blockId] = {}
     }
     formValues[blockId][actionId] = { value }
+    delete validationErrors[blockId]
   }
 
   function handleFileChange(
@@ -160,6 +165,7 @@
       fileFormValues[blockId] = {}
     }
     fileFormValues[blockId][actionId] = files
+    delete validationErrors[blockId]
   }
 
   function handleCheckboxChange(
@@ -171,6 +177,7 @@
       formValues[blockId] = {}
     }
     formValues[blockId][actionId] = { selected_options: selectedOptions }
+    delete validationErrors[blockId]
   }
 
   function handleRadioChange(
@@ -185,6 +192,7 @@
       selected_option: option,
       value: option.value,
     }
+    delete validationErrors[blockId]
   }
 
   async function handleAction(actionId: string, value: string) {
@@ -195,6 +203,36 @@
   async function handleSubmit() {
     if (!simulatorState.activeModal) return
 
+    // Validate required fields
+    const blocks = simulatorState.activeModal.view.blocks
+    const errors: Record<string, string> = {}
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i]
+      if (block?.type === 'input' && !(block as SlackInputBlock).optional) {
+        const inputBlock = block as SlackInputBlock
+        const blockId = inputBlock.block_id ?? `block-${i}`
+        const actionId = inputBlock.element.action_id
+        const val = formValues[blockId]?.[actionId]
+        const files = fileFormValues[blockId]?.[actionId]
+
+        const isEmpty =
+          inputBlock.element.type === 'file_input'
+            ? !files || files.length === 0
+            : !val?.value &&
+              !val?.selected_option &&
+              (!val?.selected_options || val.selected_options.length === 0)
+
+        if (isEmpty) {
+          errors[blockId] = 'Please complete this required field.'
+        }
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      validationErrors = errors
+      return
+    }
+
     // Merge form values with file values
     // File inputs are submitted as { files: UploadedFile[] }
     const mergedValues: Record<string, Record<string, unknown>> = {
@@ -203,7 +241,6 @@
 
     // Convert datetimepicker string values to numeric selected_date_time
     // (Slack API expects selected_date_time as a number)
-    const blocks = simulatorState.activeModal.view.blocks
     for (let i = 0; i < blocks.length; i++) {
       const block = blocks[i]
       if (block?.type === 'input') {
@@ -292,6 +329,7 @@
           blocks={modal.view.blocks}
           values={formValues}
           fileValues={fileFormValues}
+          errors={validationErrors}
           onAction={handleAction}
           onInputChange={handleInputChange}
           onFileChange={handleFileChange}

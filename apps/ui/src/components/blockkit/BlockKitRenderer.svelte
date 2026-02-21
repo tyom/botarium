@@ -50,6 +50,7 @@
     ) => void
     onImagePreview?: (imageUrl: string, imageAlt: string) => void
     imageCollapsible?: boolean
+    errors?: Record<string, string>
   }
 
   let {
@@ -63,6 +64,7 @@
     onRadioChange,
     onImagePreview,
     imageCollapsible,
+    errors = {},
   }: Props = $props()
 
   function getBlockId(block: SlackBlock, index: number): string {
@@ -81,6 +83,7 @@
           blockId={getBlockId(block, index)}
           {values}
           {fileValues}
+          error={errors[getBlockId(block, index)]}
           {onInputChange}
           {onFileChange}
           {onCheckboxChange}
