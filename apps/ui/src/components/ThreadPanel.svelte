@@ -1,14 +1,8 @@
 <script lang="ts">
   import { tick } from 'svelte'
   import type { MockApp } from '../lib/dispatcher.svelte'
+  import { deleteMessage, sendMessage } from '../lib/dispatcher.svelte'
   import {
-    deleteMessage,
-    sendMessage,
-    triggerMessageShortcut,
-  } from '../lib/dispatcher.svelte'
-  import type { SimulatorMessage } from '../lib/types'
-  import {
-    getMessageShortcut,
     getReplyCount,
     getThreadDraft,
     getThreadMessages,
@@ -76,16 +70,6 @@
   function handleDeleteMessage(ts: string) {
     deleteMessage(simulatorState.currentChannel, ts)
   }
-
-  function handleGenerateImage(message: SimulatorMessage) {
-    const shortcut = getMessageShortcut()
-    if (!shortcut) return
-    triggerMessageShortcut(shortcut.callback_id, {
-      ts: message.ts,
-      text: message.text,
-      file: message.file,
-    })
-  }
 </script>
 
 <div class="h-full overflow-y-auto py-2" bind:this={messagesContainer}>
@@ -94,7 +78,6 @@
       <Message
         message={parentMessage}
         onDelete={handleDeleteMessage}
-        onGenerateImage={handleGenerateImage}
         {onImagePreview}
       />
     </div>
@@ -108,12 +91,7 @@
     {/if}
 
     {#each replies as message (message.ts)}
-      <Message
-        {message}
-        onDelete={handleDeleteMessage}
-        onGenerateImage={handleGenerateImage}
-        {onImagePreview}
-      />
+      <Message {message} onDelete={handleDeleteMessage} {onImagePreview} />
     {/each}
 
     <div class="px-3 pt-2 pb-3">

@@ -47,16 +47,10 @@
     Trash2,
   } from '@lucide/svelte'
   import { tick } from 'svelte'
-  import {
-    clearChannelMessages,
-    deleteMessage,
-    triggerMessageShortcut,
-  } from '../lib/dispatcher.svelte'
-  import type { SimulatorMessage } from '../lib/types'
+  import { clearChannelMessages, deleteMessage } from '../lib/dispatcher.svelte'
   import {
     getChannelDisplayName,
     getChannelMessages,
-    getMessageShortcut,
     getParentMessages,
     getReplyCount,
     hasThreadDraft,
@@ -95,16 +89,6 @@
 
   function handleDeleteMessage(ts: string) {
     deleteMessage(simulatorState.currentChannel, ts)
-  }
-
-  function handleGenerateImage(message: SimulatorMessage) {
-    const shortcut = getMessageShortcut()
-    if (!shortcut) return
-    triggerMessageShortcut(shortcut.callback_id, {
-      ts: message.ts,
-      text: message.text,
-      file: message.file,
-    })
   }
 
   function toggleMenu(e: MouseEvent) {
@@ -289,7 +273,6 @@
           hasDraft={activeThreadTs !== message.ts && hasThreadDraft(message.ts)}
           {onOpenThread}
           onDelete={handleDeleteMessage}
-          onGenerateImage={handleGenerateImage}
           {onImagePreview}
         />
       {/each}

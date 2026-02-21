@@ -4,11 +4,11 @@
     Trash2,
     Sparkles,
     ChevronRight,
-    ImageIcon,
     Eye,
   } from '@lucide/svelte'
   import type {
     SimulatorMessage,
+    Shortcut,
     SlackBlock,
     SlackOption,
     SlackSectionBlock,
@@ -17,7 +17,7 @@
     SlackInputBlock,
   } from '../lib/types'
   import {
-    getMessageShortcut,
+    getAllMessageShortcuts,
     getChannelDisplayName,
     simulatorState,
     isBotUserId,
@@ -26,6 +26,7 @@
   import {
     updateFileExpanded,
     sendMessageBlockAction,
+    triggerMessageShortcut,
   } from '../lib/dispatcher.svelte'
   import { resolveEmoji } from '@botarium/mrkdwn'
   import BlockKitRenderer from './blockkit/BlockKitRenderer.svelte'
@@ -43,7 +44,6 @@
     hasDraft?: boolean
     onOpenThread?: (ts: string) => void
     onDelete?: (ts: string) => void
-    onGenerateImage?: (message: SimulatorMessage) => void
     onImagePreview?: (
       imageUrl: string,
       imageAlt: string,
@@ -60,7 +60,6 @@
     hasDraft = false,
     onOpenThread,
     onDelete,
-    onGenerateImage,
     onImagePreview,
   }: Props = $props()
 
@@ -70,8 +69,8 @@
 
   let isBot = $derived(isBotUserId(message.user))
   let isEphemeral = $derived(message.subtype === 'ephemeral')
-  let hasImage = $derived(message.file?.mimetype?.startsWith('image/') ?? false)
-  let messageShortcut = $derived(getMessageShortcut())
+  let shortcutGroups = $derived(getAllMessageShortcuts())
+  let hasShortcuts = $derived(shortcutGroups.length > 0)
   let displayName = $derived.by(() => {
     if (!isBot) return simulatorState.simulatedUserName || 'You'
     // Get bot name from connected bots
@@ -326,8 +325,12 @@
     onDelete?.(message.ts)
   }
 
-  function handleGenerateImage() {
-    onGenerateImage?.(message)
+  function handleShortcut(shortcut: Shortcut) {
+    triggerMessageShortcut(shortcut.callback_id, {
+      ts: message.ts,
+      text: message.text,
+      file: message.file,
+    })
   }
 
   function handleClickOutside(e: MouseEvent) {
@@ -533,13 +536,34 @@
       </div>
     </div>
   </ContextMenu.Trigger>
-  {#if onDelete || (hasImage && onGenerateImage && messageShortcut)}
+  {#if onDelete || hasShortcuts}
     <ContextMenu.Content>
-      {#if hasImage && onGenerateImage && messageShortcut}
-        <ContextMenu.Item onclick={handleGenerateImage}>
-          <ImageIcon size={14} class="text-green-500" />
-          {messageShortcut.name}
-        </ContextMenu.Item>
+      {#if hasShortcuts}
+        <ContextMenu.Sub>
+          <ContextMenu.SubTrigger>Connect to apps</ContextMenu.SubTrigger>
+          <ContextMenu.SubContent class="min-w-[200px]">
+            {#each shortcutGroups as group, i (group.botId)}
+              {#if i > 0}
+                <ContextMenu.Separator />
+              {/if}
+              {#each group.shortcuts as shortcut (shortcut.callback_id)}
+                <ContextMenu.Item onclick={() => handleShortcut(shortcut)}>
+                  <span class="flex items-center gap-2 w-full">
+                    <span class="shrink-0 text-sm"
+                      >{group.botIcon ||
+                        group.botName.charAt(0).toUpperCase()}</span
+                    >
+                    <span class="font-semibold">{shortcut.name}</span>
+                    <span class="text-slack-text-muted ml-auto text-xs"
+                      >{group.botName}</span
+                    >
+                  </span>
+                </ContextMenu.Item>
+              {/each}
+            {/each}
+          </ContextMenu.SubContent>
+        </ContextMenu.Sub>
+        <ContextMenu.Separator />
       {/if}
       {#if onDelete}
         <ContextMenu.Item variant="destructive" onclick={handleDelete}>
