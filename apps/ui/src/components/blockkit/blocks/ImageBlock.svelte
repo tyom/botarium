@@ -6,9 +6,10 @@
   interface Props {
     block: SlackImageBlock
     onImagePreview?: (imageUrl: string, imageAlt: string) => void
+    collapsible?: boolean
   }
 
-  let { block, onImagePreview }: Props = $props()
+  let { block, onImagePreview, collapsible = true }: Props = $props()
   let collapsed = $state(false)
   let imageSize = $state<string | null>(null)
 
@@ -19,6 +20,7 @@
   }
 
   $effect(() => {
+    if (!collapsible) return
     const controller = new AbortController()
     imageSize = null
     const url = `${EMULATOR_API_URL}/api/simulator/image-size?url=${encodeURIComponent(block.image_url)}`
@@ -39,24 +41,28 @@
 </script>
 
 <div class="flex flex-col items-start max-w-[620px]">
-  <span class="text-sm text-slack-text-muted">
-    {#if block.title}{renderText(block.title)}{/if}
-    {#if imageSize}({imageSize}){/if}
-    <button
-      type="button"
-      aria-label="Toggle image details"
-      aria-expanded={!collapsed}
-      class="text-sm text-[#1d9bd1] hover:underline cursor-pointer mb-1"
-      onclick={() => (collapsed = !collapsed)}
-    >
-      <span
-        class="inline-block scale-y-60 transition-transform {collapsed
-          ? '-rotate-90'
-          : ''}">&#9660;</span
-      >
-    </button>
-  </span>
-  {#if !collapsed}
+  {#if block.title || (collapsible && imageSize)}
+    <span class="text-sm text-slack-text-muted">
+      {#if block.title}{renderText(block.title)}{/if}
+      {#if collapsible}
+        {#if imageSize}({imageSize}){/if}
+        <button
+          type="button"
+          aria-label="Toggle image details"
+          aria-expanded={!collapsed}
+          class="text-sm text-[#1d9bd1] hover:underline cursor-pointer mb-1"
+          onclick={() => (collapsed = !collapsed)}
+        >
+          <span
+            class="inline-block scale-y-60 transition-transform {collapsed
+              ? '-rotate-90'
+              : ''}">&#9660;</span
+          >
+        </button>
+      {/if}
+    </span>
+  {/if}
+  {#if !collapsed || !collapsible}
     {#if onImagePreview}
       <button
         type="button"

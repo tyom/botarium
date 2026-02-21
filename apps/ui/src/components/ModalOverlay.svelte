@@ -297,6 +297,7 @@
           onFileChange={handleFileChange}
           onCheckboxChange={handleCheckboxChange}
           onRadioChange={handleRadioChange}
+          imageCollapsible={false}
         />
       </div>
 

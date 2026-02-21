@@ -49,6 +49,7 @@
       option: SlackOption
     ) => void
     onImagePreview?: (imageUrl: string, imageAlt: string) => void
+    imageCollapsible?: boolean
   }
 
   let {
@@ -61,6 +62,7 @@
     onCheckboxChange,
     onRadioChange,
     onImagePreview,
+    imageCollapsible,
   }: Props = $props()
 
   function getBlockId(block: SlackBlock, index: number): string {
@@ -91,7 +93,7 @@
       {:else if block.type === 'context'}
         <ContextBlock block={block as SlackContextBlock} />
       {:else if block.type === 'image'}
-        <ImageBlock block={block as SlackImageBlock} {onImagePreview} />
+        <ImageBlock block={block as SlackImageBlock} {onImagePreview} collapsible={imageCollapsible} />
       {:else if block.type === 'header'}
         <HeaderBlock block={block as SlackHeaderBlock} />
       {:else if block.type === 'rich_text'}
