@@ -64,8 +64,6 @@
     onImagePreview,
   }: Props = $props()
 
-  let imageExpanded = $derived(message.file?.isExpanded ?? true)
-
   let isBot = $derived(isBotUserId(message.user))
   let isEphemeral = $derived(message.subtype === 'ephemeral')
   let shortcutGroups = $derived(getAllMessageShortcuts())
@@ -456,49 +454,27 @@
           {#if message.file}
             <div class="mt-1">
               {#if message.file.mimetype.startsWith('image/')}
-                {#if message.file.title}
-                  <div
-                    class="text-[15px] text-slack-text-muted mb-1 flex items-center gap-1"
-                  >
-                    {message.file.title}
-                    <button
-                      type="button"
-                      onclick={() => {
-                        if (message.file) {
-                          updateFileExpanded(message.file.id, !imageExpanded)
-                        }
-                      }}
-                      class="text-xs opacity-60 hover:opacity-100 transition-all duration-200 cursor-pointer bg-transparent border-none p-0.5"
-                      class:-rotate-90={!imageExpanded}
-                      aria-label={imageExpanded
-                        ? 'Collapse image'
-                        : 'Expand image'}
-                    >
-                      &#9660;
-                    </button>
-                  </div>
-                {/if}
-                {#if imageExpanded}
-                  <button
-                    type="button"
-                    class="cursor-zoom-in block bg-transparent border-none p-0"
-                    onclick={() =>
+                <div class="[&_img]:max-h-[360px]">
+                  <ImageBlock
+                    block={{
+                      type: 'image',
+                      image_url: message.file.url_private,
+                      alt_text: message.file.title || message.file.name,
+                      title: message.file.title
+                        ? { type: 'plain_text', text: message.file.title }
+                        : undefined,
+                    }}
+                    onImagePreview={(url, alt) =>
                       onImagePreview?.(
-                        message.file!.url_private,
-                        message.file!.title || message.file!.name,
+                        url,
+                        alt,
                         displayName,
                         isBot,
                         formatRelativeTime(message.ts),
                         getChannelDisplayName()
                       )}
-                  >
-                    <img
-                      src={message.file.url_private}
-                      alt={message.file.title || message.file.name}
-                      class="rounded-lg max-h-[360px] max-w-full"
-                    />
-                  </button>
-                {/if}
+                  />
+                </div>
               {:else}
                 <div
                   class="flex items-center gap-2 p-2 bg-white/5 rounded-lg border border-white/10"

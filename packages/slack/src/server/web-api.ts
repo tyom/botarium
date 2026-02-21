@@ -1961,14 +1961,25 @@ export class SlackWebAPI {
     const storedMessage = this.state.getMessage(channel, message.ts)
 
     // Build files array from stored message file (has full metadata) or fallback to request
-    const files = storedMessage?.file
-      ? [
-          {
-            mimetype: storedMessage.file.mimetype,
-            url_private: storedMessage.file.url_private,
-          },
-        ]
-      : message.files
+    const files: Array<{ mimetype?: string; url_private?: string }> =
+      storedMessage?.file
+        ? [
+            {
+              mimetype: storedMessage.file.mimetype,
+              url_private: storedMessage.file.url_private,
+            },
+          ]
+        : (message.files ?? [])
+
+    // Also extract images from Block Kit image blocks so bots see them as files
+    if (storedMessage?.blocks) {
+      for (const block of storedMessage.blocks) {
+        const b = block as { type?: string; image_url?: string }
+        if (b.type === 'image' && b.image_url) {
+          files.push({ mimetype: 'image/png', url_private: b.image_url })
+        }
+      }
+    }
 
     // Resolve the owning bot by callback_id for targeted dispatch
     const targetBot = this.state.getBotForShortcut(callback_id)
