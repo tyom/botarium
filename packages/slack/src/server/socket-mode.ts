@@ -677,7 +677,10 @@ export class SocketModeServer {
     }
   }
 
-  async dispatchShortcut(payload: MessageShortcutPayload): Promise<void> {
+  async dispatchShortcut(
+    payload: MessageShortcutPayload,
+    targetBotId?: string
+  ): Promise<void> {
     if (this.connections.size === 0) {
       socketModeLogger.warn(
         `No bots connected, shortcut not dispatched: ${payload.callback_id}`
@@ -699,7 +702,27 @@ export class SocketModeServer {
 
     const message = JSON.stringify(envelope)
 
-    // Send to all connected bots
+    // Targeted dispatch: send only to the bot that owns the shortcut
+    if (targetBotId) {
+      const bot = this.state.getBot(targetBotId)
+      if (!bot || bot.status !== 'connected') {
+        socketModeLogger.warn(
+          { targetBotId },
+          'Target bot not found or not connected for shortcut dispatch'
+        )
+        return
+      }
+      const conn = this.connections.get(bot.connectionId)
+      if (conn) {
+        await this.sendWithAck(conn, envelope.envelope_id, message)
+        socketModeLogger.debug(
+          `Shortcut dispatched to bot ${targetBotId}: ${payload.callback_id}`
+        )
+      }
+      return
+    }
+
+    // Fallback: broadcast to all connected bots
     const sendPromises: Promise<void>[] = []
     for (const conn of this.connections.values()) {
       sendPromises.push(this.sendWithAck(conn, envelope.envelope_id, message))

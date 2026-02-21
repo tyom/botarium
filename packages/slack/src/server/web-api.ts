@@ -1407,7 +1407,9 @@ export class SlackWebAPI {
       connectedAt: bot.connectedAt.toISOString(),
       status: bot.status,
       commands: bot.appConfig.commands?.length ?? 0,
-      shortcuts: bot.appConfig.shortcuts?.length ?? 0,
+      shortcuts: bot.appConfig.shortcuts ?? [],
+      iconEmoji: bot.appConfig.app.icon_emoji,
+      iconUrl: bot.appConfig.app.icon_url,
       configPort: bot.appConfig.app.configPort,
     }))
     return Response.json({ ok: true, bots }, { headers: corsHeaders() })
@@ -1955,24 +1957,30 @@ export class SlackWebAPI {
       userName: user_name,
     })
 
+    // Resolve the owning bot by callback_id for targeted dispatch
+    const targetBot = this.state.getBotForShortcut(callback_id)
+
     webApiLogger.info(
-      { callback_id, triggerId, channel },
+      { callback_id, triggerId, channel, targetBot: targetBot?.id },
       'Dispatching message shortcut'
     )
 
-    // Dispatch shortcut to connected bots
-    await this.socketMode.dispatchShortcut({
-      type: 'shortcut',
-      callback_id,
-      trigger_id: triggerId,
-      message: {
-        ts: message.ts,
-        text: message.text,
-        files: message.files,
+    // Dispatch shortcut to the owning bot (or broadcast as fallback)
+    await this.socketMode.dispatchShortcut(
+      {
+        type: 'shortcut',
+        callback_id,
+        trigger_id: triggerId,
+        message: {
+          ts: message.ts,
+          text: message.text,
+          files: message.files,
+        },
+        channel: { id: channel },
+        user: { id: user, username: user_name || 'simulator_user' },
       },
-      channel: { id: channel },
-      user: { id: user, username: user_name || 'simulator_user' },
-    })
+      targetBot?.id
+    )
 
     return Response.json(
       { ok: true, trigger_id: triggerId },
