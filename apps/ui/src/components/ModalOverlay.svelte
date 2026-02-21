@@ -38,6 +38,8 @@
 
   // Validation errors per block ID
   let validationErrors = $state<Record<string, string>>({})
+  // Track whether the user has attempted to submit (enables live revalidation)
+  let hasSubmitted = $state(false)
 
   /**
    * Extract initial values from modal blocks to pre-populate formValues
@@ -145,15 +147,21 @@
       formValues = extractInitialValues(simulatorState.activeModal.view.blocks)
       fileFormValues = {}
       validationErrors = {}
+      hasSubmitted = false
     }
   })
+
+  function revalidate() {
+    if (!hasSubmitted || !simulatorState.activeModal) return
+    validationErrors = validateRequiredFields()
+  }
 
   function handleInputChange(blockId: string, actionId: string, value: string) {
     if (!formValues[blockId]) {
       formValues[blockId] = {}
     }
     formValues[blockId][actionId] = { value }
-    delete validationErrors[blockId]
+    revalidate()
   }
 
   function handleFileChange(
@@ -165,7 +173,7 @@
       fileFormValues[blockId] = {}
     }
     fileFormValues[blockId][actionId] = files
-    delete validationErrors[blockId]
+    revalidate()
   }
 
   function handleCheckboxChange(
@@ -177,7 +185,7 @@
       formValues[blockId] = {}
     }
     formValues[blockId][actionId] = { selected_options: selectedOptions }
-    delete validationErrors[blockId]
+    revalidate()
   }
 
   function handleRadioChange(
@@ -192,7 +200,7 @@
       selected_option: option,
       value: option.value,
     }
-    delete validationErrors[blockId]
+    revalidate()
   }
 
   async function handleAction(actionId: string, value: string) {
@@ -200,10 +208,8 @@
     await sendBlockAction(simulatorState.activeModal.viewId, actionId, value)
   }
 
-  async function handleSubmit() {
-    if (!simulatorState.activeModal) return
-
-    // Validate required fields
+  function validateRequiredFields(): Record<string, string> {
+    if (!simulatorState.activeModal) return {}
     const blocks = simulatorState.activeModal.view.blocks
     const errors: Record<string, string> = {}
     for (let i = 0; i < blocks.length; i++) {
@@ -227,6 +233,14 @@
         }
       }
     }
+    return errors
+  }
+
+  async function handleSubmit() {
+    if (!simulatorState.activeModal) return
+
+    hasSubmitted = true
+    const errors = validateRequiredFields()
 
     if (Object.keys(errors).length > 0) {
       validationErrors = errors
@@ -241,6 +255,7 @@
 
     // Convert datetimepicker string values to numeric selected_date_time
     // (Slack API expects selected_date_time as a number)
+    const blocks = simulatorState.activeModal.view.blocks
     for (let i = 0; i < blocks.length; i++) {
       const block = blocks[i]
       if (block?.type === 'input') {
