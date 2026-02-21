@@ -129,11 +129,11 @@
     return elements.map((el) => renderInlineElement(el, large)).join('')
   }
 
-  const MRKDWN_BR =
+  const mrkdwnBr =
     '<span class="c-mrkdwn__br" aria-label="&nbsp;" data-stringify-type="paragraph-break"></span>'
 
   function newlinesToBreaks(html: string): string {
-    return html.replace(/\n+/g, MRKDWN_BR)
+    return html.replace(/\n+/g, mrkdwnBr)
   }
 
   function renderBlockElement(el: RichTextBlockElement): string {
