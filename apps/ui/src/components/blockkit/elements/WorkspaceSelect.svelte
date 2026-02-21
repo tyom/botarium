@@ -6,10 +6,9 @@
     placeholder?: SlackViewTextObject
     /** Smaller styling for actions block vs input block */
     compact?: boolean
-    onChange?: (value: string) => void
   }
 
-  let { placeholder, compact = false, onChange: _onChange }: Props = $props()
+  let { placeholder, compact = false }: Props = $props()
 </script>
 
 <div

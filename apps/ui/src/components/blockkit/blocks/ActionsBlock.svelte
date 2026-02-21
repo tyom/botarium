@@ -44,11 +44,7 @@
           />
         {:else if element.type === 'users_select' || element.type === 'conversations_select' || element.type === 'channels_select' || element.type === 'external_select' || element.type === 'multi_users_select' || element.type === 'multi_conversations_select' || element.type === 'multi_channels_select' || element.type === 'multi_external_select'}
           {@const ws = element as SlackWorkspaceSelectElement}
-          <WorkspaceSelect
-            placeholder={ws.placeholder}
-            compact
-            onChange={(value) => onAction?.(ws.action_id, value)}
-          />
+          <WorkspaceSelect placeholder={ws.placeholder} compact />
         {:else if element.type === 'overflow'}
           {@const ovf = element as SlackOverflowElement}
           <OverflowMenu

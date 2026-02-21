@@ -70,10 +70,7 @@
 
 <div class="p-block_kit_renderer">
   {#each blocks as block, index (getBlockId(block, index))}
-    <div
-      class="p-block_kit_renderer__block_wrapper"
-      class:p-block_kit_renderer__block_wrapper--first={index === 0}
-    >
+    <div class="p-block_kit_renderer__block_wrapper">
       {#if block.type === 'section'}
         <SectionBlock block={block as SlackSectionBlock} {onAction} />
       {:else if block.type === 'input'}
