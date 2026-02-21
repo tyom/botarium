@@ -36,12 +36,11 @@
 
 <button
   type="button"
-  class="h-8 px-3 rounded text-sm font-medium transition-colors cursor-pointer
-    {element.style === 'primary'
-    ? 'bg-slack-accent text-white hover:bg-slack-accent-hover'
+  class="c-button {element.style === 'primary'
+    ? 'c-button--primary'
     : element.style === 'danger'
-      ? 'bg-red-600 text-white hover:bg-red-700'
-      : 'bg-white/10 text-slack-text hover:bg-white/20'}"
+      ? 'c-button--danger'
+      : 'c-button--outline'}"
   onclick={handleClick}
 >
   {renderText(element.text)}
@@ -54,3 +53,43 @@
     onDeny={handleDeny}
   />
 {/if}
+
+<style>
+  .c-button {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    border: none;
+  }
+
+  .c-button--outline {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-slack-text, #d1d2d3);
+  }
+
+  .c-button--outline:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .c-button--primary {
+    background: var(--color-slack-accent, #007a5a);
+    color: white;
+  }
+
+  .c-button--primary:hover {
+    background: var(--color-slack-accent-hover, #148567);
+  }
+
+  .c-button--danger {
+    background: #dc2626;
+    color: white;
+  }
+
+  .c-button--danger:hover {
+    background: #b91c1c;
+  }
+</style>

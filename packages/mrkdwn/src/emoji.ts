@@ -1,4 +1,5 @@
 import { nameToEmoji } from 'gemoji'
+import { escapeHtml } from './utils.ts'
 
 /** Slack shortcodes that differ from gemoji's naming */
 const SLACK_ALIASES: Record<string, string> = {
@@ -21,10 +22,17 @@ export function resolveEmoji(name: string): string | undefined {
 
 /**
  * Render an emoji shortcode to an HTML span with tooltip.
+ * Uses Slack's `c-emoji` class naming convention.
+ * Pass `large: true` for emoji-only sections (no surrounding text).
  * Returns null if the emoji name is not recognized.
  */
-export function renderEmoji(name: string): string | null {
+export function renderEmoji(
+  name: string,
+  options?: { large?: boolean }
+): string | null {
   const emoji = resolveEmoji(name)
   if (!emoji) return null
-  return `<span class="s-emoji">${emoji}<span class="s-emoji-tip"><span class="s-emoji-big">${emoji}</span><span class="s-emoji-code">:${name}:</span></span></span>`
+  const escapedName = escapeHtml(name)
+  const cls = options?.large ? 'c-emoji c-emoji__large' : 'c-emoji'
+  return `<span class="${cls}" data-stringify-type="emoji" aria-label=":${escapedName}:">${emoji}<span class="c-emoji__tooltip"><span class="c-emoji__tooltip-big">${emoji}</span><span class="c-emoji__tooltip-code">:${escapedName}:</span></span></span>`
 }

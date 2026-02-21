@@ -148,13 +148,13 @@ describe('mrkdwnToHtml', () => {
 
   it('renders emoji shortcodes', () => {
     expect(mrkdwnToHtml(':thinking_face:')).toBe(
-      '<span class="s-emoji">\u{1F914}<span class="s-emoji-tip"><span class="s-emoji-big">\u{1F914}</span><span class="s-emoji-code">:thinking_face:</span></span></span>'
+      '<span class="c-emoji" data-stringify-type="emoji" aria-label=":thinking_face:">\u{1F914}<span class="c-emoji__tooltip"><span class="c-emoji__tooltip-big">\u{1F914}</span><span class="c-emoji__tooltip-code">:thinking_face:</span></span></span>'
     )
     expect(mrkdwnToHtml(':white_check_mark:')).toBe(
-      '<span class="s-emoji">\u2705<span class="s-emoji-tip"><span class="s-emoji-big">\u2705</span><span class="s-emoji-code">:white_check_mark:</span></span></span>'
+      '<span class="c-emoji" data-stringify-type="emoji" aria-label=":white_check_mark:">\u2705<span class="c-emoji__tooltip"><span class="c-emoji__tooltip-big">\u2705</span><span class="c-emoji__tooltip-code">:white_check_mark:</span></span></span>'
     )
     expect(mrkdwnToHtml(':rocket:')).toBe(
-      '<span class="s-emoji">\u{1F680}<span class="s-emoji-tip"><span class="s-emoji-big">\u{1F680}</span><span class="s-emoji-code">:rocket:</span></span></span>'
+      '<span class="c-emoji" data-stringify-type="emoji" aria-label=":rocket:">\u{1F680}<span class="c-emoji__tooltip"><span class="c-emoji__tooltip-big">\u{1F680}</span><span class="c-emoji__tooltip-code">:rocket:</span></span></span>'
     )
   })
 

@@ -173,10 +173,7 @@
     />
   {:else if block.element.type === 'users_select' || block.element.type === 'conversations_select' || block.element.type === 'channels_select' || block.element.type === 'external_select' || block.element.type === 'multi_users_select' || block.element.type === 'multi_conversations_select' || block.element.type === 'multi_channels_select' || block.element.type === 'multi_external_select'}
     {@const ws = block.element as SlackWorkspaceSelectElement}
-    <WorkspaceSelect
-      placeholder={ws.placeholder}
-      onChange={(value) => onInputChange?.(blockId, ws.action_id, value)}
-    />
+    <WorkspaceSelect placeholder={ws.placeholder} />
   {/if}
 
   {#if block.hint}
