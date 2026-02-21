@@ -1,4 +1,4 @@
-import { mrkdwnToHtml } from '@botarium/mrkdwn'
+import { mrkdwnToHtml, resolveEmoji } from '@botarium/mrkdwn'
 import DOMPurify from 'dompurify'
 import type {
   SlackViewTextObject,
@@ -35,7 +35,9 @@ const SANITIZE_CONFIG = {
  */
 export function renderText(textObj: SlackViewTextObject | undefined): string {
   if (!textObj) return ''
-  return textObj.text
+  return textObj.text.replace(/:([a-z0-9_+-]+):/g, (_match, name: string) => {
+    return resolveEmoji(name) ?? `:${name}:`
+  })
 }
 
 /**

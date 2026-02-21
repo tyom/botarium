@@ -9,6 +9,6 @@
   let { block }: Props = $props()
 </script>
 
-<h2 class="text-lg font-semibold text-slack-text">
+<h2 class="text-xl font-semibold text-slack-text">
   {renderText(block.text)}
 </h2>
