@@ -392,13 +392,13 @@
   border-radius: 3px;
 }
 
-.mrkdwn .s-emoji {
+.mrkdwn .c-emoji {
   font-style: normal;
   position: relative;
   cursor: default;
 }
 
-.mrkdwn .s-emoji-tip {
+.mrkdwn .c-emoji__tooltip {
   visibility: hidden;
   opacity: 0;
   position: absolute;
@@ -422,7 +422,7 @@
   z-index: 10;
 }
 
-.mrkdwn .s-emoji-tip::after {
+.mrkdwn .c-emoji__tooltip::after {
   content: '';
   position: absolute;
   top: 100%;
@@ -432,17 +432,17 @@
   border-top-color: #38393d;
 }
 
-.mrkdwn .s-emoji-big {
-  font-size: 48px;
+.mrkdwn .c-emoji__tooltip-big {
+  font-size: 64px;
   line-height: 1.2;
 }
 
-.mrkdwn .s-emoji-code {
+.mrkdwn .c-emoji__tooltip-code {
   font-size: 12px;
   color: #ababad;
 }
 
-.mrkdwn .s-emoji:hover .s-emoji-tip {
+.mrkdwn .c-emoji:hover .c-emoji__tooltip {
   visibility: visible;
   opacity: 1;
 }
