@@ -320,7 +320,7 @@
     tabindex="-1"
   >
     <div
-      class="bg-slack-bg border border-white/20 rounded-xl max-w-lg w-full max-h-[65vh] overflow-hidden shadow-2xl flex flex-col"
+      class="bg-slack-bg border border-white/20 rounded-xl max-w-[520px] w-full max-h-[65vh] overflow-hidden shadow-2xl flex flex-col"
     >
       <!-- Header -->
       <div
