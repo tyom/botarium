@@ -11,7 +11,11 @@ slack:
     - command: /showcase
       description: Block Kit showcase commands
       usage_hint: '[generate|clear|modal|help]'
-  shortcuts: []
+  shortcuts:
+    - callback_id: showcase_message_context
+      name: Showcase message context
+      description: Show message details in a modal
+      type: message
   actions: {}
   modals:
     showcase_modal: showcase_modal

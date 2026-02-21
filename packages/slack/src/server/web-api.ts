@@ -1957,6 +1957,19 @@ export class SlackWebAPI {
       userName: user_name,
     })
 
+    // Look up the full message from state for complete data (text, files)
+    const storedMessage = this.state.getMessage(channel, message.ts)
+
+    // Build files array from stored message file (has full metadata) or fallback to request
+    const files = storedMessage?.file
+      ? [
+          {
+            mimetype: storedMessage.file.mimetype,
+            url_private: storedMessage.file.url_private,
+          },
+        ]
+      : message.files
+
     // Resolve the owning bot by callback_id for targeted dispatch
     const targetBot = this.state.getBotForShortcut(callback_id)
 
@@ -1968,13 +1981,14 @@ export class SlackWebAPI {
     // Dispatch shortcut to the owning bot (or broadcast as fallback)
     await this.socketMode.dispatchShortcut(
       {
-        type: 'shortcut',
+        type: 'message_action',
         callback_id,
         trigger_id: triggerId,
         message: {
           ts: message.ts,
-          text: message.text,
-          files: message.files,
+          text: storedMessage?.text || message.text,
+          files,
+          blocks: storedMessage?.blocks,
         },
         channel: { id: channel },
         user: { id: user, username: user_name || 'simulator_user' },

@@ -123,7 +123,7 @@ export interface SlashCommandPayload {
 // =============================================================================
 
 export interface MessageShortcutPayload {
-  type: 'shortcut'
+  type: 'message_action'
   callback_id: string
   trigger_id: string
   message: {
@@ -133,6 +133,7 @@ export interface MessageShortcutPayload {
       mimetype?: string
       url_private?: string
     }>
+    blocks?: unknown[]
   }
   channel: { id: string }
   user: { id: string; username: string }
