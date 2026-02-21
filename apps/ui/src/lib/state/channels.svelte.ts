@@ -95,7 +95,7 @@ function syncToHash(): void {
 // Switch to a channel (closes any open thread)
 export function switchChannel(channelId: string): void {
   simulatorState.currentChannel = channelId
-  simulatorState.isDM = channelId.startsWith('D')
+  simulatorState.isDM = channelId.startsWith('D_')
   simulatorState.currentThreadTs = null
   syncToHash()
 }
@@ -120,7 +120,7 @@ export function initFromHash(): void {
 
   if (channelId) {
     simulatorState.currentChannel = channelId
-    simulatorState.isDM = channelId.startsWith('D')
+    simulatorState.isDM = channelId.startsWith('D_')
     simulatorState.currentThreadTs = threadTs
   }
 }
