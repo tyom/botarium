@@ -3,16 +3,35 @@
   "version": "0.1.0",
   "description": "Lightweight Block Kit factory functions",
   "type": "module",
+  "license": "MIT",
+  "author": "Tyom Semonov",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tyom/botarium",
+    "directory": "packages/block-kit"
+  },
+  "keywords": [
+    "slack",
+    "block-kit",
+    "bot",
+    "botarium"
+  ],
+  "main": "./dist/index.js",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts"
+      "import": "./dist/index.js",
+      "types": "./src/index.ts"
     }
   },
   "files": [
+    "dist",
     "src"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
+    "build": "bun build ./src/index.ts --outdir ./dist --target node",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   }
