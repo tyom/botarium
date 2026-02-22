@@ -354,9 +354,7 @@
 <ContextMenu.Root>
   <ContextMenu.Trigger class="block">
     <div
-      class="group flex flex-col px-5 transition-colors duration-100 relative hover:bg-slack-hover {isGrouped
-        ? 'py-0.5'
-        : 'py-2'}"
+      class="group flex flex-col px-5 transition-colors duration-100 relative hover:bg-slack-hover py-2"
     >
       {#if isEphemeral}
         <div

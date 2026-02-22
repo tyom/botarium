@@ -399,7 +399,7 @@ function handleSSEEvent(event: {
         sseLogger.info(
           `Opening modal: ${event.viewId}, title: ${event.view.title?.text}`
         )
-        showModal(event.viewId, event.view)
+        showModal(event.viewId, event.view, event.botId)
         sseLogger.info(
           `Modal state after showModal: ${JSON.stringify(simulatorState.activeModal?.viewId)}`
         )

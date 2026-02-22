@@ -87,7 +87,17 @@
 <div class="max-w-[620px]">
   {#if block.element.type !== 'file_input'}
     <!-- svelte-ignore a11y_label_has_associated_control -->
-    <label class="block text-sm text-slack-text-muted mb-1.5">
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <label
+      class="inline-block text-sm font-bold text-slack-text cursor-pointer mb-1.5"
+      onclick={(e) => {
+        const input = e.currentTarget.parentElement?.querySelector(
+          'input, textarea, select'
+        )
+        if (input instanceof HTMLElement) input.focus()
+      }}
+    >
       {renderText(block.label)}
     </label>
   {/if}

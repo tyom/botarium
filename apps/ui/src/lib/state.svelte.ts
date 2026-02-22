@@ -24,6 +24,7 @@ import {
 export interface ModalState {
   viewId: string
   view: SlackView
+  botId?: string
 }
 
 // Shared reactive state object using $state

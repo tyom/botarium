@@ -948,6 +948,7 @@ export class EmulatorState {
       type: 'view_open',
       viewId: viewState.id,
       view: viewState.view,
+      botId: viewState.botId,
     })
   }
 

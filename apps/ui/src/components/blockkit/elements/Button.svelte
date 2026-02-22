@@ -56,23 +56,26 @@
 
 <style>
   .c-button {
-    height: 32px;
-    padding: 0 12px;
-    border-radius: 4px;
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 8px;
     font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background-color 0.15s;
-    border: none;
+    font-weight: 700;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s;
+    border: 1px solid transparent;
   }
 
   .c-button--outline {
-    background: rgba(255, 255, 255, 0.1);
+    background: transparent;
     color: var(--color-slack-text, #d1d2d3);
+    border-color: rgba(255, 255, 255, 0.3);
   }
 
   .c-button--outline:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.5);
   }
 
   .c-button--primary {

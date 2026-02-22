@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { X } from '@lucide/svelte'
+  import { X, Sparkles } from '@lucide/svelte'
   import { simulatorState } from '../lib/state.svelte'
   import {
     submitView,
@@ -40,6 +40,16 @@
   let validationErrors = $state<Record<string, string>>({})
   // Track whether the user has attempted to submit (enables live revalidation)
   let hasSubmitted = $state(false)
+
+  // Track whether modal content is scrolled
+  let contentScrolled = $state(false)
+
+  // Look up the bot that opened the modal
+  const modalBot = $derived.by(() => {
+    const botId = simulatorState.activeModal?.botId
+    if (!botId) return undefined
+    return simulatorState.connectedBots.get(botId)
+  })
 
   /**
    * Extract initial values from modal blocks to pre-populate formValues
@@ -148,6 +158,7 @@
       fileFormValues = {}
       validationErrors = {}
       hasSubmitted = false
+      contentScrolled = false
     }
   })
 
@@ -324,9 +335,31 @@
     >
       <!-- Header -->
       <div
-        class="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0"
+        class="flex items-center gap-3 px-5 py-4 shrink-0 border-b transition-colors {contentScrolled
+          ? 'border-white/10'
+          : 'border-transparent'}"
       >
-        <h2 id="modal-title" class="text-lg font-semibold text-slack-text">
+        {#if modalBot}
+          <div
+            class="size-9 rounded-lg flex items-center justify-center shrink-0 {modalBot.iconUrl
+              ? ''
+              : 'bg-slack-bot-avatar text-white'}"
+          >
+            {#if modalBot.iconUrl}
+              <img
+                src={modalBot.iconUrl}
+                alt={modalBot.name}
+                class="size-9 rounded-lg object-cover"
+              />
+            {:else}
+              <Sparkles size={20} />
+            {/if}
+          </div>
+        {/if}
+        <h2
+          id="modal-title"
+          class="text-lg font-semibold text-slack-text flex-1"
+        >
           {modal.view.title?.text ?? 'Modal'}
         </h2>
         <button
@@ -339,7 +372,12 @@
       </div>
 
       <!-- Content -->
-      <div class="modal-content flex-1 overflow-y-auto p-5">
+      <div
+        class="modal-content flex-1 overflow-y-auto p-5"
+        onscroll={(e) => {
+          contentScrolled = e.currentTarget.scrollTop > 0
+        }}
+      >
         <BlockKitRenderer
           blocks={modal.view.blocks}
           values={formValues}
@@ -362,7 +400,7 @@
           {#if modal.view.close}
             <button
               onclick={handleClose}
-              class="px-4 py-2 rounded-lg bg-transparent border border-white/20 text-slack-text hover:bg-white/10 transition-colors"
+              class="px-4 py-2 rounded-lg bg-transparent border border-white/30 text-slack-text font-bold hover:border-white/50 hover:bg-white/5 transition-colors"
             >
               {modal.view.close.text}
             </button>
@@ -370,7 +408,7 @@
           {#if modal.view.submit}
             <button
               onclick={handleSubmit}
-              class="px-4 py-2 rounded-lg bg-slack-accent text-white hover:bg-slack-accent-hover transition-colors font-medium"
+              class="px-4 py-2 rounded-lg bg-slack-accent text-white hover:bg-slack-accent-hover transition-colors font-bold"
             >
               {modal.view.submit.text}
             </button>

@@ -76,8 +76,12 @@ export function getAllMessageShortcuts(): BotShortcutGroup[] {
 // =============================================================================
 
 // Show a modal
-export function showModal(viewId: string, view: SlackView): void {
-  simulatorState.activeModal = { viewId, view }
+export function showModal(
+  viewId: string,
+  view: SlackView,
+  botId?: string
+): void {
+  simulatorState.activeModal = { viewId, view, botId }
 }
 
 // Update an existing modal
