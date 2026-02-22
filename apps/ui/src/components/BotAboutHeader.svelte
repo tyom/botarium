@@ -12,7 +12,11 @@
 <div class="px-5 pt-6 pb-4">
   <div class="flex items-center gap-4">
     {#if bot.iconUrl}
-      <img src={bot.iconUrl} alt={bot.name} class="size-[100px] rounded-xl object-cover shrink-0" />
+      <img
+        src={bot.iconUrl}
+        alt={bot.name}
+        class="size-[100px] rounded-xl object-cover shrink-0"
+      />
     {:else}
       <span
         class="size-[100px] rounded-xl bg-(--bot-avatar-bg) text-white flex items-center justify-center shrink-0"

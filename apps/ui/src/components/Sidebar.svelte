@@ -206,7 +206,11 @@
               }}
             >
               {#if bot.iconUrl}
-                <img src={bot.iconUrl} alt={bot.name} class="size-5 rounded object-cover" />
+                <img
+                  src={bot.iconUrl}
+                  alt={bot.name}
+                  class="size-5 rounded object-cover"
+                />
               {:else}
                 <span
                   class="size-5 rounded bg-(--bot-avatar-bg) text-white flex items-center justify-center"
