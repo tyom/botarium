@@ -1,4 +1,4 @@
-import type { View, Block, PlainTextObject } from './types.ts'
+import type { ModalView, HomeTabView, Block, PlainTextObject } from './types.ts'
 import { resolvePlainText } from './text.ts'
 
 export function modal(config: {
@@ -11,7 +11,7 @@ export function modal(config: {
   clear_on_close?: boolean
   notify_on_close?: boolean
   external_id?: string
-}): View {
+}): ModalView {
   const { title, blocks, submit, close, ...rest } = config
   return {
     type: 'modal',
@@ -28,7 +28,7 @@ export function homeTab(config: {
   callback_id?: string
   private_metadata?: string
   external_id?: string
-}): View {
+}): HomeTabView {
   const { blocks, ...rest } = config
   return {
     type: 'home',

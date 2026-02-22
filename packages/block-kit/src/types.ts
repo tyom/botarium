@@ -451,8 +451,7 @@ export type Block =
   | TableBlock
 
 // View (modal / home tab)
-export interface View {
-  type: 'modal' | 'home'
+interface BaseView {
   title?: PlainTextObject
   submit?: PlainTextObject
   close?: PlainTextObject
@@ -463,3 +462,14 @@ export interface View {
   notify_on_close?: boolean
   external_id?: string
 }
+
+export interface ModalView extends BaseView {
+  type: 'modal'
+  title: PlainTextObject
+}
+
+export interface HomeTabView extends BaseView {
+  type: 'home'
+}
+
+export type View = ModalView | HomeTabView

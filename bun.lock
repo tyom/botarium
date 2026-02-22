@@ -37,6 +37,7 @@
       "name": "showcase-bot",
       "version": "0.1.0",
       "dependencies": {
+        "@botarium/block-kit": "workspace:*",
         "@slack/bolt": "^4.6.0",
         "@slack/types": "^2.15.0",
         "@slack/web-api": "^7.10.0",
