@@ -8,6 +8,7 @@ export interface PlainTextObject {
 export interface MrkdwnObject {
   type: 'mrkdwn'
   text: string
+  verbatim?: boolean
 }
 
 export type TextObject = PlainTextObject | MrkdwnObject
@@ -69,6 +70,7 @@ export interface MultiStaticSelectElement {
   options: Option[]
   initial_options?: Option[]
   max_selected_items?: number
+  confirm?: ConfirmDialog
 }
 
 export interface OverflowElement {
