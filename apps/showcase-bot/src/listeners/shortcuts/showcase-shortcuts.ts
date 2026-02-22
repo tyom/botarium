@@ -10,11 +10,19 @@ export function register(app: App) {
 
       const { message, channel, user } = shortcut
 
+      // Truncate text to stay within Slack's 3000-char mrkdwn limit
+      const maxTextLen = 3000 - '```\n\n```'.length - '*Text*\n'.length
+      const rawText = message.text || ''
+      const truncatedText =
+        rawText.length > maxTextLen
+          ? rawText.slice(0, maxTextLen - 3) + '...'
+          : rawText
+
       const fields = [
         ['Timestamp', message.ts],
         ['Channel', channel.id],
         ['User', user.id],
-        ['Text', message.text ? `\`\`\`${message.text}\`\`\`` : '_empty_'],
+        ['Text', truncatedText ? `\`\`\`${truncatedText}\`\`\`` : '_empty_'],
       ]
 
       const blocks: KnownBlock[] = fields.map(([label, value]) => ({

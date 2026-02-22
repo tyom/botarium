@@ -1976,7 +1976,21 @@ export class SlackWebAPI {
       for (const block of storedMessage.blocks) {
         const b = block as { type?: string; image_url?: string }
         if (b.type === 'image' && b.image_url) {
-          files.push({ mimetype: 'image/png', url_private: b.image_url })
+          const ext = b.image_url
+            ?.split('.')
+            .pop()
+            ?.split('?')[0]
+            ?.toLowerCase()
+          const mimeByExt: Record<string, string> = {
+            png: 'image/png',
+            jpg: 'image/jpeg',
+            jpeg: 'image/jpeg',
+            gif: 'image/gif',
+            webp: 'image/webp',
+            svg: 'image/svg+xml',
+          }
+          const mimetype = ext && mimeByExt[ext] ? mimeByExt[ext] : undefined
+          files.push({ mimetype, url_private: b.image_url })
         }
       }
     }

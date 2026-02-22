@@ -390,7 +390,9 @@
                       {/each}
                     </DropdownMenu.SubContent>
                   </DropdownMenu.Sub>
-                  <DropdownMenu.Separator />
+                  {#if onDelete}
+                    <DropdownMenu.Separator />
+                  {/if}
                 {/if}
                 {#if onDelete}
                   <DropdownMenu.Item
@@ -579,7 +581,9 @@
             {/each}
           </ContextMenu.SubContent>
         </ContextMenu.Sub>
-        <ContextMenu.Separator />
+        {#if onDelete}
+          <ContextMenu.Separator />
+        {/if}
       {/if}
       {#if onDelete}
         <ContextMenu.Item variant="destructive" onclick={handleDelete}>

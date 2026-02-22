@@ -718,6 +718,16 @@ export class SocketModeServer {
         socketModeLogger.debug(
           `Shortcut dispatched to bot ${targetBotId}: ${payload.callback_id}`
         )
+      } else {
+        socketModeLogger.warn(
+          {
+            targetBotId,
+            connectionId: bot.connectionId,
+            envelopeId: envelope.envelope_id,
+            callbackId: payload.callback_id,
+          },
+          'Bot is connected but active socket not found, shortcut dropped'
+        )
       }
       return
     }
