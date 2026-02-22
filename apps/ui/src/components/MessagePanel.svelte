@@ -47,7 +47,7 @@
     Trash2,
   } from '@lucide/svelte'
   import { tick } from 'svelte'
-  import { clearChannelMessages, deleteMessage } from '../lib/dispatcher.svelte'
+  import { clearChannelMessages, deleteMessage } from '$lib/dispatcher.svelte'
   import {
     getChannelDisplayName,
     getChannelMessages,
@@ -55,9 +55,9 @@
     getReplyCount,
     hasThreadDraft,
     simulatorState,
-  } from '../lib/state.svelte'
-  import type { Channel } from '../lib/types'
-  import { formatDateLabel, getDateKey, isWithinMinutes } from '../lib/time'
+  } from '$lib/state.svelte'
+  import type { Channel } from '$lib/types'
+  import { formatDateLabel, getDateKey, isWithinMinutes } from '$lib/time'
   import BotAboutHeader from './BotAboutHeader.svelte'
   import DaySeparator from './DaySeparator.svelte'
   import Message from './Message.svelte'

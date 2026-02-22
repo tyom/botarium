@@ -1,15 +1,15 @@
 <script lang="ts">
   import { tick } from 'svelte'
-  import type { MockApp } from '../lib/dispatcher.svelte'
-  import { deleteMessage, sendMessage } from '../lib/dispatcher.svelte'
+  import type { MockApp } from '$lib/dispatcher.svelte'
+  import { deleteMessage, sendMessage } from '$lib/dispatcher.svelte'
   import {
     getReplyCount,
     getThreadDraft,
     getThreadMessages,
     setThreadDraft,
     simulatorState,
-  } from '../lib/state.svelte'
-  import { isWithinMinutes } from '../lib/time'
+  } from '$lib/state.svelte'
+  import { isWithinMinutes } from '$lib/time'
   import InputBar from './InputBar.svelte'
   import Message from './Message.svelte'
 

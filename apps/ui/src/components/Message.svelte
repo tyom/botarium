@@ -15,18 +15,18 @@
     SlackActionsBlock,
     SlackContextActionsBlock,
     SlackInputBlock,
-  } from '../lib/types'
+  } from '$lib/types'
   import {
     getAllMessageShortcuts,
     getChannelDisplayName,
     simulatorState,
     isBotUserId,
     getBotByUserId,
-  } from '../lib/state.svelte'
+  } from '$lib/state.svelte'
   import {
     sendMessageBlockAction,
     triggerMessageShortcut,
-  } from '../lib/dispatcher.svelte'
+  } from '$lib/dispatcher.svelte'
   import { resolveEmoji } from '@botarium/mrkdwn'
   import BlockKitRenderer from './blockkit/BlockKitRenderer.svelte'
   import ImageBlock from './blockkit/blocks/ImageBlock.svelte'
@@ -36,7 +36,7 @@
     formatTimestampShort,
     formatRelativeTime,
     formatFullDate,
-  } from '../lib/time'
+  } from '$lib/time'
   import * as ContextMenu from '$lib/components/ui/context-menu'
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu'
 
