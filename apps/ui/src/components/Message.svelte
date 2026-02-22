@@ -376,7 +376,11 @@
                           >
                             <span class="flex items-center gap-2 w-full">
                               {#if group.botIcon?.startsWith('http')}
-                                <img src={group.botIcon} alt="" class="size-4 rounded object-cover shrink-0" />
+                                <img
+                                  src={group.botIcon}
+                                  alt=""
+                                  class="size-4 rounded object-cover shrink-0"
+                                />
                               {:else}
                                 <span class="shrink-0 text-sm"
                                   >{group.botIcon ||
@@ -572,7 +576,11 @@
                 <ContextMenu.Item onclick={() => handleShortcut(shortcut)}>
                   <span class="flex items-center gap-2 w-full">
                     {#if group.botIcon?.startsWith('http')}
-                      <img src={group.botIcon} alt="" class="size-4 rounded object-cover shrink-0" />
+                      <img
+                        src={group.botIcon}
+                        alt=""
+                        class="size-4 rounded object-cover shrink-0"
+                      />
                     {:else}
                       <span class="shrink-0 text-sm"
                         >{group.botIcon ||
