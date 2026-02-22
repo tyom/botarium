@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import type { KnownBlock } from '@slack/types'
 
 export interface ShowcaseMessage {
-  fallbackText: string
+  text?: string
   blocks: KnownBlock[]
 }
 

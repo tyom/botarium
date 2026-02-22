@@ -37,6 +37,7 @@
       "name": "showcase-bot",
       "version": "0.1.0",
       "dependencies": {
+        "@botarium/block-kit": "workspace:*",
         "@slack/bolt": "^4.6.0",
         "@slack/types": "^2.15.0",
         "@slack/web-api": "^7.10.0",
@@ -75,6 +76,10 @@
         "typescript-svelte-plugin": "^0.3.50",
         "vite": "^7.3.1",
       },
+    },
+    "packages/block-kit": {
+      "name": "@botarium/block-kit",
+      "version": "0.1.0",
     },
     "packages/core": {
       "name": "botarium",
@@ -128,6 +133,8 @@
     "7zip-bin": ["7zip-bin@5.2.0", "", {}, "sha512-ukTPVhqG4jNzMro2qA9HSCSSVJN3aN7tlb+hfqYCt3ER0yWroeA2VR38MNrOHLQ/cVj+DaIMad0kFCtWWowh/A=="],
 
     "@babel/runtime": ["@babel/runtime@7.28.6", "", {}, "sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA=="],
+
+    "@botarium/block-kit": ["@botarium/block-kit@workspace:packages/block-kit"],
 
     "@botarium/electron": ["@botarium/electron@workspace:apps/electron"],
 

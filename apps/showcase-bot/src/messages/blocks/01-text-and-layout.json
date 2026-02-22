@@ -1,5 +1,5 @@
 {
-  "fallbackText": "Text & Layout Blocks",
+  "text": "Text & Layout Blocks",
   "blocks": [
     {
       "type": "header",
