@@ -375,10 +375,14 @@
                             onclick={() => handleShortcut(shortcut)}
                           >
                             <span class="flex items-center gap-2 w-full">
-                              <span class="shrink-0 text-sm"
-                                >{group.botIcon ||
-                                  group.botName.charAt(0).toUpperCase()}</span
-                              >
+                              {#if group.botIcon?.startsWith('http')}
+                                <img src={group.botIcon} alt="" class="size-4 rounded object-cover shrink-0" />
+                              {:else}
+                                <span class="shrink-0 text-sm"
+                                  >{group.botIcon ||
+                                    group.botName.charAt(0).toUpperCase()}</span
+                                >
+                              {/if}
                               <span class="font-semibold">{shortcut.name}</span>
                               <span
                                 class="text-slack-text-muted ml-auto text-xs"
@@ -567,10 +571,14 @@
               {#each group.shortcuts as shortcut (shortcut.callback_id)}
                 <ContextMenu.Item onclick={() => handleShortcut(shortcut)}>
                   <span class="flex items-center gap-2 w-full">
-                    <span class="shrink-0 text-sm"
-                      >{group.botIcon ||
-                        group.botName.charAt(0).toUpperCase()}</span
-                    >
+                    {#if group.botIcon?.startsWith('http')}
+                      <img src={group.botIcon} alt="" class="size-4 rounded object-cover shrink-0" />
+                    {:else}
+                      <span class="shrink-0 text-sm"
+                        >{group.botIcon ||
+                          group.botName.charAt(0).toUpperCase()}</span
+                      >
+                    {/if}
                     <span class="font-semibold">{shortcut.name}</span>
                     <span class="text-slack-text-muted ml-auto text-xs"
                       >{group.botName}</span
