@@ -339,7 +339,7 @@
       </div>
 
       <!-- Content -->
-      <div class="flex-1 overflow-y-auto p-5">
+      <div class="modal-content flex-1 overflow-y-auto p-5">
         <BlockKitRenderer
           blocks={modal.view.blocks}
           values={formValues}
@@ -380,3 +380,9 @@
     </div>
   </div>
 {/if}
+
+<style>
+  .modal-content :global(.p-block_kit_renderer) {
+    gap: 1rem;
+  }
+</style>
