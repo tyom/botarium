@@ -96,7 +96,11 @@
       {:else if block.type === 'context'}
         <ContextBlock block={block as SlackContextBlock} />
       {:else if block.type === 'image'}
-        <ImageBlock block={block as SlackImageBlock} {onImagePreview} collapsible={imageCollapsible} />
+        <ImageBlock
+          block={block as SlackImageBlock}
+          {onImagePreview}
+          collapsible={imageCollapsible}
+        />
       {:else if block.type === 'header'}
         <HeaderBlock block={block as SlackHeaderBlock} />
       {:else if block.type === 'rich_text'}

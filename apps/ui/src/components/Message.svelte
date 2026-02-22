@@ -372,13 +372,9 @@
                             <span class="flex items-center gap-2 w-full">
                               <span class="shrink-0 text-sm"
                                 >{group.botIcon ||
-                                  group.botName
-                                    .charAt(0)
-                                    .toUpperCase()}</span
+                                  group.botName.charAt(0).toUpperCase()}</span
                               >
-                              <span class="font-semibold"
-                                >{shortcut.name}</span
-                              >
+                              <span class="font-semibold">{shortcut.name}</span>
                               <span
                                 class="text-slack-text-muted ml-auto text-xs"
                                 >{group.botName}</span
