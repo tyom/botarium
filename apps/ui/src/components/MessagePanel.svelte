@@ -47,23 +47,17 @@
     Trash2,
   } from '@lucide/svelte'
   import { tick } from 'svelte'
-  import {
-    clearChannelMessages,
-    deleteMessage,
-    triggerMessageShortcut,
-  } from '../lib/dispatcher.svelte'
-  import type { SimulatorMessage } from '../lib/types'
+  import { clearChannelMessages, deleteMessage } from '$lib/dispatcher.svelte'
   import {
     getChannelDisplayName,
     getChannelMessages,
-    getMessageShortcut,
     getParentMessages,
     getReplyCount,
     hasThreadDraft,
     simulatorState,
-  } from '../lib/state.svelte'
-  import type { Channel } from '../lib/types'
-  import { formatDateLabel, getDateKey } from '../lib/time'
+  } from '$lib/state.svelte'
+  import type { Channel } from '$lib/types'
+  import { formatDateLabel, getDateKey, isWithinMinutes } from '$lib/time'
   import BotAboutHeader from './BotAboutHeader.svelte'
   import DaySeparator from './DaySeparator.svelte'
   import Message from './Message.svelte'
@@ -95,16 +89,6 @@
 
   function handleDeleteMessage(ts: string) {
     deleteMessage(simulatorState.currentChannel, ts)
-  }
-
-  function handleGenerateImage(message: SimulatorMessage) {
-    const shortcut = getMessageShortcut()
-    if (!shortcut) return
-    triggerMessageShortcut(shortcut.callback_id, {
-      ts: message.ts,
-      text: message.text,
-      file: message.file,
-    })
   }
 
   function toggleMenu(e: MouseEvent) {
@@ -280,16 +264,22 @@
       </div>
     {:else if messages.length > 0}
       {#each messages as message, i (message.ts)}
-        {#if i === 0 || getDateKey(message.ts) !== getDateKey(messages[i - 1]!.ts)}
+        {@const prevMessage = messages[i - 1]}
+        {@const isDaySeparator =
+          i === 0 || getDateKey(message.ts) !== getDateKey(prevMessage!.ts)}
+        {#if isDaySeparator}
           <DaySeparator label={formatDateLabel(message.ts)} />
         {/if}
         <Message
           {message}
+          isGrouped={!isDaySeparator &&
+            !!prevMessage &&
+            message.user === prevMessage.user &&
+            isWithinMinutes(message.ts, prevMessage.ts, 10)}
           replyCount={getReplyCount(simulatorState.currentChannel, message.ts)}
           hasDraft={activeThreadTs !== message.ts && hasThreadDraft(message.ts)}
           {onOpenThread}
           onDelete={handleDeleteMessage}
-          onGenerateImage={handleGenerateImage}
           {onImagePreview}
         />
       {/each}

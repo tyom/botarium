@@ -36,6 +36,11 @@
     {}
   )
 
+  // Validation errors per block ID
+  let validationErrors = $state<Record<string, string>>({})
+  // Track whether the user has attempted to submit (enables live revalidation)
+  let hasSubmitted = $state(false)
+
   /**
    * Extract initial values from modal blocks to pre-populate formValues
    */
@@ -140,15 +145,23 @@
   $effect(() => {
     if (simulatorState.activeModal) {
       formValues = extractInitialValues(simulatorState.activeModal.view.blocks)
-      fileFormValues = {} // Reset file values when modal changes
+      fileFormValues = {}
+      validationErrors = {}
+      hasSubmitted = false
     }
   })
+
+  function revalidate() {
+    if (!hasSubmitted || !simulatorState.activeModal) return
+    validationErrors = validateRequiredFields()
+  }
 
   function handleInputChange(blockId: string, actionId: string, value: string) {
     if (!formValues[blockId]) {
       formValues[blockId] = {}
     }
     formValues[blockId][actionId] = { value }
+    revalidate()
   }
 
   function handleFileChange(
@@ -160,6 +173,7 @@
       fileFormValues[blockId] = {}
     }
     fileFormValues[blockId][actionId] = files
+    revalidate()
   }
 
   function handleCheckboxChange(
@@ -171,6 +185,7 @@
       formValues[blockId] = {}
     }
     formValues[blockId][actionId] = { selected_options: selectedOptions }
+    revalidate()
   }
 
   function handleRadioChange(
@@ -185,6 +200,7 @@
       selected_option: option,
       value: option.value,
     }
+    revalidate()
   }
 
   async function handleAction(actionId: string, value: string) {
@@ -192,8 +208,44 @@
     await sendBlockAction(simulatorState.activeModal.viewId, actionId, value)
   }
 
+  function validateRequiredFields(): Record<string, string> {
+    if (!simulatorState.activeModal) return {}
+    const blocks = simulatorState.activeModal.view.blocks
+    const errors: Record<string, string> = {}
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i]
+      if (block?.type === 'input' && !(block as SlackInputBlock).optional) {
+        const inputBlock = block as SlackInputBlock
+        const blockId = inputBlock.block_id ?? `block-${i}`
+        const actionId = inputBlock.element.action_id
+        const val = formValues[blockId]?.[actionId]
+        const files = fileFormValues[blockId]?.[actionId]
+
+        const isEmpty =
+          inputBlock.element.type === 'file_input'
+            ? !files || files.length === 0
+            : !val?.value &&
+              !val?.selected_option &&
+              (!val?.selected_options || val.selected_options.length === 0)
+
+        if (isEmpty) {
+          errors[blockId] = 'Please complete this required field.'
+        }
+      }
+    }
+    return errors
+  }
+
   async function handleSubmit() {
     if (!simulatorState.activeModal) return
+
+    hasSubmitted = true
+    const errors = validateRequiredFields()
+
+    if (Object.keys(errors).length > 0) {
+      validationErrors = errors
+      return
+    }
 
     // Merge form values with file values
     // File inputs are submitted as { files: UploadedFile[] }
@@ -268,7 +320,7 @@
     tabindex="-1"
   >
     <div
-      class="bg-slack-bg border border-white/20 rounded-xl max-w-lg w-full max-h-[65vh] overflow-hidden shadow-2xl flex flex-col"
+      class="bg-slack-bg border border-white/20 rounded-xl max-w-[520px] w-full max-h-[65vh] overflow-hidden shadow-2xl flex flex-col"
     >
       <!-- Header -->
       <div
@@ -292,11 +344,13 @@
           blocks={modal.view.blocks}
           values={formValues}
           fileValues={fileFormValues}
+          errors={validationErrors}
           onAction={handleAction}
           onInputChange={handleInputChange}
           onFileChange={handleFileChange}
           onCheckboxChange={handleCheckboxChange}
           onRadioChange={handleRadioChange}
+          imageCollapsible={false}
         />
       </div>
 

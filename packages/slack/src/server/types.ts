@@ -89,6 +89,8 @@ export interface SlackAppConfig {
     description?: string
     id?: string // Bot identifier in simulator (from config.yaml simulator.id)
     configPort?: number // Port for bot's config HTTP server (usually bot port + 1)
+    icon_emoji?: string // Bot icon as emoji (e.g., ':robot_face:')
+    icon_url?: string // Bot icon as image URL
   }
   commands: SlashCommandDefinition[]
   shortcuts: ShortcutDefinition[]
@@ -121,7 +123,7 @@ export interface SlashCommandPayload {
 // =============================================================================
 
 export interface MessageShortcutPayload {
-  type: 'shortcut'
+  type: 'message_action'
   callback_id: string
   trigger_id: string
   message: {
@@ -131,6 +133,7 @@ export interface MessageShortcutPayload {
       mimetype?: string
       url_private?: string
     }>
+    blocks?: unknown[]
   }
   channel: { id: string }
   user: { id: string; username: string }

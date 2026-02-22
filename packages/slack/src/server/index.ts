@@ -469,7 +469,7 @@ export async function startEmulatorServer(
 
       // File serving endpoint (serves uploaded files via HTTP)
       const fileServeMatch = path.match(/^\/api\/simulator\/files\/([^/]+)$/)
-      if (fileServeMatch && req.method === 'GET') {
+      if (fileServeMatch && (req.method === 'GET' || req.method === 'HEAD')) {
         const fileId = fileServeMatch[1] ?? ''
         return await webApi.handleGetFile(fileId)
       }
@@ -501,7 +501,7 @@ export async function startEmulatorServer(
             method: 'HEAD',
             signal: AbortSignal.timeout(5000),
           })
-          let size = Number(res.headers.get('content-length') || 0)
+          let size = res.ok ? Number(res.headers.get('content-length') || 0) : 0
           if (!size) {
             const full = await fetch(imageUrl, {
               signal: AbortSignal.timeout(5000),
@@ -511,12 +511,23 @@ export async function startEmulatorServer(
           }
           return Response.json(
             { ok: true, size },
-            { headers: { 'Access-Control-Allow-Origin': '*' } }
+            {
+              headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'no-store',
+              },
+            }
           )
         } catch {
           return Response.json(
             { ok: false, error: 'fetch failed' },
-            { status: 502, headers: { 'Access-Control-Allow-Origin': '*' } }
+            {
+              status: 502,
+              headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Cache-Control': 'no-store',
+              },
+            }
           )
         }
       }

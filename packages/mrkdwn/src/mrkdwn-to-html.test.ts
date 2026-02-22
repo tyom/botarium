@@ -44,6 +44,24 @@ describe('mrkdwnToHtml', () => {
     )
   })
 
+  it('renders link without protocol (with label)', () => {
+    expect(mrkdwnToHtml('<google.com|Fred Enriquez>')).toBe(
+      '<a href="https://google.com" target="_blank" rel="noopener noreferrer">Fred Enriquez</a>'
+    )
+  })
+
+  it('renders link without protocol (without label)', () => {
+    expect(mrkdwnToHtml('<example.com>')).toBe(
+      '<a href="https://example.com" target="_blank" rel="noopener noreferrer">example.com</a>'
+    )
+  })
+
+  it('renders bold link without protocol', () => {
+    expect(mrkdwnToHtml('*<google.com|Fred Enriquez>*')).toBe(
+      '<strong><a href="https://google.com" target="_blank" rel="noopener noreferrer">Fred Enriquez</a></strong>'
+    )
+  })
+
   it('renders mailto link', () => {
     expect(mrkdwnToHtml('<mailto:test@example.com|Email>')).toBe(
       '<a href="mailto:test@example.com" target="_blank" rel="noopener noreferrer">Email</a>'

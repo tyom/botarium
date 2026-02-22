@@ -4,46 +4,50 @@
     Trash2,
     Sparkles,
     ChevronRight,
-    ImageIcon,
     Eye,
   } from '@lucide/svelte'
   import type {
     SimulatorMessage,
+    Shortcut,
     SlackBlock,
     SlackOption,
     SlackSectionBlock,
     SlackActionsBlock,
     SlackContextActionsBlock,
     SlackInputBlock,
-  } from '../lib/types'
+  } from '$lib/types'
   import {
-    getMessageShortcut,
+    getAllMessageShortcuts,
     getChannelDisplayName,
     simulatorState,
     isBotUserId,
     getBotByUserId,
-  } from '../lib/state.svelte'
+  } from '$lib/state.svelte'
+  import type { BotShortcutGroup } from '$lib/state.svelte'
   import {
-    updateFileExpanded,
     sendMessageBlockAction,
-  } from '../lib/dispatcher.svelte'
+    triggerMessageShortcut,
+  } from '$lib/dispatcher.svelte'
   import { resolveEmoji } from '@botarium/mrkdwn'
   import BlockKitRenderer from './blockkit/BlockKitRenderer.svelte'
+  import ImageBlock from './blockkit/blocks/ImageBlock.svelte'
   import { renderMrkdwn } from './blockkit/context'
   import {
     formatTimestamp,
+    formatTimestampShort,
     formatRelativeTime,
     formatFullDate,
-  } from '../lib/time'
+  } from '$lib/time'
   import * as ContextMenu from '$lib/components/ui/context-menu'
+  import * as DropdownMenu from '$lib/components/ui/dropdown-menu'
 
   interface Props {
     message: SimulatorMessage
     replyCount?: number
     hasDraft?: boolean
+    isGrouped?: boolean
     onOpenThread?: (ts: string) => void
     onDelete?: (ts: string) => void
-    onGenerateImage?: (message: SimulatorMessage) => void
     onImagePreview?: (
       imageUrl: string,
       imageAlt: string,
@@ -58,28 +62,24 @@
     message,
     replyCount = 0,
     hasDraft = false,
+    isGrouped = false,
     onOpenThread,
     onDelete,
-    onGenerateImage,
     onImagePreview,
   }: Props = $props()
 
-  let menuOpen = $state(false)
-  let menuButton = $state<HTMLButtonElement | null>(null)
-  let imageExpanded = $derived(message.file?.isExpanded ?? true)
-
   let isBot = $derived(isBotUserId(message.user))
   let isEphemeral = $derived(message.subtype === 'ephemeral')
-  let hasImage = $derived(message.file?.mimetype?.startsWith('image/') ?? false)
-  let messageShortcut = $derived(getMessageShortcut())
+  let shortcutGroups = $derived(getAllMessageShortcuts())
+  let hasShortcuts = $derived(shortcutGroups.length > 0)
+  let botInfo = $derived(isBot ? getBotByUserId(message.user) : undefined)
   let displayName = $derived.by(() => {
     if (!isBot) return simulatorState.simulatedUserName || 'You'
-    // Get bot name from connected bots
-    const bot = getBotByUserId(message.user)
-    return bot?.name ?? simulatorState.botName
+    return botInfo?.name ?? simulatorState.botName
   })
   let avatarLetter = $derived(displayName.charAt(0).toUpperCase())
   let timestamp = $derived(formatTimestamp(message.ts))
+  let timestampShort = $derived(formatTimestampShort(message.ts))
   let fullDate = $derived(formatFullDate(message.ts))
   let formattedText = $derived.by(() => {
     // Replace internal user IDs BEFORE markdown processing (handles <@userId> format)
@@ -316,24 +316,16 @@
     )
   }
 
-  function toggleMenu(e: MouseEvent) {
-    e.stopPropagation()
-    menuOpen = !menuOpen
-  }
-
   function handleDelete() {
-    menuOpen = false
     onDelete?.(message.ts)
   }
 
-  function handleGenerateImage() {
-    onGenerateImage?.(message)
-  }
-
-  function handleClickOutside(e: MouseEvent) {
-    if (menuButton && !menuButton.contains(e.target as Node)) {
-      menuOpen = false
-    }
+  function handleShortcut(shortcut: Shortcut) {
+    triggerMessageShortcut(shortcut.callback_id, {
+      ts: message.ts,
+      text: message.text,
+      file: message.file,
+    })
   }
 
   function getEmoji(name: string): string {
@@ -341,12 +333,30 @@
   }
 </script>
 
-<svelte:window onclick={handleClickOutside} />
+{#snippet shortcutItemContent(group: BotShortcutGroup, shortcut: Shortcut)}
+  <span class="flex items-center gap-2 w-full">
+    {#if group.botIcon?.startsWith('http')}
+      <img
+        src={group.botIcon}
+        alt=""
+        class="size-4 rounded object-cover shrink-0"
+      />
+    {:else}
+      <span class="shrink-0 text-sm"
+        >{group.botIcon || group.botName.charAt(0).toUpperCase()}</span
+      >
+    {/if}
+    <span class="font-semibold">{shortcut.name}</span>
+    <span class="text-slack-text-muted ml-auto text-xs">{group.botName}</span>
+  </span>
+{/snippet}
 
 <ContextMenu.Root>
   <ContextMenu.Trigger class="block">
     <div
-      class="group flex flex-col px-5 py-2 transition-colors duration-100 relative hover:bg-slack-hover"
+      class="group flex flex-col px-5 transition-colors duration-100 relative hover:bg-slack-hover {isGrouped
+        ? 'py-0.5'
+        : 'py-2'}"
     >
       {#if isEphemeral}
         <div
@@ -357,57 +367,99 @@
         </div>
       {/if}
       <div class="flex gap-2">
-        {#if onDelete}
+        {#if onDelete || hasShortcuts}
           <div
             class="absolute -top-3 right-5 z-10 opacity-0 transition-opacity duration-100 bg-slack-bg border border-slack-border rounded-xl p-1 group-hover:opacity-100"
           >
-            <button
-              bind:this={menuButton}
-              class="flex items-center justify-center size-7 p-0 border-none rounded-lg bg-transparent text-slack-text-secondary cursor-pointer transition-colors duration-100 hover:bg-slack-sidebar-hover hover:text-slack-text"
-              onclick={toggleMenu}
-              aria-label="Message options"
-            >
-              <EllipsisVertical size={16} />
-            </button>
-            {#if menuOpen}
-              <div
-                class="absolute top-full right-0 mt-1 bg-slack-sidebar border border-slack-border rounded-md shadow-lg overflow-hidden whitespace-nowrap"
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger
+                class="flex items-center justify-center size-7 p-0 border-none rounded-lg bg-transparent text-slack-text-secondary cursor-pointer transition-colors duration-100 hover:bg-slack-sidebar-hover hover:text-slack-text"
+                aria-label="Message options"
               >
-                <button
-                  class="flex items-center gap-2 w-full py-2 px-3 border-none bg-transparent text-log-error text-[13px] cursor-pointer text-left hover:bg-red-500/10"
-                  onclick={handleDelete}
-                >
-                  <Trash2 size={14} />
-                  <span>Delete</span>
-                </button>
-              </div>
+                <EllipsisVertical size={16} />
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content align="end">
+                {#if hasShortcuts}
+                  <DropdownMenu.Sub>
+                    <DropdownMenu.SubTrigger
+                      >Connect to apps</DropdownMenu.SubTrigger
+                    >
+                    <DropdownMenu.SubContent class="min-w-[200px]">
+                      {#each shortcutGroups as group, i (group.botId)}
+                        {#if i > 0}
+                          <DropdownMenu.Separator />
+                        {/if}
+                        {#each group.shortcuts as shortcut (shortcut.callback_id)}
+                          <DropdownMenu.Item
+                            onclick={() => handleShortcut(shortcut)}
+                          >
+                            {@render shortcutItemContent(group, shortcut)}
+                          </DropdownMenu.Item>
+                        {/each}
+                      {/each}
+                    </DropdownMenu.SubContent>
+                  </DropdownMenu.Sub>
+                  {#if onDelete}
+                    <DropdownMenu.Separator />
+                  {/if}
+                {/if}
+                {#if onDelete}
+                  <DropdownMenu.Item
+                    variant="destructive"
+                    onclick={handleDelete}
+                  >
+                    <Trash2 size={14} />
+                    Delete message
+                  </DropdownMenu.Item>
+                {/if}
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
+          </div>
+        {/if}
+        {#if isGrouped}
+          <div class="size-9 shrink-0 flex items-center justify-center">
+            <span
+              class="text-[11px] text-slack-text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-100"
+              title={fullDate}>{timestampShort}</span
+            >
+          </div>
+        {:else}
+          <div
+            class="size-9 rounded-lg text-white flex items-center justify-center font-bold text-sm shrink-0 {isBot &&
+            !botInfo?.iconUrl
+              ? 'bg-slack-bot-avatar'
+              : !isBot
+                ? 'bg-slack-user-avatar'
+                : ''}"
+          >
+            {#if isBot && botInfo?.iconUrl}
+              <img
+                src={botInfo.iconUrl}
+                alt={displayName}
+                class="size-9 rounded-lg object-cover"
+              />
+            {:else if isBot}
+              <Sparkles size={20} />
+            {:else}
+              {avatarLetter}
             {/if}
           </div>
         {/if}
-        <div
-          class="size-9 rounded-lg text-white flex items-center justify-center font-bold text-sm shrink-0 {isBot
-            ? 'bg-slack-bot-avatar'
-            : 'bg-slack-user-avatar'}"
-        >
-          {#if isBot}
-            <Sparkles size={20} />
-          {:else}
-            {avatarLetter}
-          {/if}
-        </div>
         <div class="flex-1 min-w-0">
-          <div class="flex items-baseline gap-2 mb-1">
-            <span class="font-bold text-white">{displayName}</span>
-            {#if isBot}
-              <span
-                class="bg-white/20 rounded px-0.5 text-[10px] text-white/60 uppercase tracking-wide align-middle"
-                >APP</span
+          {#if !isGrouped}
+            <div class="flex items-baseline gap-2 mb-1">
+              <span class="font-bold text-white">{displayName}</span>
+              {#if isBot}
+                <span
+                  class="bg-white/20 rounded px-0.5 text-[10px] text-white/60 uppercase tracking-wide align-middle"
+                  >APP</span
+                >
+              {/if}
+              <span class="text-xs text-slack-text-muted" title={fullDate}
+                >{timestamp}</span
               >
-            {/if}
-            <span class="text-xs text-slack-text-muted" title={fullDate}
-              >{timestamp}</span
-            >
-          </div>
+            </div>
+          {/if}
           {#if hasBlocks}
             <div class="mt-1">
               <BlockKitRenderer
@@ -434,49 +486,27 @@
           {#if message.file}
             <div class="mt-1">
               {#if message.file.mimetype.startsWith('image/')}
-                {#if message.file.title}
-                  <div
-                    class="text-[15px] text-slack-text-muted mb-1 flex items-center gap-1"
-                  >
-                    {message.file.title}
-                    <button
-                      type="button"
-                      onclick={() => {
-                        if (message.file) {
-                          updateFileExpanded(message.file.id, !imageExpanded)
-                        }
-                      }}
-                      class="text-xs opacity-60 hover:opacity-100 transition-all duration-200 cursor-pointer bg-transparent border-none p-0.5"
-                      class:-rotate-90={!imageExpanded}
-                      aria-label={imageExpanded
-                        ? 'Collapse image'
-                        : 'Expand image'}
-                    >
-                      &#9660;
-                    </button>
-                  </div>
-                {/if}
-                {#if imageExpanded}
-                  <button
-                    type="button"
-                    class="cursor-zoom-in block bg-transparent border-none p-0"
-                    onclick={() =>
+                <div class="[&_img]:max-h-[360px]">
+                  <ImageBlock
+                    block={{
+                      type: 'image',
+                      image_url: message.file.url_private,
+                      alt_text: message.file.title || message.file.name,
+                      title: message.file.title
+                        ? { type: 'plain_text', text: message.file.title }
+                        : undefined,
+                    }}
+                    onImagePreview={(url, alt) =>
                       onImagePreview?.(
-                        message.file!.url_private,
-                        message.file!.title || message.file!.name,
+                        url,
+                        alt,
                         displayName,
                         isBot,
                         formatRelativeTime(message.ts),
                         getChannelDisplayName()
                       )}
-                  >
-                    <img
-                      src={message.file.url_private}
-                      alt={message.file.title || message.file.name}
-                      class="rounded-lg max-h-[360px] max-w-full"
-                    />
-                  </button>
-                {/if}
+                  />
+                </div>
               {:else}
                 <div
                   class="flex items-center gap-2 p-2 bg-white/5 rounded-lg border border-white/10"
@@ -533,13 +563,27 @@
       </div>
     </div>
   </ContextMenu.Trigger>
-  {#if onDelete || (hasImage && onGenerateImage && messageShortcut)}
+  {#if onDelete || hasShortcuts}
     <ContextMenu.Content>
-      {#if hasImage && onGenerateImage && messageShortcut}
-        <ContextMenu.Item onclick={handleGenerateImage}>
-          <ImageIcon size={14} class="text-green-500" />
-          {messageShortcut.name}
-        </ContextMenu.Item>
+      {#if hasShortcuts}
+        <ContextMenu.Sub>
+          <ContextMenu.SubTrigger>Connect to apps</ContextMenu.SubTrigger>
+          <ContextMenu.SubContent class="min-w-[200px]">
+            {#each shortcutGroups as group, i (group.botId)}
+              {#if i > 0}
+                <ContextMenu.Separator />
+              {/if}
+              {#each group.shortcuts as shortcut (shortcut.callback_id)}
+                <ContextMenu.Item onclick={() => handleShortcut(shortcut)}>
+                  {@render shortcutItemContent(group, shortcut)}
+                </ContextMenu.Item>
+              {/each}
+            {/each}
+          </ContextMenu.SubContent>
+        </ContextMenu.Sub>
+        {#if onDelete}
+          <ContextMenu.Separator />
+        {/if}
       {/if}
       {#if onDelete}
         <ContextMenu.Item variant="destructive" onclick={handleDelete}>

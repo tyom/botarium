@@ -45,7 +45,10 @@ export function renderText(textObj: SlackViewTextObject | undefined): string {
  * Returns sanitized HTML string that should be rendered with {@html}.
  * Respects the text object type: plain_text is escaped, mrkdwn is parsed.
  */
-export function renderMrkdwn(textObj: SlackViewTextObject | undefined): string {
+export function renderMrkdwn(
+  textObj: SlackViewTextObject | undefined,
+  options?: { useBr?: boolean }
+): string {
   if (!textObj) return ''
 
   // Plain text: escape HTML entities, no mrkdwn parsing
@@ -57,7 +60,7 @@ export function renderMrkdwn(textObj: SlackViewTextObject | undefined): string {
   }
 
   // mrkdwn type: parse with @botarium/mrkdwn, sanitize output
-  const html = mrkdwnToHtml(textObj.text)
+  const html = mrkdwnToHtml(textObj.text, options)
 
   return DOMPurify.sanitize(html, SANITIZE_CONFIG)
 }

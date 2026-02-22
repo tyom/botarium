@@ -49,6 +49,8 @@
       option: SlackOption
     ) => void
     onImagePreview?: (imageUrl: string, imageAlt: string) => void
+    imageCollapsible?: boolean
+    errors?: Record<string, string>
   }
 
   let {
@@ -61,6 +63,8 @@
     onCheckboxChange,
     onRadioChange,
     onImagePreview,
+    imageCollapsible,
+    errors = {},
   }: Props = $props()
 
   function getBlockId(block: SlackBlock, index: number): string {
@@ -79,6 +83,7 @@
           blockId={getBlockId(block, index)}
           {values}
           {fileValues}
+          error={errors[getBlockId(block, index)]}
           {onInputChange}
           {onFileChange}
           {onCheckboxChange}
@@ -91,7 +96,11 @@
       {:else if block.type === 'context'}
         <ContextBlock block={block as SlackContextBlock} />
       {:else if block.type === 'image'}
-        <ImageBlock block={block as SlackImageBlock} {onImagePreview} />
+        <ImageBlock
+          block={block as SlackImageBlock}
+          {onImagePreview}
+          collapsible={imageCollapsible}
+        />
       {:else if block.type === 'header'}
         <HeaderBlock block={block as SlackHeaderBlock} />
       {:else if block.type === 'rich_text'}

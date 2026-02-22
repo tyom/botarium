@@ -925,6 +925,19 @@ export class EmulatorState {
     return undefined
   }
 
+  /**
+   * Find the connected bot that registered a given shortcut by callback_id
+   */
+  getBotForShortcut(callbackId: string): ConnectedBot | undefined {
+    for (const bot of this.connectedBots.values()) {
+      if (bot.status !== 'connected') continue
+      if (bot.appConfig.shortcuts?.some((s) => s.callback_id === callbackId)) {
+        return bot
+      }
+    }
+    return undefined
+  }
+
   // ==========================================================================
   // View / Modal Operations
   // ==========================================================================

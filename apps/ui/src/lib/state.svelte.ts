@@ -103,8 +103,7 @@ export {
   setAvailableCommands,
   getFilteredCommands,
   setAppConfig,
-  getShortcut,
-  getMessageShortcut,
+  getAllMessageShortcuts,
   showModal,
   updateModal,
   closeModal,
@@ -114,3 +113,4 @@ export {
   isBotUserId,
   getBotByUserId,
 } from './state/bots.svelte'
+export type { BotShortcutGroup } from './state/bots.svelte'

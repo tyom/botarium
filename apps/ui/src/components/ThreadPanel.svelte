@@ -1,20 +1,15 @@
 <script lang="ts">
   import { tick } from 'svelte'
-  import type { MockApp } from '../lib/dispatcher.svelte'
+  import type { MockApp } from '$lib/dispatcher.svelte'
+  import { deleteMessage, sendMessage } from '$lib/dispatcher.svelte'
   import {
-    deleteMessage,
-    sendMessage,
-    triggerMessageShortcut,
-  } from '../lib/dispatcher.svelte'
-  import type { SimulatorMessage } from '../lib/types'
-  import {
-    getMessageShortcut,
     getReplyCount,
     getThreadDraft,
     getThreadMessages,
     setThreadDraft,
     simulatorState,
-  } from '../lib/state.svelte'
+  } from '$lib/state.svelte'
+  import { isWithinMinutes } from '$lib/time'
   import InputBar from './InputBar.svelte'
   import Message from './Message.svelte'
 
@@ -76,16 +71,6 @@
   function handleDeleteMessage(ts: string) {
     deleteMessage(simulatorState.currentChannel, ts)
   }
-
-  function handleGenerateImage(message: SimulatorMessage) {
-    const shortcut = getMessageShortcut()
-    if (!shortcut) return
-    triggerMessageShortcut(shortcut.callback_id, {
-      ts: message.ts,
-      text: message.text,
-      file: message.file,
-    })
-  }
 </script>
 
 <div class="h-full overflow-y-auto py-2" bind:this={messagesContainer}>
@@ -94,7 +79,6 @@
       <Message
         message={parentMessage}
         onDelete={handleDeleteMessage}
-        onGenerateImage={handleGenerateImage}
         {onImagePreview}
       />
     </div>
@@ -107,11 +91,14 @@
       </div>
     {/if}
 
-    {#each replies as message (message.ts)}
+    {#each replies as message, i (message.ts)}
+      {@const prevMessage = i === 0 ? parentMessage : replies[i - 1]}
       <Message
         {message}
+        isGrouped={!!prevMessage &&
+          message.user === prevMessage.user &&
+          isWithinMinutes(message.ts, prevMessage.ts, 10)}
         onDelete={handleDeleteMessage}
-        onGenerateImage={handleGenerateImage}
         {onImagePreview}
       />
     {/each}
