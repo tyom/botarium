@@ -37,14 +37,14 @@
 {#snippet textContent()}
   {#if block.text}
     <div class="mrkdwn text-slack-text">
-      {@html renderMrkdwn(block.text)}
+      {@html renderMrkdwn(block.text, { useBr: true })}
     </div>
   {/if}
   {#if block.fields}
     <div class="grid grid-cols-2 gap-2 mt-2">
       {#each block.fields as field, i (i)}
-        <div class="mrkdwn text-slack-text text-sm">
-          {@html renderMrkdwn(field)}
+        <div class="mrkdwn text-slack-text">
+          {@html renderMrkdwn(field, { useBr: true })}
         </div>
       {/each}
     </div>

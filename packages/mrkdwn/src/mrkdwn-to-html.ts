@@ -24,7 +24,7 @@ function formatInline(text: string): string {
   // HTML-escape remaining text
   text = escapeHtml(text)
 
-  // Links: <url|label> and <url>
+  // Links: <url|label> and <url> (with protocol)
   text = text.replace(
     /&lt;((?:https?|mailto):.*?)\|(.*?)&gt;/g,
     '<a href="$1" target="_blank" rel="noopener noreferrer">$2</a>'
@@ -32,6 +32,16 @@ function formatInline(text: string): string {
   text = text.replace(
     /&lt;((?:https?|mailto):.*?)&gt;/g,
     '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+  )
+
+  // Links without protocol: <domain.com|label> and <domain.com>
+  text = text.replace(
+    /&lt;([^@#!][^|]*?)\|(.*?)&gt;/g,
+    '<a href="https://$1" target="_blank" rel="noopener noreferrer">$2</a>'
+  )
+  text = text.replace(
+    /&lt;([^@#!][^|]*?\.[^|]*?)&gt;/g,
+    '<a href="https://$1" target="_blank" rel="noopener noreferrer">$1</a>'
   )
 
   // User mentions: <@U123>
@@ -89,7 +99,10 @@ function formatInline(text: string): string {
  * Processes block-level elements (code blocks, blockquotes, lists) line-by-line,
  * then applies inline formatting within each block.
  */
-export function mrkdwnToHtml(text: string): string {
+export function mrkdwnToHtml(
+  text: string,
+  options?: { useBr?: boolean }
+): string {
   if (!text) return ''
 
   // Phase 1: Extract code blocks (``` ... ```) and replace with placeholders
@@ -102,8 +115,8 @@ export function mrkdwnToHtml(text: string): string {
     return `\uE000CB${idx}\uE000`
   })
 
-  // Line-break span used instead of <br> for CSS-controllable spacing
-  const BR = '<span class="c-mrkdwn__br"></span>'
+  // Line-break element: <br> for compact blocks, styled span for messages
+  const BR = options?.useBr ? '<br>' : '<span class="c-mrkdwn__br"></span>'
 
   // Phase 2: Process line-by-line for block-level elements
   const lines = text.split('\n')
