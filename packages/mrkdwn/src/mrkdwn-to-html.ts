@@ -36,7 +36,7 @@ function formatInline(text: string): string {
 
   // Links without protocol: <domain.com|label> and <domain.com>
   text = text.replace(
-    /&lt;([^@#!][^|]*?)\|(.*?)&gt;/g,
+    /&lt;([^@#!][^|]*?\.[^|]*?)\|(.*?)&gt;/g,
     '<a href="https://$1" target="_blank" rel="noopener noreferrer">$2</a>'
   )
   text = text.replace(

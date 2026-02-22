@@ -43,7 +43,7 @@
         {
           "type": "image",
           "image_url": "https://api.slack.com/img/blocks/bkb_template_images/profile_3.png",
-          "alt_text": "Pam Beasely"
+          "alt_text": "Pam Beesly"
         },
         {
           "type": "plain_text",

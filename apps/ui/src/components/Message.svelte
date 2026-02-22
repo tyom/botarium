@@ -23,6 +23,7 @@
     isBotUserId,
     getBotByUserId,
   } from '$lib/state.svelte'
+  import type { BotShortcutGroup } from '$lib/state.svelte'
   import {
     sendMessageBlockAction,
     triggerMessageShortcut,
@@ -332,6 +333,24 @@
   }
 </script>
 
+{#snippet shortcutItemContent(group: BotShortcutGroup, shortcut: Shortcut)}
+  <span class="flex items-center gap-2 w-full">
+    {#if group.botIcon?.startsWith('http')}
+      <img
+        src={group.botIcon}
+        alt=""
+        class="size-4 rounded object-cover shrink-0"
+      />
+    {:else}
+      <span class="shrink-0 text-sm"
+        >{group.botIcon || group.botName.charAt(0).toUpperCase()}</span
+      >
+    {/if}
+    <span class="font-semibold">{shortcut.name}</span>
+    <span class="text-slack-text-muted ml-auto text-xs">{group.botName}</span>
+  </span>
+{/snippet}
+
 <ContextMenu.Root>
   <ContextMenu.Trigger class="block">
     <div
@@ -374,25 +393,7 @@
                           <DropdownMenu.Item
                             onclick={() => handleShortcut(shortcut)}
                           >
-                            <span class="flex items-center gap-2 w-full">
-                              {#if group.botIcon?.startsWith('http')}
-                                <img
-                                  src={group.botIcon}
-                                  alt=""
-                                  class="size-4 rounded object-cover shrink-0"
-                                />
-                              {:else}
-                                <span class="shrink-0 text-sm"
-                                  >{group.botIcon ||
-                                    group.botName.charAt(0).toUpperCase()}</span
-                                >
-                              {/if}
-                              <span class="font-semibold">{shortcut.name}</span>
-                              <span
-                                class="text-slack-text-muted ml-auto text-xs"
-                                >{group.botName}</span
-                              >
-                            </span>
+                            {@render shortcutItemContent(group, shortcut)}
                           </DropdownMenu.Item>
                         {/each}
                       {/each}
@@ -574,24 +575,7 @@
               {/if}
               {#each group.shortcuts as shortcut (shortcut.callback_id)}
                 <ContextMenu.Item onclick={() => handleShortcut(shortcut)}>
-                  <span class="flex items-center gap-2 w-full">
-                    {#if group.botIcon?.startsWith('http')}
-                      <img
-                        src={group.botIcon}
-                        alt=""
-                        class="size-4 rounded object-cover shrink-0"
-                      />
-                    {:else}
-                      <span class="shrink-0 text-sm"
-                        >{group.botIcon ||
-                          group.botName.charAt(0).toUpperCase()}</span
-                      >
-                    {/if}
-                    <span class="font-semibold">{shortcut.name}</span>
-                    <span class="text-slack-text-muted ml-auto text-xs"
-                      >{group.botName}</span
-                    >
-                  </span>
+                  {@render shortcutItemContent(group, shortcut)}
                 </ContextMenu.Item>
               {/each}
             {/each}

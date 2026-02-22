@@ -9,7 +9,7 @@
     SlackDatePickerElement,
     SlackTimePickerElement,
     SlackWorkspaceSelectElement,
-  } from '../../../lib/types'
+  } from '$lib/types'
   import { renderMrkdwn } from '../context'
   import Button from '../elements/Button.svelte'
   import StaticSelect from '../elements/StaticSelect.svelte'
