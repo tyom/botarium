@@ -95,6 +95,7 @@ export interface CheckboxesElement {
   options: Option[]
   initial_options?: Option[]
   confirm?: ConfirmDialog
+  focus_on_load?: boolean
 }
 
 export interface DatePickerElement {
@@ -134,6 +135,7 @@ export interface PlainTextInputElement {
   multiline?: boolean
   min_length?: number
   max_length?: number
+  focus_on_load?: boolean
 }
 
 export interface NumberInputElement {
@@ -177,6 +179,7 @@ export interface UsersSelectElement {
   action_id: string
   placeholder?: PlainTextObject
   initial_user?: string
+  confirm?: ConfirmDialog
 }
 
 export interface ConversationsSelectElement {
@@ -184,6 +187,7 @@ export interface ConversationsSelectElement {
   action_id: string
   placeholder?: PlainTextObject
   initial_conversation?: string
+  confirm?: ConfirmDialog
 }
 
 export interface ChannelsSelectElement {
@@ -191,6 +195,7 @@ export interface ChannelsSelectElement {
   action_id: string
   placeholder?: PlainTextObject
   initial_channel?: string
+  confirm?: ConfirmDialog
 }
 
 export interface ExternalSelectElement {
@@ -199,6 +204,7 @@ export interface ExternalSelectElement {
   placeholder?: PlainTextObject
   initial_option?: Option
   min_query_length?: number
+  confirm?: ConfirmDialog
 }
 
 export interface MultiUsersSelectElement {
@@ -207,6 +213,7 @@ export interface MultiUsersSelectElement {
   placeholder?: PlainTextObject
   initial_users?: string[]
   max_selected_items?: number
+  confirm?: ConfirmDialog
 }
 
 export interface MultiConversationsSelectElement {
@@ -215,6 +222,7 @@ export interface MultiConversationsSelectElement {
   placeholder?: PlainTextObject
   initial_conversations?: string[]
   max_selected_items?: number
+  confirm?: ConfirmDialog
 }
 
 export interface MultiChannelsSelectElement {
@@ -223,6 +231,7 @@ export interface MultiChannelsSelectElement {
   placeholder?: PlainTextObject
   initial_channels?: string[]
   max_selected_items?: number
+  confirm?: ConfirmDialog
 }
 
 export interface MultiExternalSelectElement {
@@ -232,6 +241,7 @@ export interface MultiExternalSelectElement {
   initial_options?: Option[]
   min_query_length?: number
   max_selected_items?: number
+  confirm?: ConfirmDialog
 }
 
 // Union types
@@ -429,6 +439,11 @@ export interface RawTextElement {
 }
 
 // Table types
+export interface RichTextCell {
+  type: 'rich_text'
+  elements: RichTextBlockElement[]
+}
+
 export interface TableColumnSettings {
   align?: 'left' | 'center' | 'right'
   is_wrapped?: boolean
@@ -437,7 +452,7 @@ export interface TableColumnSettings {
 export interface TableBlock {
   type: 'table'
   block_id?: string
-  rows: (RichTextBlock | RawTextElement)[][]
+  rows: (RichTextCell | RawTextElement)[][]
   column_settings?: TableColumnSettings[]
 }
 
@@ -456,19 +471,19 @@ export type Block =
 // View (modal / home tab)
 interface BaseView {
   title?: PlainTextObject
-  submit?: PlainTextObject
-  close?: PlainTextObject
   blocks: Block[]
   private_metadata?: string
   callback_id?: string
-  clear_on_close?: boolean
-  notify_on_close?: boolean
   external_id?: string
 }
 
 export interface ModalView extends BaseView {
   type: 'modal'
   title: PlainTextObject
+  submit?: PlainTextObject
+  close?: PlainTextObject
+  clear_on_close?: boolean
+  notify_on_close?: boolean
 }
 
 export interface HomeTabView extends BaseView {

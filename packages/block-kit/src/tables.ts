@@ -1,12 +1,12 @@
 import type {
-  RichTextBlock,
+  RichTextCell,
   RawTextElement,
   TableBlock,
   TableColumnSettings,
   RichTextStyle,
 } from './types.ts'
 
-export function cell(text: string, style?: RichTextStyle): RichTextBlock {
+export function cell(text: string, style?: RichTextStyle): RichTextCell {
   return {
     type: 'rich_text',
     elements: [
@@ -29,7 +29,7 @@ export function rawCell(text: string): RawTextElement {
 }
 
 export function table(
-  rows: (RichTextBlock | RawTextElement)[][],
+  rows: (RichTextCell | RawTextElement)[][],
   opts?: { column_settings?: TableColumnSettings[]; block_id?: string }
 ): TableBlock {
   return {
