@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { SlackButtonElement } from '../../../lib/types'
+  import type { SlackButtonElement } from '$lib/types'
   import { renderText } from '../context'
   import ConfirmDialog from './ConfirmDialog.svelte'
 

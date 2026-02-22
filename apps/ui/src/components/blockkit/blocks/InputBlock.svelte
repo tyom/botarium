@@ -82,21 +82,15 @@
   function getFiles(actionId: string): UploadedFile[] {
     return fileValues[blockId]?.[actionId] ?? []
   }
+
+  const inputId = $derived(`input-${blockId}-${block.element.action_id}`)
 </script>
 
 <div class="max-w-[620px]">
   {#if block.element.type !== 'file_input'}
-    <!-- svelte-ignore a11y_label_has_associated_control -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <label
+      for={inputId}
       class="inline-block text-sm font-bold text-slack-text cursor-pointer mb-1.5"
-      onclick={(e) => {
-        const input = e.currentTarget.parentElement?.querySelector(
-          'input, textarea, select'
-        )
-        if (input instanceof HTMLElement) input.focus()
-      }}
     >
       {renderText(block.label)}
     </label>
@@ -106,6 +100,7 @@
     {#if block.element.type === 'plain_text_input'}
       {@const el = block.element as SlackPlainTextInputElement}
       <PlainTextInput
+        id={inputId}
         element={el}
         value={getInputValue(el.action_id)}
         onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
@@ -113,6 +108,7 @@
     {:else if block.element.type === 'static_select'}
       {@const el = block.element as SlackStaticSelectElement}
       <StaticSelect
+        id={inputId}
         element={el}
         value={getSelectedOption(el.action_id)}
         onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
@@ -137,6 +133,7 @@
     {:else if block.element.type === 'number_input'}
       {@const el = block.element as SlackNumberInputElement}
       <NumberInput
+        id={inputId}
         element={el}
         value={getInputValue(el.action_id)}
         onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
@@ -144,6 +141,7 @@
     {:else if block.element.type === 'email_text_input'}
       {@const el = block.element as SlackEmailInputElement}
       <EmailInput
+        id={inputId}
         element={el}
         value={getInputValue(el.action_id)}
         onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
@@ -151,6 +149,7 @@
     {:else if block.element.type === 'url_text_input'}
       {@const el = block.element as SlackUrlInputElement}
       <UrlInput
+        id={inputId}
         element={el}
         value={getInputValue(el.action_id)}
         onChange={(value) => onInputChange?.(blockId, el.action_id, value)}

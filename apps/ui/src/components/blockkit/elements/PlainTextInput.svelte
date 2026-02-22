@@ -3,18 +3,20 @@
   import { renderText } from '../context'
 
   interface Props {
+    id?: string
     element: SlackPlainTextInputElement
     value: string
     onChange?: (value: string) => void
   }
 
-  let { element, value, onChange }: Props = $props()
+  let { id, element, value, onChange }: Props = $props()
 
   const displayValue = $derived(value || element.initial_value || '')
 </script>
 
 {#if element.multiline}
   <textarea
+    {id}
     class="w-full bg-slack-input border border-white/20 rounded-lg px-3 py-2 text-slack-text placeholder:text-slack-text-muted focus:border-white/40 focus:outline-none resize-none"
     rows={4}
     placeholder={renderText(element.placeholder)}
@@ -23,6 +25,7 @@
   ></textarea>
 {:else}
   <input
+    {id}
     type="text"
     class="w-full bg-slack-input border border-white/20 rounded-lg px-3 py-2 text-slack-text placeholder:text-slack-text-muted focus:border-white/40 focus:outline-none"
     placeholder={renderText(element.placeholder)}

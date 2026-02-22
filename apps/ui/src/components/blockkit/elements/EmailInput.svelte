@@ -1,14 +1,15 @@
 <script lang="ts">
-  import type { SlackEmailInputElement } from '../../../lib/types'
+  import type { SlackEmailInputElement } from '$lib/types'
   import { renderText } from '../context'
 
   interface Props {
+    id?: string
     element: SlackEmailInputElement
     value: string
     onChange?: (value: string) => void
   }
 
-  let { element, value, onChange }: Props = $props()
+  let { id, element, value, onChange }: Props = $props()
 
   const displayValue = $derived(value || element.initial_value || '')
   const placeholder = $derived(
@@ -17,6 +18,7 @@
 </script>
 
 <input
+  {id}
   type="email"
   class="w-full bg-slack-input border border-white/20 rounded-lg px-3 py-2 text-slack-text placeholder:text-slack-text-muted focus:border-white/40 focus:outline-none"
   {placeholder}

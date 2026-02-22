@@ -87,7 +87,11 @@ export function showModal(
 // Update an existing modal
 export function updateModal(viewId: string, view: SlackView): void {
   if (simulatorState.activeModal?.viewId === viewId) {
-    simulatorState.activeModal = { viewId, view }
+    simulatorState.activeModal = {
+      viewId,
+      view,
+      botId: simulatorState.activeModal.botId,
+    }
   }
 }
 
