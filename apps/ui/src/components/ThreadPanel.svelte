@@ -9,6 +9,7 @@
     setThreadDraft,
     simulatorState,
   } from '../lib/state.svelte'
+  import { isWithinMinutes } from '../lib/time'
   import InputBar from './InputBar.svelte'
   import Message from './Message.svelte'
 
@@ -90,8 +91,16 @@
       </div>
     {/if}
 
-    {#each replies as message (message.ts)}
-      <Message {message} onDelete={handleDeleteMessage} {onImagePreview} />
+    {#each replies as message, i (message.ts)}
+      {@const prevMessage = i === 0 ? parentMessage : replies[i - 1]}
+      <Message
+        {message}
+        isGrouped={!!prevMessage &&
+          message.user === prevMessage.user &&
+          isWithinMinutes(message.ts, prevMessage.ts, 10)}
+        onDelete={handleDeleteMessage}
+        {onImagePreview}
+      />
     {/each}
 
     <div class="px-3 pt-2 pb-3">

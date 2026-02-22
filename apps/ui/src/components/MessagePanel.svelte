@@ -57,7 +57,7 @@
     simulatorState,
   } from '../lib/state.svelte'
   import type { Channel } from '../lib/types'
-  import { formatDateLabel, getDateKey } from '../lib/time'
+  import { formatDateLabel, getDateKey, isWithinMinutes } from '../lib/time'
   import BotAboutHeader from './BotAboutHeader.svelte'
   import DaySeparator from './DaySeparator.svelte'
   import Message from './Message.svelte'
@@ -264,11 +264,18 @@
       </div>
     {:else if messages.length > 0}
       {#each messages as message, i (message.ts)}
-        {#if i === 0 || getDateKey(message.ts) !== getDateKey(messages[i - 1]!.ts)}
+        {@const prevMessage = messages[i - 1]}
+        {@const isDaySeparator =
+          i === 0 || getDateKey(message.ts) !== getDateKey(prevMessage!.ts)}
+        {#if isDaySeparator}
           <DaySeparator label={formatDateLabel(message.ts)} />
         {/if}
         <Message
           {message}
+          isGrouped={!isDaySeparator &&
+            !!prevMessage &&
+            message.user === prevMessage.user &&
+            isWithinMinutes(message.ts, prevMessage.ts, 10)}
           replyCount={getReplyCount(simulatorState.currentChannel, message.ts)}
           hasDraft={activeThreadTs !== message.ts && hasThreadDraft(message.ts)}
           {onOpenThread}

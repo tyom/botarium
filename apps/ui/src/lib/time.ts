@@ -67,6 +67,31 @@ export function formatFullDate(ts: string): string {
 }
 
 /**
+ * Format a Slack timestamp to a short time string without AM/PM (e.g., "12:34")
+ */
+export function formatTimestampShort(ts: string): string {
+  const seconds = parseFloat(ts)
+  const date = new Date(seconds * 1000)
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: false,
+  })
+}
+
+/**
+ * Check if two Slack timestamps are within a given number of minutes
+ */
+export function isWithinMinutes(
+  ts1: string,
+  ts2: string,
+  minutes: number
+): boolean {
+  const diff = Math.abs(parseFloat(ts1) - parseFloat(ts2))
+  return diff < minutes * 60
+}
+
+/**
  * Format a Slack timestamp to a relative time string (e.g., "5 min ago")
  */
 export function formatRelativeTime(ts: string): string {

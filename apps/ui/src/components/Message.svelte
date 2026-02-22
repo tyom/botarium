@@ -33,6 +33,7 @@
   import { renderMrkdwn } from './blockkit/context'
   import {
     formatTimestamp,
+    formatTimestampShort,
     formatRelativeTime,
     formatFullDate,
   } from '../lib/time'
@@ -43,6 +44,7 @@
     message: SimulatorMessage
     replyCount?: number
     hasDraft?: boolean
+    isGrouped?: boolean
     onOpenThread?: (ts: string) => void
     onDelete?: (ts: string) => void
     onImagePreview?: (
@@ -59,6 +61,7 @@
     message,
     replyCount = 0,
     hasDraft = false,
+    isGrouped = false,
     onOpenThread,
     onDelete,
     onImagePreview,
@@ -75,6 +78,7 @@
   })
   let avatarLetter = $derived(displayName.charAt(0).toUpperCase())
   let timestamp = $derived(formatTimestamp(message.ts))
+  let timestampShort = $derived(formatTimestampShort(message.ts))
   let fullDate = $derived(formatFullDate(message.ts))
   let formattedText = $derived.by(() => {
     // Replace internal user IDs BEFORE markdown processing (handles <@userId> format)
@@ -331,7 +335,9 @@
 <ContextMenu.Root>
   <ContextMenu.Trigger class="block">
     <div
-      class="group flex flex-col px-5 py-2 transition-colors duration-100 relative hover:bg-slack-hover"
+      class="group flex flex-col px-5 transition-colors duration-100 relative hover:bg-slack-hover {isGrouped
+        ? 'py-0.5'
+        : 'py-2'}"
     >
       {#if isEphemeral}
         <div
@@ -399,34 +405,50 @@
             </DropdownMenu.Root>
           </div>
         {/if}
-        <div
-          class="size-9 rounded-lg text-white flex items-center justify-center font-bold text-sm shrink-0 {isBot && !botInfo?.iconUrl
-            ? 'bg-slack-bot-avatar'
-            : !isBot
-              ? 'bg-slack-user-avatar'
-              : ''}"
-        >
-          {#if isBot && botInfo?.iconUrl}
-            <img src={botInfo.iconUrl} alt={displayName} class="size-9 rounded-lg object-cover" />
-          {:else if isBot}
-            <Sparkles size={20} />
-          {:else}
-            {avatarLetter}
-          {/if}
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-baseline gap-2 mb-1">
-            <span class="font-bold text-white">{displayName}</span>
-            {#if isBot}
-              <span
-                class="bg-white/20 rounded px-0.5 text-[10px] text-white/60 uppercase tracking-wide align-middle"
-                >APP</span
-              >
-            {/if}
-            <span class="text-xs text-slack-text-muted" title={fullDate}
-              >{timestamp}</span
+        {#if isGrouped}
+          <div class="size-9 shrink-0 flex items-center justify-center">
+            <span
+              class="text-[11px] text-slack-text-muted opacity-0 group-hover:opacity-100 transition-opacity duration-100"
+              title={fullDate}>{timestampShort}</span
             >
           </div>
+        {:else}
+          <div
+            class="size-9 rounded-lg text-white flex items-center justify-center font-bold text-sm shrink-0 {isBot &&
+            !botInfo?.iconUrl
+              ? 'bg-slack-bot-avatar'
+              : !isBot
+                ? 'bg-slack-user-avatar'
+                : ''}"
+          >
+            {#if isBot && botInfo?.iconUrl}
+              <img
+                src={botInfo.iconUrl}
+                alt={displayName}
+                class="size-9 rounded-lg object-cover"
+              />
+            {:else if isBot}
+              <Sparkles size={20} />
+            {:else}
+              {avatarLetter}
+            {/if}
+          </div>
+        {/if}
+        <div class="flex-1 min-w-0">
+          {#if !isGrouped}
+            <div class="flex items-baseline gap-2 mb-1">
+              <span class="font-bold text-white">{displayName}</span>
+              {#if isBot}
+                <span
+                  class="bg-white/20 rounded px-0.5 text-[10px] text-white/60 uppercase tracking-wide align-middle"
+                  >APP</span
+                >
+              {/if}
+              <span class="text-xs text-slack-text-muted" title={fullDate}
+                >{timestamp}</span
+              >
+            </div>
+          {/if}
           {#if hasBlocks}
             <div class="mt-1">
               <BlockKitRenderer
