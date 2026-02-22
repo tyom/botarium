@@ -10,12 +10,16 @@
 </script>
 
 <div class="px-5 pt-6 pb-4">
-  <div class="flex flex-col items-start gap-3">
-    <span
-      class="size-[68px] rounded-xl bg-(--bot-avatar-bg) text-white flex items-center justify-center"
-    >
-      <Sparkles size={36} />
-    </span>
+  <div class="flex items-center gap-4">
+    {#if bot.iconUrl}
+      <img src={bot.iconUrl} alt={bot.name} class="size-[100px] rounded-xl object-cover shrink-0" />
+    {:else}
+      <span
+        class="size-[100px] rounded-xl bg-(--bot-avatar-bg) text-white flex items-center justify-center shrink-0"
+      >
+        <Sparkles size={48} />
+      </span>
+    {/if}
     <div>
       <div class="flex items-center gap-2">
         <span class="text-[22px] font-bold text-slack-text leading-tight">

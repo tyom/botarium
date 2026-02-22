@@ -68,11 +68,10 @@
   let isEphemeral = $derived(message.subtype === 'ephemeral')
   let shortcutGroups = $derived(getAllMessageShortcuts())
   let hasShortcuts = $derived(shortcutGroups.length > 0)
+  let botInfo = $derived(isBot ? getBotByUserId(message.user) : undefined)
   let displayName = $derived.by(() => {
     if (!isBot) return simulatorState.simulatedUserName || 'You'
-    // Get bot name from connected bots
-    const bot = getBotByUserId(message.user)
-    return bot?.name ?? simulatorState.botName
+    return botInfo?.name ?? simulatorState.botName
   })
   let avatarLetter = $derived(displayName.charAt(0).toUpperCase())
   let timestamp = $derived(formatTimestamp(message.ts))
@@ -401,11 +400,15 @@
           </div>
         {/if}
         <div
-          class="size-9 rounded-lg text-white flex items-center justify-center font-bold text-sm shrink-0 {isBot
+          class="size-9 rounded-lg text-white flex items-center justify-center font-bold text-sm shrink-0 {isBot && !botInfo?.iconUrl
             ? 'bg-slack-bot-avatar'
-            : 'bg-slack-user-avatar'}"
+            : !isBot
+              ? 'bg-slack-user-avatar'
+              : ''}"
         >
-          {#if isBot}
+          {#if isBot && botInfo?.iconUrl}
+            <img src={botInfo.iconUrl} alt={displayName} class="size-9 rounded-lg object-cover" />
+          {:else if isBot}
             <Sparkles size={20} />
           {:else}
             {avatarLetter}

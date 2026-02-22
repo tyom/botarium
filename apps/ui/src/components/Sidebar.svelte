@@ -205,11 +205,15 @@
                 }
               }}
             >
-              <span
-                class="size-5 rounded bg-(--bot-avatar-bg) text-white flex items-center justify-center"
-              >
-                <Sparkles size={12} />
-              </span>
+              {#if bot.iconUrl}
+                <img src={bot.iconUrl} alt={bot.name} class="size-5 rounded object-cover" />
+              {:else}
+                <span
+                  class="size-5 rounded bg-(--bot-avatar-bg) text-white flex items-center justify-center"
+                >
+                  <Sparkles size={12} />
+                </span>
+              {/if}
               <span
                 class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap"
               >
