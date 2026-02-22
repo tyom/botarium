@@ -3,6 +3,10 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+button {
+  cursor: pointer;
+}
+
 @theme inline {
   /* Typography */
   --font-sans:

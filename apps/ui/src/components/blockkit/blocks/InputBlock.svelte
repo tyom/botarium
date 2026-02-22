@@ -82,12 +82,16 @@
   function getFiles(actionId: string): UploadedFile[] {
     return fileValues[blockId]?.[actionId] ?? []
   }
+
+  const inputId = $derived(`input-${blockId}-${block.element.action_id}`)
 </script>
 
 <div class="max-w-[620px]">
   {#if block.element.type !== 'file_input'}
-    <!-- svelte-ignore a11y_label_has_associated_control -->
-    <label class="block text-sm text-slack-text-muted mb-1.5">
+    <label
+      for={inputId}
+      class="inline-block text-sm font-bold text-slack-text cursor-pointer mb-1.5"
+    >
       {renderText(block.label)}
     </label>
   {/if}
@@ -96,6 +100,7 @@
     {#if block.element.type === 'plain_text_input'}
       {@const el = block.element as SlackPlainTextInputElement}
       <PlainTextInput
+        id={inputId}
         element={el}
         value={getInputValue(el.action_id)}
         onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
@@ -103,6 +108,7 @@
     {:else if block.element.type === 'static_select'}
       {@const el = block.element as SlackStaticSelectElement}
       <StaticSelect
+        id={inputId}
         element={el}
         value={getSelectedOption(el.action_id)}
         onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
@@ -127,6 +133,7 @@
     {:else if block.element.type === 'number_input'}
       {@const el = block.element as SlackNumberInputElement}
       <NumberInput
+        id={inputId}
         element={el}
         value={getInputValue(el.action_id)}
         onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
@@ -134,6 +141,7 @@
     {:else if block.element.type === 'email_text_input'}
       {@const el = block.element as SlackEmailInputElement}
       <EmailInput
+        id={inputId}
         element={el}
         value={getInputValue(el.action_id)}
         onChange={(value) => onInputChange?.(blockId, el.action_id, value)}
@@ -141,6 +149,7 @@
     {:else if block.element.type === 'url_text_input'}
       {@const el = block.element as SlackUrlInputElement}
       <UrlInput
+        id={inputId}
         element={el}
         value={getInputValue(el.action_id)}
         onChange={(value) => onInputChange?.(blockId, el.action_id, value)}

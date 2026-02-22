@@ -228,6 +228,97 @@ export function register(app: App) {
                     ],
                   },
                 },
+                {
+                  type: 'input',
+                  label: { type: 'plain_text', text: 'Department' },
+                  element: {
+                    type: 'static_select',
+                    action_id: 'showcase_modal_department',
+                    placeholder: {
+                      type: 'plain_text',
+                      text: 'Select a department',
+                    },
+                    options: [
+                      {
+                        text: { type: 'plain_text', text: 'Engineering' },
+                        value: 'engineering',
+                      },
+                      {
+                        text: { type: 'plain_text', text: 'Design' },
+                        value: 'design',
+                      },
+                      {
+                        text: { type: 'plain_text', text: 'Marketing' },
+                        value: 'marketing',
+                      },
+                      {
+                        text: { type: 'plain_text', text: 'Sales' },
+                        value: 'sales',
+                      },
+                    ],
+                  },
+                },
+                {
+                  type: 'input',
+                  label: { type: 'plain_text', text: 'Skills' },
+                  element: {
+                    type: 'multi_static_select',
+                    action_id: 'showcase_modal_skills',
+                    placeholder: {
+                      type: 'plain_text',
+                      text: 'Select your skills',
+                    },
+                    options: [
+                      {
+                        text: { type: 'plain_text', text: 'JavaScript' },
+                        value: 'javascript',
+                      },
+                      {
+                        text: { type: 'plain_text', text: 'TypeScript' },
+                        value: 'typescript',
+                      },
+                      {
+                        text: { type: 'plain_text', text: 'Python' },
+                        value: 'python',
+                      },
+                      {
+                        text: { type: 'plain_text', text: 'Rust' },
+                        value: 'rust',
+                      },
+                      {
+                        text: { type: 'plain_text', text: 'Go' },
+                        value: 'go',
+                      },
+                    ],
+                  },
+                },
+                {
+                  type: 'input',
+                  label: { type: 'plain_text', text: 'Attachments' },
+                  element: {
+                    type: 'file_input',
+                    action_id: 'showcase_modal_attachments',
+                    max_files: 3,
+                  },
+                },
+                {
+                  type: 'input',
+                  label: { type: 'plain_text', text: 'Additional Notes' },
+                  hint: {
+                    type: 'plain_text',
+                    text: 'Any extra details or comments',
+                  },
+                  optional: true,
+                  element: {
+                    type: 'plain_text_input',
+                    action_id: 'showcase_modal_notes',
+                    multiline: true,
+                    placeholder: {
+                      type: 'plain_text',
+                      text: 'Enter any additional notes here...',
+                    },
+                  },
+                },
               ],
             },
           })

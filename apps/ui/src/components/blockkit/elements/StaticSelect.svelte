@@ -7,6 +7,7 @@
   import ConfirmDialog from './ConfirmDialog.svelte'
 
   interface Props {
+    id?: string
     element: SlackStaticSelectElement
     value?: SlackOption
     onChange?: (value: string) => void
@@ -14,7 +15,7 @@
     compact?: boolean
   }
 
-  let { element, value, onChange, compact = false }: Props = $props()
+  let { id, element, value, onChange, compact = false }: Props = $props()
 
   const selectedValue = $derived(
     value?.value ?? element.initial_option?.value ?? ''
@@ -49,6 +50,7 @@
 </script>
 
 <select
+  {id}
   class="c-select_input"
   class:c-select_input--compact={compact}
   value={selectedValue}
