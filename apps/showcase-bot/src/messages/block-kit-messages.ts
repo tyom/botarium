@@ -50,7 +50,7 @@ const todayNoonUnix = Math.floor(
 export const blockKitMessages = [
   // 01 - Text & Layout
   {
-    fallbackText: 'Text & Layout Blocks',
+    text: 'Text & Layout Blocks',
     blocks: [
       header('Block Kit Showcase'),
       section(
@@ -73,7 +73,7 @@ export const blockKitMessages = [
 
   // 02 - Button Variations
   {
-    fallbackText: 'Button Variations',
+    text: 'Button Variations',
     blocks: [
       header('Buttons'),
       actions([
@@ -94,7 +94,7 @@ export const blockKitMessages = [
 
   // 03 - Selection Elements
   {
-    fallbackText: 'Selection Elements',
+    text: 'Selection Elements',
     blocks: [
       header('Selection Elements'),
       actions([
@@ -121,7 +121,7 @@ export const blockKitMessages = [
 
   // 04 - Radio Buttons & Checkboxes
   {
-    fallbackText: 'Radio Buttons & Checkboxes',
+    text: 'Radio Buttons & Checkboxes',
     blocks: [
       header('Radio Buttons & Checkboxes'),
       section('*Size Selection* (radio buttons accessory)', {
@@ -161,7 +161,7 @@ export const blockKitMessages = [
 
   // 05 - Date & Time Pickers
   {
-    fallbackText: 'Date & Time Pickers',
+    text: 'Date & Time Pickers',
     blocks: [
       header('Date & Time Pickers'),
       actions([
@@ -194,7 +194,7 @@ export const blockKitMessages = [
 
   // 06 - Section Accessories
   {
-    fallbackText: 'Section Accessories',
+    text: 'Section Accessories',
     blocks: [
       header('Section Accessories'),
       section('Click the action button', {
@@ -232,7 +232,7 @@ export const blockKitMessages = [
 
   // 07 - Combined Actions
   {
-    fallbackText: 'Combined Actions',
+    text: 'Combined Actions',
     blocks: [
       header('Combined Actions'),
       actions([
@@ -267,7 +267,7 @@ export const blockKitMessages = [
 
   // 08 - Rich Text
   {
-    fallbackText: 'Rich Text',
+    text: 'Rich Text',
     blocks: [
       richTextBlock([
         richSection([
@@ -321,7 +321,7 @@ export const blockKitMessages = [
 
   // 09 - Template: Newsletter
   {
-    fallbackText: 'Newsletter',
+    text: 'Newsletter',
     blocks: [
       header(':newspaper:  Paper Company Newsletter  :newspaper:'),
       context(['*November 12, 2019*  |  Sales Team Announcements']),
@@ -376,7 +376,7 @@ export const blockKitMessages = [
 
   // 10 - Kitchen Sink
   {
-    fallbackText: 'Kitchen Sink',
+    text: 'Kitchen Sink',
     blocks: [
       richTextBlock([
         richSection(['Hello there, I am a basic rich text block!']),
@@ -522,7 +522,7 @@ export const blockKitMessages = [
 
   // 11 - Images
   {
-    fallbackText: 'Images',
+    text: 'Images',
     blocks: [
       imageBlock(
         'https://assets3.thrillist.com/v1/image/1682388/size/tl-horizontal_main.jpg',
@@ -534,7 +534,7 @@ export const blockKitMessages = [
 
   // 12 - Tables
   {
-    fallbackText: 'Tables',
+    text: 'Tables',
     blocks: [
       section('*Tables*'),
       table(
@@ -570,7 +570,7 @@ export const blockKitMessages = [
 
   // 13 - Template: Approval
   {
-    fallbackText: 'Approval',
+    text: 'Approval',
     blocks: [
       section(
         'You have a new request:\n*<google.com|Fred Enriquez - Time Off request>*'
@@ -619,7 +619,7 @@ export const blockKitMessages = [
 
   // 14 - Template: Notification
   {
-    fallbackText: 'Notification',
+    text: 'Notification',
     blocks: [
       section(
         plainText('Looks like you have a scheduling conflict with this event:')
@@ -669,7 +669,7 @@ export const blockKitMessages = [
 
   // 15 - Template: Vote
   {
-    fallbackText: 'Vote',
+    text: 'Vote',
     blocks: [
       section(
         '*Where should we order lunch from?* Poll by <fakeLink.toUser.com|Mark>'
@@ -737,7 +737,7 @@ export const blockKitMessages = [
 
   // 16 - Search Results
   {
-    fallbackText: 'Search Results',
+    text: 'Search Results',
     blocks: [
       section(
         'We found *205 Hotels* in New Orleans, LA from *12/14 to 12/17*',

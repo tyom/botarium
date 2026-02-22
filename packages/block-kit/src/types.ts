@@ -252,6 +252,7 @@ export type BlockElement =
   | MultiConversationsSelectElement
   | MultiChannelsSelectElement
   | MultiExternalSelectElement
+  | MultiStaticSelectElement
 
 export type InputElement =
   | PlainTextInputElement

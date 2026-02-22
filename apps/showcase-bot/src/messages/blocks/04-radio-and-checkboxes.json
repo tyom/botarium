@@ -1,5 +1,5 @@
 {
-  "fallbackText": "Radio Buttons & Checkboxes",
+  "text": "Radio Buttons & Checkboxes",
   "blocks": [
     {
       "type": "header",

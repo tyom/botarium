@@ -1,5 +1,5 @@
 {
-  "fallbackText": "Combined Actions",
+  "text": "Combined Actions",
   "blocks": [
     {
       "type": "header",

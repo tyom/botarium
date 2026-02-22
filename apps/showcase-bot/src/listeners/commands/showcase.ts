@@ -1,4 +1,5 @@
 import type { App } from '@slack/bolt'
+import type { Block } from '@slack/types'
 import {
   modal,
   input,
@@ -43,32 +44,37 @@ export async function clearShowcaseChannel(client: App['client']) {
   }
 }
 
+async function postMessages(
+  client: App['client'],
+  messages: { text?: string; blocks: Block[] }[],
+  label: string
+) {
+  await clearShowcaseChannel(client)
+
+  for (const message of messages) {
+    try {
+      await client.chat.postMessage({
+        channel: SHOWCASE_CHANNEL,
+        text: message.text,
+        blocks: message.blocks,
+      })
+    } catch (err) {
+      slackLogger.error(
+        { err, text: message.text },
+        `Failed to send ${label} message`
+      )
+    }
+  }
+  slackLogger.info({ messageCount: messages.length }, `Sent ${label} messages`)
+}
+
 /**
  * Send all showcase messages to the #showcase channel.
  * Clears existing messages first to prevent duplicates across restarts.
  * Reusable: called both on startup (auto-populate) and via /showcase command.
  */
 export async function sendShowcaseMessages(client: App['client']) {
-  await clearShowcaseChannel(client)
-
-  for (const message of showcaseMessages) {
-    try {
-      await client.chat.postMessage({
-        channel: SHOWCASE_CHANNEL,
-        text: message.fallbackText,
-        blocks: message.blocks,
-      })
-    } catch (err) {
-      slackLogger.error(
-        { err, fallbackText: message.fallbackText },
-        'Failed to send showcase message'
-      )
-    }
-  }
-  slackLogger.info(
-    { messageCount: showcaseMessages.length },
-    'Sent showcase messages'
-  )
+  await postMessages(client, showcaseMessages, 'showcase')
 }
 
 /**
@@ -76,26 +82,7 @@ export async function sendShowcaseMessages(client: App['client']) {
  * Clears existing messages first to prevent duplicates across restarts.
  */
 export async function sendBlockKitMessages(client: App['client']) {
-  await clearShowcaseChannel(client)
-
-  for (const message of blockKitMessages) {
-    try {
-      await client.chat.postMessage({
-        channel: SHOWCASE_CHANNEL,
-        text: message.fallbackText,
-        blocks: message.blocks,
-      })
-    } catch (err) {
-      slackLogger.error(
-        { err, fallbackText: message.fallbackText },
-        'Failed to send block-kit message'
-      )
-    }
-  }
-  slackLogger.info(
-    { messageCount: blockKitMessages.length },
-    'Sent block-kit messages'
-  )
+  await postMessages(client, blockKitMessages, 'block-kit')
 }
 
 export const HELP_TEXT = [
