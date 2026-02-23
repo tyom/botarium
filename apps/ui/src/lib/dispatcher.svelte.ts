@@ -20,6 +20,8 @@ import {
   setConnectedBots,
   addConnectedBot,
   markBotDisconnected,
+  setAssistantStatus,
+  clearAssistantStatus,
   restoreMessages,
   isBotUserId,
   setChannels,
@@ -309,6 +311,7 @@ function handleSSEEvent(event: {
     status: 'connecting' | 'connected' | 'disconnected'
   }
   botId?: string
+  status?: string
 }): void {
   switch (event.type) {
     case 'connected':
@@ -334,6 +337,13 @@ function handleSSEEvent(event: {
             channel: msg.channel,
             blocks: msg.blocks as SlackBlock[] | undefined,
           })
+          // Auto-clear assistant status when bot sends a message (mirrors real Slack)
+          const botId = msg.user.startsWith('U_')
+            ? msg.user.slice(2)
+            : undefined
+          if (botId) {
+            clearAssistantStatus(botId)
+          }
         }
       }
       break
@@ -451,6 +461,16 @@ function handleSSEEvent(event: {
       if (event.botId) {
         sseLogger.info(`Bot disconnected: ${event.botId}`)
         markBotDisconnected(event.botId)
+      }
+      break
+
+    case 'assistant_thread_status':
+      if (event.botId) {
+        if (event.status) {
+          setAssistantStatus(event.botId, event.status)
+        } else {
+          clearAssistantStatus(event.botId)
+        }
       }
       break
   }

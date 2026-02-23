@@ -111,6 +111,8 @@ export {
   setConnectedBots,
   addConnectedBot,
   markBotDisconnected,
+  setAssistantStatus,
+  clearAssistantStatus,
   isBotUserId,
   getBotByUserId,
 } from './state/bots.svelte'

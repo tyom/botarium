@@ -393,6 +393,7 @@ export interface SimulatorEvent {
     | 'bot_connecting' // WebSocket connected, waiting for config registration
     | 'bot_connected'
     | 'bot_disconnected'
+    | 'assistant_thread_status'
   message?: SlackMessage
   channel?: string
   user?: string
@@ -409,6 +410,8 @@ export interface SimulatorEvent {
   bot?: ConnectedBot
   botId?: string
   connectionId?: string // For bot_connecting events before bot is registered
+  // Assistant thread status
+  status?: string
 }
 
 // =============================================================================
