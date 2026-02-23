@@ -127,6 +127,12 @@
     return simulatorState.connectedBots.get(botId)
   })
 
+  let botsWithStatus = $derived(
+    Array.from(simulatorState.connectedBots.values()).filter(
+      (bot) => bot.assistantStatus
+    )
+  )
+
   // Save scroll position on every scroll event
   function handleScroll() {
     if (messagesContainer) {
@@ -149,11 +155,12 @@
     getChannelMessages(simulatorState.currentChannel).length
   )
 
-  // Restore scroll position on channel change, auto-scroll on new messages
+  // Restore scroll position on channel change, auto-scroll on new messages or status changes
   $effect(() => {
     const channel = simulatorState.currentChannel
     const currentCount = allMessagesCount
     const messagesLoaded = simulatorState.messagesLoaded
+    const _statusCount = botsWithStatus.length // Track status changes for reactivity
     const prevChannel = lastScrollState.channel
     const channelChanged = channel !== prevChannel && prevChannel
     const hasNewMessages = currentCount > lastScrollState.count
@@ -181,6 +188,15 @@
     })
 
     lastScrollState = { channel, count: currentCount }
+  })
+
+  // Auto-scroll when assistant status appears
+  let prevBotsWithStatusCount = 0
+  $effect(() => {
+    if (botsWithStatus.length > prevBotsWithStatusCount) {
+      tick().then(() => requestAnimationFrame(scrollToBottom))
+    }
+    prevBotsWithStatusCount = botsWithStatus.length
   })
 </script>
 
@@ -284,5 +300,38 @@
         />
       {/each}
     {/if}
+    {#each botsWithStatus as bot (bot.id)}
+      <div class="flex flex-col px-5 py-2">
+        <div class="flex gap-2">
+          <div
+            class="size-9 rounded-lg text-white flex items-center justify-center font-bold text-sm shrink-0 {bot.iconUrl
+              ? ''
+              : 'bg-slack-bot-avatar'}"
+          >
+            {#if bot.iconUrl}
+              <img
+                src={bot.iconUrl}
+                alt={bot.name}
+                class="size-9 rounded-lg object-cover"
+              />
+            {:else}
+              <Sparkles size={20} />
+            {/if}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-baseline gap-2 mb-1">
+              <span class="font-bold text-white">{bot.name}</span>
+              <span
+                class="bg-white/20 rounded px-0.5 text-[10px] text-white/60 uppercase tracking-wide align-middle"
+                >APP</span
+              >
+            </div>
+            <span class="text-slack-text-muted italic text-sm"
+              >{bot.assistantStatus}</span
+            >
+          </div>
+        </div>
+      </div>
+    {/each}
   </div>
 </div>

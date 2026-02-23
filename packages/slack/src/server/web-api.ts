@@ -261,6 +261,18 @@ export class SlackWebAPI {
         case '/api/files.info':
           return this.filesInfo(await this.getParams(req))
 
+        // Assistant API endpoints
+        case '/api/assistant.threads.setStatus':
+          return this.assistantThreadsSetStatus(
+            await this.parseBody(req),
+            token
+          )
+
+        case '/api/assistant.threads.setSuggestedPrompts':
+          return this.assistantThreadsSetSuggestedPrompts(
+            await this.parseBody(req)
+          )
+
         default:
           console.log('[Emulator] Unknown API method called:', path)
           return Response.json(
@@ -490,6 +502,9 @@ export class SlackWebAPI {
     const { channel, timestamp, name } = body
 
     if (!channel || !timestamp || !name) {
+      webApiLogger.warn(
+        `reactions.add: missing argument — channel=${channel}, timestamp=${timestamp}, name=${name}`
+      )
       return Response.json(
         { ok: false, error: 'missing_argument' },
         { headers: corsHeaders() }
@@ -500,6 +515,9 @@ export class SlackWebAPI {
     const success = this.state.addReaction(channel, timestamp, botInfo.id, name)
 
     if (!success) {
+      webApiLogger.warn(
+        `reactions.add: message not found — channel=${channel}, timestamp=${timestamp}`
+      )
       return Response.json(
         { ok: false, error: 'message_not_found' },
         { headers: corsHeaders() }
@@ -1006,6 +1024,50 @@ export class SlackWebAPI {
     )
   }
 
+  // ==========================================================================
+  // Assistant API Endpoints
+  // ==========================================================================
+
+  private assistantThreadsSetStatus(
+    body: { channel_id?: string; thread_ts?: string; status?: string },
+    token: string | null
+  ): Response {
+    const { channel_id, status } = body
+
+    if (!channel_id) {
+      return Response.json(
+        { ok: false, error: 'missing_argument' },
+        { headers: corsHeaders() }
+      )
+    }
+
+    const botId = this.extractBotIdFromToken(token)
+
+    this.state.emitEvent({
+      type: 'assistant_thread_status',
+      channel: channel_id,
+      status: status || undefined,
+      botId,
+    })
+
+    webApiLogger.debug(
+      `assistant.threads.setStatus: ${status || '(cleared)'} for bot ${botId}`
+    )
+    return Response.json({ ok: true }, { headers: corsHeaders() })
+  }
+
+  private assistantThreadsSetSuggestedPrompts(body: {
+    channel_id?: string
+    thread_ts?: string
+    prompts?: unknown[]
+    title?: string
+  }): Response {
+    webApiLogger.debug(
+      `assistant.threads.setSuggestedPrompts: ${body.title || '(no title)'}, ${body.prompts?.length ?? 0} prompt(s)`
+    )
+    return Response.json({ ok: true }, { headers: corsHeaders() })
+  }
+
   private filesInfo(params: URLSearchParams): Response {
     const fileId = params.get('file')
 
@@ -1261,53 +1323,73 @@ export class SlackWebAPI {
     }
     this.state.addMessage(message)
 
-    // Dispatch message event to all connected bots
-    // The bot decides whether to respond based on its own logic
-    await this.socketMode.dispatchMessageEvent(
-      channel,
-      user,
-      text,
-      ts,
-      thread_ts
-    )
+    // Return response immediately so the UI can store the message before
+    // any bot reactions arrive via SSE. Bot dispatch happens asynchronously.
+    const response: SimulatorUserMessageResponse = { ok: true, ts }
 
-    // Check if the message contains a mention of any connected bot
-    // If so, dispatch an app_mention event (like real Slack does)
-    const isIM = this.state.isDirectMessage(channel)
-    if (!isIM) {
-      const lowerText = text.toLowerCase()
-      const connectedBots = this.state.getBots()
+    void this.dispatchUserMessageToBots(channel, user, text, ts, thread_ts)
 
-      for (const bot of connectedBots) {
-        if (bot.status !== 'connected') continue
+    return Response.json(response, { headers: corsHeaders() })
+  }
 
-        const botName = bot.appConfig.app?.name?.toLowerCase()
-        const botId = bot.appConfig.app?.id?.toLowerCase()
+  /**
+   * Dispatch a user message to connected bots asynchronously.
+   * Sends the message event, then checks for @mentions and dispatches
+   * app_mention events as needed.
+   */
+  private async dispatchUserMessageToBots(
+    channel: string,
+    user: string,
+    text: string,
+    ts: string,
+    thread_ts?: string
+  ): Promise<void> {
+    try {
+      await this.socketMode.dispatchMessageEvent(
+        channel,
+        user,
+        text,
+        ts,
+        thread_ts
+      )
 
-        // Check for @mention or plain mention of either bot name or id
-        const isMentioned =
-          (botName &&
-            (lowerText.includes(`@${botName}`) ||
-              lowerText.includes(botName))) ||
-          (botId &&
-            (lowerText.includes(`@${botId}`) || lowerText.includes(botId)))
+      // Check if the message contains a mention of any connected bot
+      // If so, dispatch an app_mention event (like real Slack does)
+      const isIM = this.state.isDirectMessage(channel)
+      if (!isIM) {
+        const lowerText = text.toLowerCase()
+        const connectedBots = this.state.getBots()
 
-        if (isMentioned) {
-          await this.socketMode.dispatchAppMentionEvent(
-            channel,
-            user,
-            text,
-            ts,
-            thread_ts,
-            bot.id
-          )
-          break // Only dispatch once even if multiple bots are mentioned
+        for (const bot of connectedBots) {
+          if (bot.status !== 'connected') continue
+
+          const botName = bot.appConfig.app?.name?.toLowerCase()
+          const botId = bot.appConfig.app?.id?.toLowerCase()
+
+          // Check for @mention or plain mention of either bot name or id
+          const isMentioned =
+            (botName &&
+              (lowerText.includes(`@${botName}`) ||
+                lowerText.includes(botName))) ||
+            (botId &&
+              (lowerText.includes(`@${botId}`) || lowerText.includes(botId)))
+
+          if (isMentioned) {
+            await this.socketMode.dispatchAppMentionEvent(
+              channel,
+              user,
+              text,
+              ts,
+              thread_ts,
+              bot.id
+            )
+            break // Only dispatch once even if multiple bots are mentioned
+          }
         }
       }
+    } catch (err) {
+      webApiLogger.error({ err }, 'Failed to dispatch user message to bots')
     }
-
-    const response: SimulatorUserMessageResponse = { ok: true, ts }
-    return Response.json(response, { headers: corsHeaders() })
   }
 
   // ==========================================================================

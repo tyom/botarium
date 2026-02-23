@@ -583,4 +583,5 @@ export interface ConnectedBotInfo {
   shortcuts: Shortcut[]
   iconEmoji?: string
   iconUrl?: string
+  assistantStatus?: string
 }

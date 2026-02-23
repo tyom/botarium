@@ -140,6 +140,36 @@ export function markBotDisconnected(botId: string): void {
   }
 }
 
+// =============================================================================
+// Assistant Status State
+// =============================================================================
+
+// Set assistant status for a bot (e.g., "is thinking...")
+export function setAssistantStatus(botId: string, status: string): void {
+  const bot = simulatorState.connectedBots.get(botId)
+  if (bot) {
+    simulatorState.connectedBots.set(botId, {
+      ...bot,
+      assistantStatus: status,
+    })
+  }
+}
+
+// Clear assistant status for a bot
+export function clearAssistantStatus(botId: string): void {
+  const bot = simulatorState.connectedBots.get(botId)
+  if (bot && bot.assistantStatus) {
+    simulatorState.connectedBots.set(botId, {
+      ...bot,
+      assistantStatus: undefined,
+    })
+  }
+}
+
+// =============================================================================
+// Bot Identity Helpers
+// =============================================================================
+
 // Check if a user ID belongs to a bot
 // Bot user IDs follow the format U_{botId} (e.g., U_simple, U_my-bot)
 export function isBotUserId(userId: string): boolean {
