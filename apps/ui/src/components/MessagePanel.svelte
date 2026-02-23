@@ -191,10 +191,12 @@
   })
 
   // Auto-scroll when assistant status appears
+  let prevBotsWithStatusCount = 0
   $effect(() => {
-    if (botsWithStatus.length > 0) {
+    if (botsWithStatus.length > prevBotsWithStatusCount) {
       tick().then(() => requestAnimationFrame(scrollToBottom))
     }
+    prevBotsWithStatusCount = botsWithStatus.length
   })
 </script>
 

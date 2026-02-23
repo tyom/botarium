@@ -1046,7 +1046,7 @@ export class SlackWebAPI {
     this.state.emitEvent({
       type: 'assistant_thread_status',
       channel: channel_id,
-      status: status || '',
+      status: status || undefined,
       botId,
     })
 
