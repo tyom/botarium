@@ -4,8 +4,8 @@
  * This is the main file to customize bot responses.
  */
 {{#if isAi}}
-import { getModel, settings } from './settings'
-import { streamAIResponse } from './ai/stream'
+import { createRouter } from './ai/router'
+import { settings{{#if isDb}}, getModel{{/if}} } from './settings'
 {{/if}}
 {{#if isDb}}
 import { buildMemoryContext, extractAndSaveMemory } from './memory'
@@ -60,41 +60,44 @@ export const responseHandler: ResponseHandler = {
     }
 {{#if isAi}}
 
-    const model = getModel()
+    // Router returns complete text (not streamed). The AsyncIterable interface
+    // is preserved for listener compatibility.
 
-    // Apply history limit (0 = no history, capped at 100)
+    // Create a fresh router for this request (isolates model fallback state)
+    const router = createRouter()
+
+    // Build context from history
     const historyLimit = Math.min(settings.CONTEXT_HISTORY_LIMIT ?? 20, 100)
     const limitedHistory = historyLimit > 0
       ? context.history.slice(-historyLimit)
       : []
 
-    // Build messages from history
-    const messages = limitedHistory
+    const historyContext = limitedHistory
       .filter(m => m.content.trim())
-      .map(m => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      }))
+      .map(m => `${m.role}: ${m.content}`)
+      .join('\n')
 
-    // Add current message
-    messages.push({ role: 'user', content: message })
+    const prompt = historyContext
+      ? `Conversation history:\n${historyContext}\n\nUser: ${message}`
+      : message
 {{#if isDb}}
 
-    // Build enhanced system prompt with memory
-    const systemPrompt = await buildEnhancedSystemPrompt(this.systemPrompt ?? '', context)
+    // Build enhanced prompt with memory
+    const enhancedSystemPrompt = await buildEnhancedSystemPrompt(this.systemPrompt ?? '', context)
+    const enhancedPrompt = enhancedSystemPrompt
+      ? `${enhancedSystemPrompt}\n\n${prompt}`
+      : prompt
+    const result = await router.generate({ messages: [{ role: 'user', content: enhancedPrompt }] })
+{{else}}
+    const result = await router.generate({ messages: [{ role: 'user', content: prompt }] })
 {{/if}}
 
-    // Stream response from AI
-    yield* streamAIResponse({
-      model,
-      system: {{#if isDb}}systemPrompt{{else}}this.systemPrompt{{/if}},
-      messages,
-    })
+    yield result.text || 'Sorry, I could not generate a response.'
 {{#if isDb}}
 
     // Extract and save any memories from the user's message (fire and forget)
     extractAndSaveMemory({
-      model,
+      model: getModel(),
       message,
       history: context.history,
       userId: context.userId,
