@@ -33,6 +33,8 @@ export interface TemplateContext extends AdapterFlags {
   // Derived flags for conditionals
   isAi: boolean
   isDb: boolean
+  isObservability: boolean
+  isResilience: boolean
 }
 
 /**
@@ -52,6 +54,8 @@ export interface TemplateOptions {
   botName: string
   useAi: boolean
   dbAdapter: DbAdapter
+  useObservability: boolean
+  useResilience: boolean
 }
 
 /**
@@ -61,7 +65,7 @@ export interface TemplateOptions {
 export function createTemplateContext(
   options: TemplateOptions
 ): TemplateContext {
-  const { botName, useAi, dbAdapter } = options
+  const { botName, useAi, dbAdapter, useObservability, useResilience } = options
 
   // Auto-derive boolean flags for each adapter (except 'none')
   const adapterFlags = Object.fromEntries(
@@ -78,6 +82,8 @@ export function createTemplateContext(
     dbAdapter,
     isAi: useAi,
     isDb: dbAdapter !== 'none',
+    isObservability: useObservability,
+    isResilience: useResilience,
     ...adapterFlags,
   }
 }

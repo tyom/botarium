@@ -47,6 +47,8 @@ export interface ScaffoldOptions {
   template: BotTemplate
   useAi: boolean
   dbAdapter: DbAdapter
+  useObservability: boolean
+  useResilience: boolean
   targetDir?: string
   overwrite?: boolean
 }
@@ -87,6 +89,9 @@ function buildSkipRules(ctx: TemplateContext): SkipRules {
 
   // AI-dependent files (skip when AI is not enabled)
   fileExclusions.set('reactions.ts', (c) => !c.isAi)
+
+  // Replaced by @botarium/core/logging via setup.ts
+  fileExclusions.set('botarium-logger.ts', () => true)
 
   return { directories, filePrefixes, fileExclusions }
 }
@@ -240,6 +245,8 @@ export async function scaffold(options: ScaffoldOptions): Promise<string> {
     botName: options.botName,
     useAi: options.useAi,
     dbAdapter: options.dbAdapter,
+    useObservability: options.useObservability,
+    useResilience: options.useResilience,
   })
   const rules = buildSkipRules(ctx)
 

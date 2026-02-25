@@ -23,6 +23,8 @@ export interface UserSelections {
   template: BotTemplate
   useAi: boolean
   database: DbAdapter
+  useObservability: boolean
+  useResilience: boolean
   overwrite?: boolean
 }
 
@@ -32,6 +34,8 @@ export interface PartialSelections {
   useAi?: boolean
   database?: string
   provider?: string
+  useObservability?: boolean
+  useResilience?: boolean
 }
 
 function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {
@@ -54,6 +58,30 @@ function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {
       message: 'Bot template:',
       choices: getTemplateChoices(),
       initial: 0,
+    })
+  }
+
+  if (
+    partial.useObservability === undefined &&
+    partial.useResilience === undefined
+  ) {
+    questions.push({
+      type: 'multiselect',
+      name: 'features',
+      message: 'Production features:',
+      choices: [
+        {
+          title: 'Observability',
+          value: 'observability',
+          description: 'Tracing, metrics, health endpoint',
+        },
+        {
+          title: 'Resilience',
+          value: 'resilience',
+          description: 'Circuit breakers, error boundaries',
+        },
+      ],
+      hint: '- Space to select. Return to submit',
     })
   }
 
@@ -91,6 +119,12 @@ function mergeAnswers(
 ): UserSelections | null {
   const useAi = partial.useAi ?? answers.useAi ?? false
 
+  // Parse production features from multiselect
+  const features: string[] = answers.features ?? []
+  const useObservability =
+    partial.useObservability ?? features.includes('observability')
+  const useResilience = partial.useResilience ?? features.includes('resilience')
+
   // Get raw values
   const rawName = partial.name || answers.name
   const rawTemplate = partial.template || answers.template
@@ -113,6 +147,8 @@ function mergeAnswers(
     template,
     useAi,
     database,
+    useObservability,
+    useResilience,
   }
 }
 

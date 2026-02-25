@@ -34,6 +34,8 @@ export async function createBot(options: CreateBotOptions = {}): Promise<void> {
     template: options.template,
     useAi: options.useAi,
     database: options.database,
+    useObservability: options.useObservability,
+    useResilience: options.useResilience,
   })
 
   if (!selections) {
@@ -48,6 +50,8 @@ export async function createBot(options: CreateBotOptions = {}): Promise<void> {
     template: selections.template,
     useAi: selections.useAi,
     dbAdapter: selections.database,
+    useObservability: selections.useObservability,
+    useResilience: selections.useResilience,
     overwrite: selections.overwrite,
   })
 

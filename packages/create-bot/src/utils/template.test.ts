@@ -64,6 +64,8 @@ describe('createTemplateContext', () => {
       botName: 'test-bot',
       useAi: true,
       dbAdapter: 'none',
+      useObservability: false,
+      useResilience: false,
     })
 
     expect(ctx.botName).toBe('test-bot')
@@ -78,6 +80,8 @@ describe('createTemplateContext', () => {
       botName: 'db-bot',
       useAi: false,
       dbAdapter: 'sqlite',
+      useObservability: false,
+      useResilience: false,
     })
 
     expect(ctx.isAi).toBe(false)
@@ -91,6 +95,8 @@ describe('createTemplateContext', () => {
       botName: 'pg-bot',
       useAi: false,
       dbAdapter: 'postgres',
+      useObservability: false,
+      useResilience: false,
     })
 
     expect(ctx.isDb).toBe(true)
@@ -103,6 +109,8 @@ describe('createTemplateContext', () => {
       botName: 'simple-bot',
       useAi: false,
       dbAdapter: 'none',
+      useObservability: false,
+      useResilience: false,
     })
 
     expect(ctx.isAi).toBe(false)

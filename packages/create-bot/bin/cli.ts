@@ -10,6 +10,8 @@ const { values, positionals } = parseArgs({
     ai: { type: 'boolean' },
     'no-ai': { type: 'boolean' },
     database: { type: 'string' },
+    observability: { type: 'boolean' },
+    resilience: { type: 'boolean' },
     'skip-install': { type: 'boolean' },
     help: { type: 'boolean', short: 'h' },
   },
@@ -30,6 +32,8 @@ Options:
   -t, --template <type>   Bot template: slack (required)
   --ai, --no-ai           Enable or disable AI features
   --database <adapter>    Database adapter: sqlite | postgres
+  --observability         Enable observability (tracing, metrics, health)
+  --resilience            Enable resilience (circuit breakers, error boundaries)
   --skip-install          Skip running bun install
   --help, -h              Show this help message
 
@@ -37,6 +41,7 @@ Examples:
   bunx create-botarium my-bot -t slack
   bunx create-botarium my-bot -t slack --ai
   bunx create-botarium my-bot -t slack --ai --database sqlite
+  bunx create-botarium my-bot -t slack --observability --resilience
 `)
   process.exit(0)
 }
@@ -46,5 +51,7 @@ createBot({
   template: values.template,
   useAi,
   database: values.database,
+  useObservability: values.observability,
+  useResilience: values.resilience,
   skipInstall: values['skip-install'],
 })
