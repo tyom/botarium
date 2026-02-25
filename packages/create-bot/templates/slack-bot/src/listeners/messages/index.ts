@@ -13,7 +13,7 @@ import {
 import { responseHandler, type ThreadContext } from '../../response-handler'
 import { slackLogger } from '../../utils/logger'
 {{#if isAi}}
-import { getUserFriendlyErrorMessage } from '../../ai/error'
+import { getErrorMessage } from '../../utils/error'
 {{/if}}
 
 
@@ -122,7 +122,7 @@ async function processMessage(
 {{/if}}
     // Provide helpful error message based on error type
 {{#if isAi}}
-    const errorMessage = getUserFriendlyErrorMessage(error)
+    const errorMessage = getErrorMessage(error)
 {{else}}
     const errorMessage = 'Sorry, something went wrong!'
 {{/if}}

@@ -7,9 +7,9 @@
 
 import { config, type SettingSchema, type GroupDefinition } from './loader'
 import { appLogger } from '../utils/logger'
-{{~#if isObservability}}
+{{#if isObservability}}
 import { getHealthResponse } from '../setup'
-{{~/if}}
+{{/if}}
 
 export interface ConfigResponse {
   schema: {
@@ -98,11 +98,11 @@ export function startConfigServer() {
         }
 
         if (url.pathname === '/health') {
-{{~#if isObservability}}
+{{#if isObservability}}
           return Response.json(getHealthResponse(), { headers: corsHeaders })
-{{~else}}
+{{else}}
           return Response.json({ ok: true }, { headers: corsHeaders })
-{{~/if}}
+{{/if}}
         }
 
         return new Response('Not Found', { status: 404 })

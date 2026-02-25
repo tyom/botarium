@@ -12,9 +12,9 @@ import {
 import { responseHandler, type ThreadContext } from '../../response-handler'
 import { slackConfig } from '../../config/loader'
 import { slackLogger } from '../../utils/logger'
-{{~#if isResilience}}
+{{#if isResilience}}
 import { withErrorBoundary, breakerRegistry } from '../../setup'
-{{~/if}}
+{{/if}}
 
 type AppMentionArgs = AllMiddlewareArgs & SlackEventMiddlewareArgs<'app_mention'>
 
@@ -47,7 +47,7 @@ export async function appMention({ event, client, say }: AppMentionArgs) {
   }
 
   // Process asynchronously to ack within 3 seconds
-{{~#if isResilience}}
+{{#if isResilience}}
   withErrorBoundary(
     'slack-handler',
     () => processMention({{#if isAi}}client, {{/if}}say, event, text, threadTs),
@@ -59,11 +59,11 @@ export async function appMention({ event, client, say }: AppMentionArgs) {
   }).catch(err => {
     slackLogger.error({ err }, 'Unhandled error in processMention')
   })
-{{~else}}
+{{else}}
   processMention({{#if isAi}}client, {{/if}}say, event, text, threadTs).catch(err => {
     slackLogger.error({ err }, 'Unhandled error in processMention')
   })
-{{~/if}}
+{{/if}}
 }
 
 async function processMention(

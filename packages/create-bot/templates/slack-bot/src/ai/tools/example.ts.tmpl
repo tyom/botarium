@@ -4,17 +4,17 @@
  * Demonstrates:
  * - AI SDK tool definition with typed input schema
  * - Structured result pattern (success/failure)
-{{~#if isResilience}}
+{{#if isResilience}}
  * - Error boundary integration for resilience
-{{~/if}}
+{{/if}}
  */
 import { tool } from 'ai'
 import { z } from 'zod'
 import { success, failure } from '../../utils/tools'
-{{~#if isResilience}}
+{{#if isResilience}}
 import { withErrorBoundary } from '@botarium/resilience'
 import { breakerRegistry } from '../../setup'
-{{~/if}}
+{{/if}}
 
 async function executeExample(input: { query: string }) {
   // Replace with your actual tool logic
@@ -27,7 +27,7 @@ export const exampleTool = tool({
   parameters: z.object({
     query: z.string().describe('The query to process'),
   }),
-{{~#if isResilience}}
+{{#if isResilience}}
   execute: async (input) => {
     // Error boundary wraps the tool call with circuit breaker protection
     const result = await withErrorBoundary(
@@ -40,7 +40,7 @@ export const exampleTool = tool({
     }
     return failure(result.error.message)
   },
-{{~else}}
+{{else}}
   execute: async (input) => executeExample(input),
-{{~/if}}
+{{/if}}
 })

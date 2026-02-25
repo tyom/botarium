@@ -119,6 +119,13 @@ function wrapPinoAsLogger(pinoLogger: pino.Logger): Logger {
         pinoLogger.error(objOrMsg, msg!)
       }
     },
+    fatal(objOrMsg: Record<string, unknown> | string, msg?: string) {
+      if (typeof objOrMsg === 'string') {
+        pinoLogger.fatal(objOrMsg)
+      } else {
+        pinoLogger.fatal(objOrMsg, msg!)
+      }
+    },
     debug(objOrMsg: Record<string, unknown> | string, msg?: string) {
       if (typeof objOrMsg === 'string') {
         pinoLogger.debug(objOrMsg)

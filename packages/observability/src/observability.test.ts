@@ -37,6 +37,11 @@ function createMockLogger() {
         logs.push({ level: 'error', msg: objOrMsg })
       else logs.push({ level: 'error', obj: objOrMsg, msg: msg! })
     },
+    fatal: (objOrMsg: any, msg?: string) => {
+      if (typeof objOrMsg === 'string')
+        logs.push({ level: 'fatal', msg: objOrMsg })
+      else logs.push({ level: 'fatal', obj: objOrMsg, msg: msg! })
+    },
     child: () => logger,
   }
   return { logger, logs }

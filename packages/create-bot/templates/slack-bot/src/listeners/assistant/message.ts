@@ -17,9 +17,9 @@ interface ThreadMessage {
 {{/if}}
 import { responseHandler, type ThreadContext } from '../../response-handler'
 import { slackLogger } from '../../utils/logger'
-{{~#if isResilience}}
+{{#if isResilience}}
 import { withErrorBoundary, breakerRegistry } from '../../setup'
-{{~/if}}
+{{/if}}
 
 
 export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
@@ -105,7 +105,7 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
       thread_ts,
     })
 
-{{~#if isResilience}}
+{{#if isResilience}}
     const generateResult = await withErrorBoundary(
       'slack-handler',
       async () => {
@@ -125,14 +125,14 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
       slackLogger.error({ error: generateResult.error }, 'Error boundary caught failure in assistant message')
       await say({ text: 'Sorry, something went wrong!', thread_ts })
     }
-{{~else}}
+{{else}}
     for await (const chunk of responseHandler.generateResponse(
       message.text,
       threadContext
     )) {
       await streamer.append({ markdown_text: chunk })
     }
-{{~/if}}
+{{/if}}
 
 {{#if isAi}}
     // Remove thinking and add checkmark for AI responses

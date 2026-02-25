@@ -9,6 +9,8 @@ export interface Logger {
   warn(obj: Record<string, unknown>, msg: string): void
   error(msg: string): void
   error(obj: Record<string, unknown>, msg: string): void
+  fatal(msg: string): void
+  fatal(obj: Record<string, unknown>, msg: string): void
   debug(msg: string): void
   debug(obj: Record<string, unknown>, msg: string): void
   child(bindings: { module: string }): Logger
