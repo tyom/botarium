@@ -1,1 +1,1 @@
-export { getErrorMessage, formatUserError } from '@botarium/core/errors'
+export { getErrorMessage, formatUserError } from 'botarium/errors'

@@ -90,7 +90,7 @@ function buildSkipRules(ctx: TemplateContext): SkipRules {
   // AI-dependent files (skip when AI is not enabled)
   fileExclusions.set('reactions.ts', (c) => !c.isAi)
 
-  // Replaced by @botarium/core/logging via setup.ts
+  // Replaced by botarium/logging via setup.ts
   fileExclusions.set('botarium-logger.ts', () => true)
 
   return { directories, filePrefixes, fileExclusions }

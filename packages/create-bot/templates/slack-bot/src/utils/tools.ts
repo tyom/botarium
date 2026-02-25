@@ -4,8 +4,8 @@ export {
   type ToolResult,
   type ToolSuccess,
   type ToolError,
-} from '@botarium/core/utils'
-import { getErrorMessage } from '@botarium/core/errors'
+} from 'botarium/utils'
+import { getErrorMessage } from 'botarium/errors'
 import { createToolLogger } from './logger'
 
 /**
