@@ -1,4 +1,9 @@
-export { safeParse, safeParseJson, type SafeParseOptions } from './safe-parse'
+export {
+  safeParse,
+  safeParseJson,
+  type SafeParseOptions,
+  type SafeParseSchema,
+} from './safe-parse'
 export {
   success,
   failure,

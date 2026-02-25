@@ -1,4 +1,12 @@
-import type { z } from 'zod'
+/**
+ * Duck-typed schema interface compatible with both Zod v3 and v4.
+ * Only requires the `safeParse` method that we actually call.
+ */
+export interface SafeParseSchema<T> {
+  safeParse(
+    data: unknown
+  ): { success: true; data: T } | { success: false; error: { message: string } }
+}
 
 export interface SafeParseOptions {
   /** Optional context string for error reporting */
@@ -18,7 +26,7 @@ export interface SafeParseOptions {
  */
 export function safeParse<T>(
   input: string | null | undefined,
-  schema: z.ZodType<T>,
+  schema: SafeParseSchema<T>,
   fallback: T,
   options?: SafeParseOptions
 ): T {
