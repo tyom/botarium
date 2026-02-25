@@ -4,7 +4,7 @@ import {
   DB_ADAPTERS,
   type BotTemplate,
   type DbAdapter,
-} from './template'
+} from 'create-botarium'
 
 /**
  * Display metadata for prompt choices.

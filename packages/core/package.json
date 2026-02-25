@@ -48,12 +48,10 @@
   ],
   "scripts": {
     "build": "bun build ./src/index.ts ./src/plugins/index.ts ./src/errors/index.ts ./src/logging/index.ts ./src/utils/index.ts --outdir ./dist --target node --splitting",
-    "dev": "bun run bin/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },
   "dependencies": {
-    "create-botarium": "workspace:*",
     "pino": "^10.1.0",
     "pino-pretty": "^13.1.3"
   },

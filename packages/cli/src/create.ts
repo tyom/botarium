@@ -1,10 +1,10 @@
 import path from 'path'
+import { scaffold } from 'create-botarium'
 import {
   promptForSelections,
   type PartialSelections,
   type UserSelections,
 } from './prompts'
-import { scaffold } from './scaffold'
 import { installDependenciesWithOutput } from './utils/install'
 import {
   printHeader,

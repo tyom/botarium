@@ -1,4 +1,4 @@
-import type { BotTemplate, DbAdapter } from './template'
+import type { BotTemplate, DbAdapter } from 'create-botarium'
 
 /**
  * Environment variable configurations by template and feature.

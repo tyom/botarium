@@ -1,0 +1,31 @@
+{
+  "name": "@botarium/cli",
+  "version": "0.1.0",
+  "description": "Botarium CLI - create and manage bot projects",
+  "type": "module",
+  "license": "MIT",
+  "author": "Tyom Semonov",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tyom/botarium",
+    "directory": "packages/cli"
+  },
+  "bin": {
+    "botarium": "./bin/cli.ts"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "create-botarium": "workspace:*",
+    "picocolors": "^1.1.1",
+    "prompts": "^2.4.2"
+  },
+  "devDependencies": {
+    "@types/prompts": "^2.4.9"
+  }
+}

@@ -2,13 +2,11 @@ import prompts from 'prompts'
 import {
   validateBotNameForPrompts,
   checkTargetDirectory,
-} from './utils/validate'
-import {
   BOT_TEMPLATES,
   DB_ADAPTERS,
   type BotTemplate,
   type DbAdapter,
-} from './utils/template'
+} from 'create-botarium'
 import {
   getTemplateChoices,
   getAiMemoryChoices,

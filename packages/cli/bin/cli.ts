@@ -58,7 +58,7 @@ Examples:
 
 // Handle create subcommand
 if (positionals[0] === 'create') {
-  const { createBot } = await import('create-botarium')
+  const { createBot } = await import('../src/create')
   await createBot({
     name: positionals[1],
     template: values.template,
