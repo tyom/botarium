@@ -145,6 +145,15 @@ const DEFAULT_MODELS: Record<string, string> = {
   openrouter: 'anthropic/claude-sonnet-4.5',
 }
 
+// Fallback models per provider (used by agent prepareStep when primary model fails)
+// Operators can override via MODEL_FAST environment variable
+const FALLBACK_MODELS: Record<string, string> = {
+  openai: 'gpt-5.2-mini',
+  anthropic: 'claude-haiku-4',
+  google: 'gemini-3-flash-preview',
+  openrouter: 'anthropic/claude-haiku-4',
+}
+
 // AI Model helper
 export function getModel() {
   const provider = settings.AI_PROVIDER || 'openai'
@@ -166,6 +175,32 @@ export function getModel() {
     apiKeyMap[provider as keyof typeof apiKeyMap] ?? apiKeyMap.openai
   if (!apiKeyInfo.key) {
     throw new Error(`Missing ${apiKeyInfo.name} for provider "${provider}". Set ${apiKeyInfo.name} in your environment.`)
+  }
+
+  switch (provider) {
+    case 'anthropic':
+      return anthropic(modelId)
+    case 'google':
+      return google(modelId)
+    case 'openrouter':
+      return createOpenRouter({ apiKey: settings.OPENROUTER_API_KEY })(modelId)
+    case 'openai':
+    default:
+      return openai(modelId)
+  }
+}
+
+/**
+ * Get the fallback model for the current provider.
+ * Used by agent prepareStep when the primary model fails or after retries.
+ * Operators can override via MODEL_FAST environment variable.
+ */
+export function getFallbackModel() {
+  const provider = settings.AI_PROVIDER || 'openai'
+  const modelId = settings.MODEL_FAST || FALLBACK_MODELS[provider]
+
+  if (!modelId) {
+    throw new Error(`No fallback model configured for provider "${provider}". Set MODEL_FAST in your environment.`)
   }
 
   switch (provider) {
