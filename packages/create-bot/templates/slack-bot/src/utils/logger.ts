@@ -1,8 +1,4 @@
-import { createBotariumLogger } from './botarium-logger'
-import type pino from 'pino'
-import { settings } from '../settings'
-
-export const logger = createBotariumLogger({ level: settings.LOG_LEVEL })
+import { logger, getToolLogger } from '../setup'
 
 export type ModuleName =
   | 'App'
@@ -13,7 +9,7 @@ export type ModuleName =
   | 'Preferences'
   | `Tool:${string}`
 
-export function createLogger(module: ModuleName): pino.Logger {
+export function createLogger(module: ModuleName) {
   return logger.child({ module })
 }
 
@@ -24,11 +20,11 @@ export const dbLogger = createLogger('DB')
 export const memoryLogger = createLogger('Memory')
 export const preferencesLogger = createLogger('Preferences')
 
-const toolLoggers = new Map<string, pino.Logger>()
+const toolLoggers = new Map()
 
-export function createToolLogger(toolName: string): pino.Logger {
+export function createToolLogger(toolName: string) {
   if (!toolLoggers.has(toolName)) {
-    toolLoggers.set(toolName, logger.child({ module: `Tool:${toolName}` }))
+    toolLoggers.set(toolName, getToolLogger(toolName))
   }
   return toolLoggers.get(toolName)!
 }

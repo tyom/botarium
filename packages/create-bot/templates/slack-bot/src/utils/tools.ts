@@ -1,24 +1,17 @@
-import { getErrorMessage } from './error'
+export {
+  success,
+  failure,
+  type ToolResult,
+  type ToolSuccess,
+  type ToolError,
+} from '@botarium/core/utils'
+import { getErrorMessage } from '@botarium/core/errors'
 import { createToolLogger } from './logger'
-
-export type ToolSuccess<T = Record<string, unknown>> = { success: true } & T
-export type ToolError = { success: false; error: string }
-export type ToolResult<T = Record<string, unknown>> = ToolSuccess<T> | ToolError
-
-export function success<T extends Record<string, unknown>>(
-  data: T
-): ToolSuccess<T> {
-  return { success: true, ...data }
-}
-
-export function failure(error: string): ToolError {
-  return { success: false, error }
-}
 
 /**
  * Wraps a tool execute function with logging and error handling.
  */
-export function withToolLogging<TInput, TOutput extends ToolResult>(
+export function withToolLogging<TInput, TOutput extends { success: boolean; error?: string }>(
   toolName: string,
   logInput: (input: TInput) => string,
   fn: (input: TInput) => Promise<TOutput>
@@ -38,7 +31,7 @@ export function withToolLogging<TInput, TOutput extends ToolResult>(
     } catch (error) {
       const message = getErrorMessage(error)
       log.error({ err: error }, `Failed: ${message}`)
-      return failure(message) as TOutput
+      return { success: false, error: message } as TOutput
     }
   }
 }
