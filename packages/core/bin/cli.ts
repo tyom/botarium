@@ -19,6 +19,8 @@ const { values, positionals } = parseArgs({
     database: { type: 'string' },
     platform: { type: 'string' },
     port: { type: 'string' },
+    observability: { type: 'boolean' },
+    resilience: { type: 'boolean' },
     help: { type: 'boolean', short: 'h' },
   },
   allowPositionals: true,
@@ -37,6 +39,8 @@ Options:
   -t, --template <type>  Bot template: slack (required for create)
   --provider <name>      AI provider: openai, anthropic, google
   --database <type>      Database adapter: none, sqlite, postgres
+  --observability        Enable observability (tracing, metrics, health)
+  --resilience           Enable resilience (circuit breakers, error boundaries)
   --platform <name>      Platform plugin to use (e.g., slack)
   --port <number>        Port to run emulator on (default: platform-specific)
   --help, -h             Show this help message
@@ -44,6 +48,7 @@ Options:
 Examples:
   botarium create my-bot -t slack
   botarium create my-bot --template slack --provider anthropic
+  botarium create my-bot -t slack --observability --resilience
   botarium --platform slack
   botarium --platform slack --port 8080
   botarium package
@@ -59,6 +64,8 @@ if (positionals[0] === 'create') {
     template: values.template,
     provider: values.provider,
     database: values.database,
+    useObservability: values.observability,
+    useResilience: values.resilience,
   })
   process.exit(0)
 }

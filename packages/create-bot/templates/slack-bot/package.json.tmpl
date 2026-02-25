@@ -15,18 +15,18 @@
     "db:studio": "drizzle-kit studio"{{/if}}
   },
   "dependencies": {
-    "botarium": "0.1.0",
+    "botarium": "workspace:*",
     "@slack/bolt": "^4.6.0",
     "@slack/types": "^2.19.0",
     "@slack/web-api": "^7.13.0",
     "zod": "^4.3.5"
     {{~#if isObservability~}}
     ,
-    "@botarium/observability": "0.1.0"
+    "@botarium/observability": "workspace:*"
     {{~/if}}
     {{~#if isResilience~}}
     ,
-    "@botarium/resilience": "0.1.0"
+    "@botarium/resilience": "workspace:*"
     {{~/if}}
     {{~#if isAi~}}
     ,
