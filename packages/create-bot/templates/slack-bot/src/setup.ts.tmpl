@@ -3,33 +3,33 @@
  * Edit this file to customize logging, tracing, metrics, and resilience.
  */
 import { createBotariumLogger, createToolLogger } from 'botarium/logging'
-{{~#if isObservability}}
+{{#if isObservability}}
 import {
   runWithTrace, getTraceId, getTraceContext,
   createMetricsCollector, buildHealthResponse,
 } from '@botarium/observability'
-{{~/if}}
-{{~#if isResilience}}
+{{/if}}
+{{#if isResilience}}
 import {
   createBreakerRegistry,
   withErrorBoundary,
 } from '@botarium/resilience'
-{{~/if}}
+{{/if}}
 import { settings } from './settings'
 
 // --- Logger ---
 export const logger = createBotariumLogger({
   level: settings.LOG_LEVEL,
-{{~#if isObservability}}
+{{#if isObservability}}
   // Inject trace ID into every log line automatically
   mixin: () => {
     const traceId = getTraceId()
     return traceId ? { traceId } : {}
   },
-{{~/if}}
+{{/if}}
 })
 export const getToolLogger = createToolLogger(logger)
-{{~#if isObservability}}
+{{#if isObservability}}
 
 // --- Metrics ---
 export const metrics = createMetricsCollector()
@@ -40,17 +40,17 @@ export { runWithTrace, getTraceId, getTraceContext }
 // --- Health ---
 export function getHealthResponse() {
   return buildHealthResponse({
-{{~#if isResilience}}
+{{#if isResilience}}
     getBreakerStates: () => breakerRegistry.getStates(),
-{{~/if}}
+{{/if}}
   })
 }
-{{~/if}}
-{{~#if isResilience}}
+{{/if}}
+{{#if isResilience}}
 
 // --- Circuit Breakers ---
 export const breakerRegistry = createBreakerRegistry({
-{{~#if isObservability}}
+{{#if isObservability}}
   // Wire breaker events to metrics collector
   onSuccess: ({ service, duration }) => {
     metrics.record(service, duration)
@@ -59,8 +59,8 @@ export const breakerRegistry = createBreakerRegistry({
     metrics.recordError(service)
     metrics.record(service, duration)
   },
-{{~/if}}
+{{/if}}
 })
 
 export { withErrorBoundary }
-{{~/if}}
+{{/if}}
