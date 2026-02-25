@@ -1,7 +1,7 @@
-import type { App } from '@slack/bolt'
-import type { GenericMessageEvent } from '@slack/types'
+import type { AllMiddlewareArgs, App, types } from '@slack/bolt'
+
+type GenericMessageEvent = types.GenericMessageEvent
 {{#if isAi}}
-import type { WebClient } from '@slack/web-api'
 import {
   shouldShowReactions,
   addThinkingReaction,
@@ -54,7 +54,7 @@ export function register(app: App) {
 
 async function processMessage(
 {{#if isAi}}
-  client: WebClient,
+  client: AllMiddlewareArgs['client'],
 {{/if}}
   say: (msg: string | { text: string; thread_ts?: string }) => Promise<unknown>,
   text: string,

@@ -1,7 +1,5 @@
 import type { AllMiddlewareArgs, SlackEventMiddlewareArgs } from '@slack/bolt'
-import type { AppMentionEvent } from '@slack/types'
 {{#if isAi}}
-import type { WebClient } from '@slack/web-api'
 import {
   addThinkingReaction,
   completeReactions,
@@ -56,7 +54,7 @@ export async function appMention({ event, client, say }: AppMentionArgs) {
     if (!result.success) {
       slackLogger.error({ error: result.error }, 'Error boundary caught failure in app_mention')
     }
-  }).catch(err => {
+  }).catch((err: unknown) => {
     slackLogger.error({ err }, 'Unhandled error in processMention')
   })
 {{else}}
@@ -68,10 +66,10 @@ export async function appMention({ event, client, say }: AppMentionArgs) {
 
 async function processMention(
 {{#if isAi}}
-  client: WebClient,
+  client: AppMentionArgs['client'],
 {{/if}}
   say: (msg: { text: string; thread_ts: string }) => Promise<unknown>,
-  event: AppMentionEvent,
+  event: AppMentionArgs['event'],
   text: string,
   threadTs: string
 ) {

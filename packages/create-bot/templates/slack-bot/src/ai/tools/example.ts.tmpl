@@ -24,7 +24,7 @@ async function executeExample(input: { query: string }) {
 
 export const exampleTool = tool({
   description: 'An example tool. Copy this pattern to add more tools.',
-  parameters: z.object({
+  inputSchema: z.object({
     query: z.string().describe('The query to process'),
   }),
 {{#if isResilience}}
@@ -36,9 +36,9 @@ export const exampleTool = tool({
       { registry: breakerRegistry }
     )
     if (result.success) {
-      return result.value
+      return result.data
     }
-    return failure(result.error.message)
+    return failure(result.error)
   },
 {{else}}
   execute: async (input) => executeExample(input),

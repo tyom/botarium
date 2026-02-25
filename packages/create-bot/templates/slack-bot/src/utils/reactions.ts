@@ -3,8 +3,10 @@
  *
  * Provides consistent "thinking" and "done" reaction handling across handlers.
  */
-import type { WebClient } from '@slack/web-api'
+import type { AllMiddlewareArgs } from '@slack/bolt'
 import { slackLogger } from './logger'
+
+type WebClient = AllMiddlewareArgs['client']
 
 // Non-AI commands that don't need thinking/done reactions
 const NON_AI_COMMANDS = ['ping']
@@ -32,7 +34,7 @@ export async function addThinkingReaction(ctx: ReactionContext): Promise<void> {
       timestamp: ctx.timestamp,
       name: 'thinking_face',
     })
-    .catch((err) =>
+    .catch((err: unknown) =>
       slackLogger.error({ err }, 'Failed to add thinking reaction')
     )
 }
@@ -49,7 +51,7 @@ export async function removeThinkingReaction(
       timestamp: ctx.timestamp,
       name: 'thinking_face',
     })
-    .catch((err) =>
+    .catch((err: unknown) =>
       slackLogger.error({ err }, 'Failed to remove thinking reaction')
     )
 }
@@ -64,7 +66,7 @@ export async function addDoneReaction(ctx: ReactionContext): Promise<void> {
       timestamp: ctx.timestamp,
       name: 'white_check_mark',
     })
-    .catch((err) =>
+    .catch((err: unknown) =>
       slackLogger.error({ err }, 'Failed to add checkmark reaction')
     )
 }

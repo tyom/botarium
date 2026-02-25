@@ -22,7 +22,7 @@ Always delegate to exactly one specialist. Do not answer directly.`
  */
 const delegateToExample = tool({
   description: 'Delegate to the example specialist for general queries and demonstrations.',
-  parameters: z.object({
+  inputSchema: z.object({
     request: z.string().describe('The user request to delegate'),
   }),
   execute: async ({ request }) => {

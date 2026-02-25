@@ -36,8 +36,8 @@ export function createAgent(options: {
       }
       return {}
     },
-    onStepFinish: async ({ error }) => {
-      if (error) {
+    onStepFinish: async ({ finishReason }) => {
+      if (finishReason === 'error') {
         useFallback = true
       }
     },

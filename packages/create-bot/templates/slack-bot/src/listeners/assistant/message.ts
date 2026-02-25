@@ -1,6 +1,5 @@
 import type { AssistantUserMessageMiddleware } from '@slack/bolt'
 {{#if isAi}}
-import type { MessageElement } from '@slack/web-api/dist/types/response/ConversationsRepliesResponse'
 import {
   shouldShowReactions,
   addThinkingReaction,
@@ -8,13 +7,13 @@ import {
   removeThinkingOnError,
   type ReactionContext,
 } from '../../utils/reactions'
-{{else}}
+{{/if}}
+
 interface ThreadMessage {
   bot_id?: string
   text?: string
   ts?: string
 }
-{{/if}}
 import { responseHandler, type ThreadContext } from '../../response-handler'
 import { slackLogger } from '../../utils/logger'
 {{#if isResilience}}
@@ -74,17 +73,10 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
 
     // Build thread context for the response handler
     // Filter out the current message to prevent duplication
-{{#if isAi}}
-    const threadMessages = (thread.messages ?? []).filter(
-      (m: MessageElement) => m.ts !== messageTs
-    )
-    const history = threadMessages.map((m: MessageElement) => ({
-{{else}}
     const threadMessages = (thread.messages ?? []).filter(
       (m: ThreadMessage) => m.ts !== messageTs
     )
     const history = threadMessages.map((m: ThreadMessage) => ({
-{{/if}}
         role: (m.bot_id ? 'assistant' : 'user') as 'user' | 'assistant',
         content: m.text || '',
       }))
@@ -111,7 +103,7 @@ export const assistantUserMessage: AssistantUserMessageMiddleware = async ({
       async () => {
         let response = ''
         for await (const chunk of responseHandler.generateResponse(
-          message.text,
+          message.text!,
           threadContext
         )) {
           await streamer!.append({ markdown_text: chunk })
