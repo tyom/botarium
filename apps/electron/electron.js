@@ -203,7 +203,7 @@ function getEmulatorConfig() {
   if (useDevServer) {
     // Dev mode: run the Slack plugin's server directly
     // The server/index.ts has `if (import.meta.main)` to run when executed directly
-    const slackPackageDir = path.join(appRoot, '..', '..', 'packages', 'slack')
+    const slackPackageDir = path.join(appRoot, '..', 'slack-emulator')
     return {
       type: 'bun',
       bunPath: 'bun',
