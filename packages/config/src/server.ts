@@ -14,8 +14,8 @@ export interface ConfigServerOptions {
   getHealthResponse?: () => unknown
   /** Optional logger (pino-compatible info/warn) */
   logger?: {
-    info: (...args: unknown[]) => void
-    warn: (...args: unknown[]) => void
+    info: (obj: Record<string, unknown>, msg: string) => void
+    warn: (obj: Record<string, unknown>, msg: string) => void
   }
 }
 

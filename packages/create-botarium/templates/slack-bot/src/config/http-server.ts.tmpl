@@ -1,118 +1,29 @@
 /**
- * HTTP server for /config endpoint
+ * HTTP server for /config and /health endpoints
  *
  * Exposes bot configuration schema for the simulator's Settings UI.
  * Runs alongside Slack Bolt (which uses socket mode).
  */
 
-import { config, type SettingSchema, type GroupDefinition } from './loader'
+import { createConfigServer, buildConfigResponse } from '@botarium/config'
+import { config } from './loader'
 import { appLogger } from '../utils/logger'
 {{#if isObservability}}
 import { getHealthResponse } from '../setup'
 {{/if}}
 
-export interface ConfigResponse {
-  schema: {
-    settings: Record<string, SettingSchema>
-    groups: GroupDefinition[]
-    model_tiers: Record<string, Record<string, string[]>>
-  }
-  values: Record<string, unknown>
-  envOverrides: string[]
-}
-
-/**
- * Build the config response, excluding secret values
- */
-function getConfigResponse(): ConfigResponse {
-  const values: Record<string, unknown> = {}
-  const settingsSchema: Record<string, SettingSchema> = {}
-  const envOverrides: string[] = []
-
-  // Get list of vars injected by emulator (not user-set in .env)
-  const injectedVars = new Set(
-    (process.env._EMULATOR_INJECTED_VARS || '').split(',').filter(Boolean)
-  )
-
-  for (const [key, def] of Object.entries(config.settings)) {
-    // Always include schema
-    settingsSchema[key] = def.schema
-
-    // Track which settings have values set via environment variables
-    // Exclude vars that were auto-injected by the emulator (not from user's .env)
-    if (def.env && process.env[def.env] && !injectedVars.has(def.env)) {
-      envOverrides.push(key)
-    }
-
-    // Include values for non-secrets
-    // For secrets, include value only if set via env var (for env override display)
-    if (def.schema.type === 'secret') {
-      // Only expose secret value if it comes from env (for env override indicator)
-      values[key] = def.env && process.env[def.env] ? process.env[def.env] : ''
-    } else if (def.env) {
-      // Value comes from env var
-      values[key] = process.env[def.env] ?? def.value ?? ''
-    } else {
-      values[key] = def.value ?? ''
-    }
-  }
-
-  return {
-    schema: {
-      settings: settingsSchema,
-      groups: config.groups,
-      model_tiers: {},
-    },
-    values,
-    envOverrides,
-  }
-}
+export type { ConfigResponse } from '@botarium/config'
 
 /**
  * Start the config HTTP server on a random available port
  * Returns the server instance with its actual port, or null if failed
  */
 export function startConfigServer() {
-  try {
-    const server = Bun.serve({
-      port: 0, // Let OS pick an available port
-      hostname: '127.0.0.1', // Explicit IPv4 for Electron compatibility
-      async fetch(req) {
-        const url = new URL(req.url)
-
-        // CORS preflight
-        if (req.method === 'OPTIONS') {
-          return new Response(null, {
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, OPTIONS',
-              'Access-Control-Allow-Headers': 'Content-Type',
-            },
-          })
-        }
-
-        const corsHeaders = { 'Access-Control-Allow-Origin': '*' }
-
-        if (url.pathname === '/config') {
-          return Response.json(getConfigResponse(), { headers: corsHeaders })
-        }
-
-        if (url.pathname === '/health') {
+  return createConfigServer({
+    getConfigResponse: () => buildConfigResponse(config),
 {{#if isObservability}}
-          return Response.json(getHealthResponse(), { headers: corsHeaders })
-{{else}}
-          return Response.json({ ok: true }, { headers: corsHeaders })
+    getHealthResponse,
 {{/if}}
-        }
-
-        return new Response('Not Found', { status: 404 })
-      },
-    })
-
-    appLogger.info({ port: server.port }, 'Config server started')
-    return server
-  } catch (error) {
-    appLogger.warn({ error }, 'Failed to start config server (non-fatal)')
-    return null
-  }
+    logger: appLogger,
+  })
 }
