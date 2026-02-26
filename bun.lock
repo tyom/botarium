@@ -106,6 +106,15 @@
         "@types/prompts": "^2.4.9",
       },
     },
+    "packages/config": {
+      "name": "@botarium/config",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@arethetypeswrong/cli": "latest",
+        "tsup": "^8.5.1",
+        "typescript": "^5",
+      },
+    },
     "packages/core": {
       "name": "botarium",
       "version": "0.1.0",
@@ -174,6 +183,8 @@
     "@botarium/block-kit": ["@botarium/block-kit@workspace:packages/block-kit"],
 
     "@botarium/cli": ["@botarium/cli@workspace:packages/cli"],
+
+    "@botarium/config": ["@botarium/config@workspace:packages/config"],
 
     "@botarium/electron": ["@botarium/electron@workspace:apps/electron"],
 
