@@ -182,11 +182,7 @@ describe('createConfigServer', () => {
 
   it('starts and returns a server instance with a port', () => {
     server = createConfigServer({
-      getConfigResponse: () => ({
-        schema: { settings: {}, groups: [], model_tiers: {} },
-        values: {},
-        envOverrides: [],
-      }),
+      config: createMinimalConfig(),
     })
 
     expect(server).not.toBeNull()
@@ -194,24 +190,16 @@ describe('createConfigServer', () => {
   })
 
   it('GET /config returns 200 with ConfigResponse shape', async () => {
-    const mockResponse = {
-      schema: {
+    server = createConfigServer({
+      config: createMinimalConfig({
         settings: {
           bot_name: {
-            type: 'string' as const,
-            label: 'Bot',
-            group: 'g',
+            value: 'Test',
+            schema: { type: 'string', label: 'Bot', group: 'g' },
           },
         },
         groups: [{ id: 'g', label: 'General', order: 1 }],
-        model_tiers: {},
-      },
-      values: { bot_name: 'Test' },
-      envOverrides: [] as string[],
-    }
-
-    server = createConfigServer({
-      getConfigResponse: () => mockResponse,
+      }),
     })
 
     const res = await fetch(`http://127.0.0.1:${server!.port}/config`)
@@ -226,11 +214,7 @@ describe('createConfigServer', () => {
 
   it('GET /health returns 200 with custom health data', async () => {
     server = createConfigServer({
-      getConfigResponse: () => ({
-        schema: { settings: {}, groups: [], model_tiers: {} },
-        values: {},
-        envOverrides: [],
-      }),
+      config: createMinimalConfig(),
       getHealthResponse: () => ({
         status: 'healthy',
         timestamp: new Date().toISOString(),
@@ -248,11 +232,7 @@ describe('createConfigServer', () => {
 
   it('GET /health returns 503 when unhealthy', async () => {
     server = createConfigServer({
-      getConfigResponse: () => ({
-        schema: { settings: {}, groups: [], model_tiers: {} },
-        values: {},
-        envOverrides: [],
-      }),
+      config: createMinimalConfig(),
       getHealthResponse: () => ({
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
@@ -267,11 +247,7 @@ describe('createConfigServer', () => {
 
   it('GET /health returns { ok: true } when no health callback provided', async () => {
     server = createConfigServer({
-      getConfigResponse: () => ({
-        schema: { settings: {}, groups: [], model_tiers: {} },
-        values: {},
-        envOverrides: [],
-      }),
+      config: createMinimalConfig(),
     })
 
     const res = await fetch(`http://127.0.0.1:${server!.port}/health`)
@@ -283,11 +259,7 @@ describe('createConfigServer', () => {
 
   it('GET /unknown returns 404', async () => {
     server = createConfigServer({
-      getConfigResponse: () => ({
-        schema: { settings: {}, groups: [], model_tiers: {} },
-        values: {},
-        envOverrides: [],
-      }),
+      config: createMinimalConfig(),
     })
 
     const res = await fetch(`http://127.0.0.1:${server!.port}/unknown`)
@@ -296,11 +268,7 @@ describe('createConfigServer', () => {
 
   it('includes CORS headers on responses', async () => {
     server = createConfigServer({
-      getConfigResponse: () => ({
-        schema: { settings: {}, groups: [], model_tiers: {} },
-        values: {},
-        envOverrides: [],
-      }),
+      config: createMinimalConfig(),
     })
 
     const res = await fetch(`http://127.0.0.1:${server!.port}/config`)

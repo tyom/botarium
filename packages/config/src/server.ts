@@ -5,11 +5,12 @@
  * Callers provide the response-building functions; this module just wires up routes.
  */
 
-import type { ConfigResponse } from './types.ts'
+import { buildConfigResponse } from './response.ts'
+import type { ConfigFile } from './types.ts'
 
 export interface ConfigServerOptions {
-  /** Returns the config response for /config endpoint */
-  getConfigResponse: () => ConfigResponse
+  /** Bot configuration to serve on /config endpoint */
+  config: ConfigFile
   /** Returns the health response for /health endpoint. If omitted, returns { ok: true } */
   getHealthResponse?: () => unknown
   /** Optional logger (pino-compatible info/warn) */
@@ -32,7 +33,7 @@ export interface ConfigServerOptions {
 export function createConfigServer(
   options: ConfigServerOptions
 ): ReturnType<typeof Bun.serve> | null {
-  const { getConfigResponse, getHealthResponse, logger } = options
+  const { config, getHealthResponse, logger } = options
 
   try {
     const server = Bun.serve({
@@ -55,7 +56,9 @@ export function createConfigServer(
         const corsHeaders = { 'Access-Control-Allow-Origin': '*' }
 
         if (url.pathname === '/config') {
-          return Response.json(getConfigResponse(), { headers: corsHeaders })
+          return Response.json(buildConfigResponse(config), {
+            headers: corsHeaders,
+          })
         }
 
         if (url.pathname === '/health') {
