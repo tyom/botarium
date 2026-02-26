@@ -1,6 +1,5 @@
 import { describe, test, expect } from 'bun:test'
 import { createBotariumLogger, createToolLogger } from './index'
-import type { Logger } from './types'
 
 /**
  * Helper: create a capture stream that collects written chunks.

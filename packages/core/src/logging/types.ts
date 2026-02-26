@@ -2,17 +2,17 @@
  * Package-owned Logger interface.
  * Internally backed by pino, but consumers code against this type — never import pino types.
  */
+export type LogMethod = {
+  (msg: string): void
+  (obj: Record<string, unknown>, msg: string): void
+}
+
 export interface Logger {
-  info(msg: string): void
-  info(obj: Record<string, unknown>, msg: string): void
-  warn(msg: string): void
-  warn(obj: Record<string, unknown>, msg: string): void
-  error(msg: string): void
-  error(obj: Record<string, unknown>, msg: string): void
-  fatal(msg: string): void
-  fatal(obj: Record<string, unknown>, msg: string): void
-  debug(msg: string): void
-  debug(obj: Record<string, unknown>, msg: string): void
+  info: LogMethod
+  warn: LogMethod
+  error: LogMethod
+  fatal: LogMethod
+  debug: LogMethod
   child(bindings: { module: string }): Logger
 }
 

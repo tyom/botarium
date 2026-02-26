@@ -4,7 +4,7 @@ import { createMetricsCollector } from './metrics'
 import { timed } from './timing'
 import { buildHealthResponse } from './health'
 import type { TraceContext } from './types'
-import type { Logger } from 'botarium/logging'
+import type { LogMethod, Logger } from 'botarium/logging'
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -16,32 +16,20 @@ const UUID_REGEX =
 function createMockLogger() {
   const logs: { level: string; obj?: Record<string, unknown>; msg: string }[] =
     []
+
+  function logMethod(level: string): LogMethod {
+    return ((objOrMsg: Record<string, unknown> | string, msg?: string) => {
+      if (typeof objOrMsg === 'string') logs.push({ level, msg: objOrMsg })
+      else logs.push({ level, obj: objOrMsg, msg: msg ?? '' })
+    }) as LogMethod
+  }
+
   const logger: Logger = {
-    debug: (objOrMsg: any, msg?: string) => {
-      if (typeof objOrMsg === 'string')
-        logs.push({ level: 'debug', msg: objOrMsg })
-      else logs.push({ level: 'debug', obj: objOrMsg, msg: msg! })
-    },
-    warn: (objOrMsg: any, msg?: string) => {
-      if (typeof objOrMsg === 'string')
-        logs.push({ level: 'warn', msg: objOrMsg })
-      else logs.push({ level: 'warn', obj: objOrMsg, msg: msg! })
-    },
-    info: (objOrMsg: any, msg?: string) => {
-      if (typeof objOrMsg === 'string')
-        logs.push({ level: 'info', msg: objOrMsg })
-      else logs.push({ level: 'info', obj: objOrMsg, msg: msg! })
-    },
-    error: (objOrMsg: any, msg?: string) => {
-      if (typeof objOrMsg === 'string')
-        logs.push({ level: 'error', msg: objOrMsg })
-      else logs.push({ level: 'error', obj: objOrMsg, msg: msg! })
-    },
-    fatal: (objOrMsg: any, msg?: string) => {
-      if (typeof objOrMsg === 'string')
-        logs.push({ level: 'fatal', msg: objOrMsg })
-      else logs.push({ level: 'fatal', obj: objOrMsg, msg: msg! })
-    },
+    debug: logMethod('debug'),
+    warn: logMethod('warn'),
+    info: logMethod('info'),
+    error: logMethod('error'),
+    fatal: logMethod('fatal'),
     child: () => logger,
   }
   return { logger, logs }
@@ -116,7 +104,7 @@ describe('trace context', () => {
     runWithTrace({ channel: 'C1' }, () => {
       const ctx = getTraceContext()!
       expect(() => {
-        ;(ctx.metadata as any).newField = 'x'
+        ;(ctx.metadata as Record<string, unknown>).newField = 'x'
       }).toThrow()
     })
   })
@@ -125,9 +113,9 @@ describe('trace context', () => {
     runWithTrace({ channel: 'C1' }, () => {
       const ctx = getTraceContext()!
       // Slack-specific fields are NOT own properties of TraceContext
-      expect((ctx as any).channel).toBeUndefined()
-      expect((ctx as any).user).toBeUndefined()
-      expect((ctx as any).team).toBeUndefined()
+      expect('channel' in ctx).toBe(false)
+      expect('user' in ctx).toBe(false)
+      expect('team' in ctx).toBe(false)
       // Domain-specific fields live in the metadata bag
       expect(ctx.metadata.channel).toBe('C1')
     })
