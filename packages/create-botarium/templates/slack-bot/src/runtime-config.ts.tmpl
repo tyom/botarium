@@ -8,7 +8,7 @@
  *   - schema: metadata for UI generation
  */
 
-import rawConfig from '../../config.yaml'
+import rawConfig from '../config.yaml'
 import type {
   FieldType,
   SelectOption,
@@ -23,7 +23,7 @@ import type {
   ConfigFile,
 } from '@botarium/config'
 
-// Re-export types so downstream bot code can import from './config/loader'
+// Re-export types so downstream bot code can import from './runtime-config'
 export type {
   FieldType,
   SelectOption,

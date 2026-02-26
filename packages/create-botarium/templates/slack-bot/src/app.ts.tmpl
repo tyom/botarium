@@ -1,8 +1,11 @@
 import { App, LogLevel } from '@slack/bolt'
 import { registerListeners } from './listeners/index'
 import { settings, isSimulatorMode{{#if isAi}}, reloadSettings{{/if}} } from './settings'
-import { startConfigServer } from './config/http-server'
-import { slackConfig, config } from './config/loader'
+import { createConfigServer } from '@botarium/config'
+import { slackConfig, config } from './runtime-config'
+{{#if isObservability}}
+import { getHealthResponse } from './setup'
+{{/if}}
 import { appLogger, slackLogger } from './utils/logger'
 
 // Simulator tokens for local mode - unique per bot to enable multi-bot support
@@ -13,7 +16,7 @@ const SIMULATOR_APP_TOKEN = `xapp-${config.simulator.id}`
 let hasConnectedOnce = false
 
 // Config server (set when server starts in simulator mode)
-let configServer: ReturnType<typeof startConfigServer>
+let configServer: ReturnType<typeof createConfigServer>
 let configServerPort: number | undefined
 
 /**
@@ -194,7 +197,11 @@ async function main() {
 
   // Start config server for simulator (uses random port)
   if (isSimulatorMode) {
-    configServer = startConfigServer()
+    configServer = createConfigServer({
+      config,
+      {{#if isObservability}}getHealthResponse,{{/if}}
+      logger: appLogger,
+    })
     if (configServer) {
       configServerPort = configServer.port
     }

@@ -8,7 +8,7 @@ import {
 } from '../../utils/reactions'
 {{/if}}
 import { responseHandler, type ThreadContext } from '../../response-handler'
-import { slackConfig } from '../../config/loader'
+import { slackConfig } from '../../runtime-config'
 import { slackLogger } from '../../utils/logger'
 {{#if isResilience}}
 import { withErrorBoundary, breakerRegistry } from '../../setup'
