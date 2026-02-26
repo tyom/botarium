@@ -18,11 +18,7 @@
   "files": [
     "dist"
   ],
-  "devDependencies": {
-    "tsup": "^8.5.1",
-    "typescript": "^5",
-    "@arethetypeswrong/cli": "latest"
-  },
+  "devDependencies": {},
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
