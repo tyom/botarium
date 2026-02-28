@@ -25,7 +25,7 @@ bun run format           # Prettier (write)
 bun run cli create       # Scaffold a new bot interactively
 ```
 
-Run the emulator standalone: `bun run packages/slack/src/server/index.ts`
+Run the emulator standalone: `bun run apps/slack-emulator/src/server/index.ts`
 
 ## Architecture
 
@@ -34,12 +34,12 @@ Bun monorepo with workspaces in `apps/` and `packages/`.
 ### Packages
 
 - **`packages/core`** — Plugin system and CLI entry point. Defines the `BotariumPlugin` interface that platform plugins implement (`createEmulator`, `defaultPort`, `envVarName`). Currently, only Slack is implemented, but the design supports adding other platforms.
-- **`packages/slack`** — Slack API emulator. A Bun HTTP + WebSocket server that implements Slack Web API endpoints, Socket Mode protocol, SSE event broadcasting to the frontend, and optional SQLite persistence. Key files: `server/state.ts` (in-memory state), `server/web-api.ts` (API handlers), `server/socket-mode.ts` (WebSocket protocol), `server/persistence.ts` (SQLite).
 - **`packages/mrkdwn`** — Bidirectional converters: Slack mrkdwn to HTML (for rendering in UI) and Markdown to mrkdwn (for AI responses). Uses `marked` for Markdown parsing.
 - **`packages/create-bot`** — CLI tool (`create-botarium`) that scaffolds new bots via Handlebars templates in `templates/`.
 
 ### Apps
 
+- **`apps/slack-emulator`** — Slack API emulator. A Bun HTTP + WebSocket server that implements Slack Web API endpoints, Socket Mode protocol, SSE event broadcasting to the frontend, and optional SQLite persistence. Key files: `server/state.ts` (in-memory state), `server/web-api.ts` (API handlers), `server/socket-mode.ts` (WebSocket protocol), `server/persistence.ts` (SQLite).
 - **`apps/ui`** — Svelte 5 + Tailwind CSS 4 chat interface. Uses Svelte 5 runes (`$state`, `$derived`, `$effect`) for reactivity. Key state files: `lib/state.svelte.ts` (reactive UI state), `lib/dispatcher.svelte.ts` (SSE connection to emulator, API calls), `lib/backend-state.svelte.ts` (Electron IPC bridge). Uses `$lib` path alias for `src/lib/`.
 - **`apps/electron`** — Desktop wrapper. Manages emulator and bot child processes, provides IPC for settings (encrypted via OS keychain), and bundles everything into a native app.
 

@@ -1,0 +1,32 @@
+{
+  "name": "@botarium/slack-emulator",
+  "version": "0.1.0",
+  "description": "Slack API emulator for Botarium",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "author": "Tyom Semonov",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tyom/botarium",
+    "directory": "apps/slack-emulator"
+  },
+  "keywords": [
+    "slack",
+    "bot",
+    "emulator",
+    "simulator",
+    "botarium"
+  ],
+  "scripts": {
+    "emulator": "bun run src/server/index.ts",
+    "emulator:shared": "bun --env-file=../../.env.shared run src/server/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pino": "^10.1.0"
+  },
+  "devDependencies": {
+    "pino-pretty": "^13.1.3"
+  }
+}

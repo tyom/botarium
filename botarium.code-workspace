@@ -4,24 +4,12 @@
       "path": ".",
     },
     {
-      "path": "apps/ui",
-      "name": "UI",
-    },
-    {
       "path": "apps/electron",
       "name": "Electron",
     },
     {
       "path": "packages/core",
       "name": "Core",
-    },
-    {
-      "path": "packages/slack",
-      "name": "Slack",
-    },
-    {
-      "path": "packages/create-bot",
-      "name": "Create Bot",
     },
   ],
   "settings": {},
@@ -92,7 +80,7 @@
       {
         "label": "Emulator",
         "hide": true,
-        "command": "bun run --filter @botarium/slack emulator",
+        "command": "bun run --filter @botarium/slack-emulator emulator",
         "type": "shell",
         "isBackground": true,
         "problemMatcher": [],
@@ -103,7 +91,7 @@
       {
         "label": "Emulator Shared",
         "hide": true,
-        "command": "bun run --filter @botarium/slack emulator:shared",
+        "command": "bun run --filter @botarium/slack-emulator emulator:shared",
         "type": "shell",
         "isBackground": true,
         "problemMatcher": [],

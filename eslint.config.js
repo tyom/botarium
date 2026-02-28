@@ -19,7 +19,7 @@ export default tseslint.config(
       'build',
       '**/build',
       // Handlebars templates - not valid TypeScript
-      'packages/create-bot/templates/**',
+      'packages/create-botarium/templates/**',
       'tmp/**',
     ],
   },
@@ -44,7 +44,7 @@ export default tseslint.config(
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'error',
     },
   },
   {

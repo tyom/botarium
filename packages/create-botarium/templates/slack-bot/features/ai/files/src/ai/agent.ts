@@ -1,0 +1,50 @@
+/**
+ * Agent factory — creates ToolLoopAgent instances with model fallback.
+ *
+ * Uses prepareStep to switch to a fallback model after failed retries.
+ * Create per-request to isolate fallback state between concurrent users.
+ */
+import { ToolLoopAgent, stepCountIs } from 'ai'
+import type { ToolSet } from 'ai'
+import { getModel, getFallbackModel } from '../settings'
+import { chatLogger } from '../utils/logger'
+
+const MAX_STEPS = 5
+
+/**
+ * Create a new agent for handling a single request.
+ *
+ * A fresh agent is created per-request because the mutable `useFallback`
+ * flag must be isolated — sharing it across concurrent requests would
+ * leak fallback state between users.
+ */
+export function createAgent(options: {
+  tools?: ToolSet
+  instructions: string
+}) {
+  let useFallback = false
+
+  return new ToolLoopAgent({
+    model: getModel(),
+    instructions: options.instructions,
+    tools: options.tools ?? {},
+    stopWhen: stepCountIs(MAX_STEPS),
+    prepareStep: async ({ stepNumber }) => {
+      // After 2 attempts, fall back to a different model
+      if (useFallback || stepNumber > 2) {
+        if (!useFallback) {
+          chatLogger.warn('Switching to fallback model')
+        }
+        useFallback = true
+        return { model: getFallbackModel() }
+      }
+      return {}
+    },
+    onStepFinish: async ({ stepNumber, finishReason }) => {
+      chatLogger.debug({ stepNumber, finishReason }, 'Agent step completed')
+      if (finishReason === 'error') {
+        useFallback = true
+      }
+    },
+  })
+}

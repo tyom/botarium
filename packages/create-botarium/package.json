@@ -1,0 +1,31 @@
+{
+  "name": "create-botarium",
+  "version": "0.1.0",
+  "description": "Botarium scaffolding library",
+  "type": "module",
+  "license": "MIT",
+  "author": "Tyom Semonov",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tyom/botarium",
+    "directory": "packages/create-botarium"
+  },
+  "keywords": [
+    "botarium",
+    "slack",
+    "bot",
+    "create",
+    "scaffold"
+  ],
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "templates"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test ./src/"
+  }
+}
