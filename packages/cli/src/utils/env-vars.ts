@@ -1,4 +1,4 @@
-import type { BotTemplate, DbAdapter } from 'create-botarium'
+import type { BotTemplate } from 'create-botarium'
 
 /**
  * Environment variable configurations by template and feature.
@@ -18,15 +18,9 @@ const AI_ENV_VARS = [
   'OPENROUTER_API_KEY',
 ] as const
 
-// Database adapter env vars
-const DB_ADAPTER_ENV_VARS: Partial<Record<DbAdapter, readonly string[]>> = {
-  postgres: ['DATABASE_URL'],
-}
-
 export interface EnvVarRequirements {
   templateVars: readonly string[]
   aiVars: readonly string[]
-  dbVars: readonly string[]
   hasAny: boolean
 }
 
@@ -36,18 +30,15 @@ export interface EnvVarRequirements {
 export function getRequiredEnvVars(options: {
   template: BotTemplate
   useAi: boolean
-  dbAdapter: DbAdapter
 }): EnvVarRequirements {
-  const { template, useAi, dbAdapter } = options
+  const { template, useAi } = options
 
   const templateVars = TEMPLATE_ENV_VARS[template] ?? []
   const aiVars = useAi ? AI_ENV_VARS : []
-  const dbVars = DB_ADAPTER_ENV_VARS[dbAdapter] ?? []
 
   return {
     templateVars,
     aiVars,
-    dbVars,
-    hasAny: templateVars.length > 0 || aiVars.length > 0 || dbVars.length > 0,
+    hasAny: templateVars.length > 0 || aiVars.length > 0,
   }
 }

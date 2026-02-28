@@ -1,10 +1,5 @@
 import type { Choice } from 'prompts'
-import {
-  BOT_TEMPLATES,
-  DB_ADAPTERS,
-  type BotTemplate,
-  type DbAdapter,
-} from 'create-botarium'
+import { BOT_TEMPLATES, type BotTemplate } from 'create-botarium'
 
 /**
  * Display metadata for prompt choices.
@@ -19,16 +14,6 @@ const TEMPLATE_DISPLAY: Record<
   slack: { title: 'Slack', description: 'Slack bot using Bolt SDK' },
 }
 
-// Database display info
-const DATABASE_DISPLAY: Record<
-  DbAdapter,
-  { title: string; description?: string }
-> = {
-  none: { title: 'None' },
-  sqlite: { title: 'SQLite', description: 'Recommended for getting started' },
-  postgres: { title: 'PostgreSQL' },
-}
-
 /**
  * Build choices array for prompts library from source of truth arrays.
  */
@@ -41,35 +26,12 @@ export function getTemplateChoices(): Choice[] {
   }))
 }
 
-export function getDatabaseChoices(): Choice[] {
-  return DB_ADAPTERS.map((value) => ({
-    value,
-    title: DATABASE_DISPLAY[value].title,
-    description: DATABASE_DISPLAY[value].description,
-  }))
-}
-
-export function getAiMemoryChoices(): Choice[] {
-  return [
-    {
-      value: 'sqlite',
-      title: 'Yes',
-      description: 'Remember facts and preferences across conversations',
-    },
-    { value: 'none', title: 'No' },
-  ]
-}
-
 /**
  * Validation helpers that work with the source of truth arrays.
  */
 
 export function isValidTemplate(value: string): value is BotTemplate {
   return (BOT_TEMPLATES as readonly string[]).includes(value)
-}
-
-export function isValidDatabase(value: string): value is DbAdapter {
-  return (DB_ADAPTERS as readonly string[]).includes(value)
 }
 
 /**

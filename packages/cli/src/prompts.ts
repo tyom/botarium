@@ -3,24 +3,14 @@ import {
   validateBotNameForPrompts,
   checkTargetDirectory,
   BOT_TEMPLATES,
-  DB_ADAPTERS,
   type BotTemplate,
-  type DbAdapter,
 } from 'create-botarium'
-import {
-  getTemplateChoices,
-  getAiMemoryChoices,
-  validateOption,
-} from './utils/prompt-options'
-
-// Re-export types for convenience
-export type { BotTemplate, DbAdapter }
+import { getTemplateChoices, validateOption } from './utils/prompt-options'
 
 export interface UserSelections {
   name: string
   template: BotTemplate
   useAi: boolean
-  database: DbAdapter
   useObservability: boolean
   useResilience: boolean
   overwrite?: boolean
@@ -30,7 +20,6 @@ export interface PartialSelections {
   name?: string
   template?: string
   useAi?: boolean
-  database?: string
   provider?: string
   useObservability?: boolean
   useResilience?: boolean
@@ -94,20 +83,6 @@ function buildQuestions(partial: PartialSelections): prompts.PromptObject[] {
     })
   }
 
-  if (!partial.database) {
-    // Only show AI memory option when AI is enabled
-    questions.push({
-      type: (_prev, answers) => {
-        const aiEnabled = partial.useAi ?? answers.useAi
-        return aiEnabled ? 'select' : null // null skips the question
-      },
-      name: 'database',
-      message: 'Enable AI Memory?',
-      choices: getAiMemoryChoices(),
-      initial: 0,
-    })
-  }
-
   return questions
 }
 
@@ -126,10 +101,9 @@ function mergeAnswers(
   // Get raw values
   const rawName = partial.name || answers.name
   const rawTemplate = partial.template || answers.template
-  const rawDatabase = partial.database || answers.database || 'none' // Default to 'none' when skipped
 
   // Validate required fields exist
-  if (!rawName || !rawTemplate || !rawDatabase) {
+  if (!rawName || !rawTemplate) {
     return null
   }
 
@@ -137,14 +111,10 @@ function mergeAnswers(
   const template = validateOption(rawTemplate, BOT_TEMPLATES, 'template')
   if (!template) return null
 
-  const database = validateOption(rawDatabase, DB_ADAPTERS, 'database')
-  if (!database) return null
-
   return {
     name: rawName,
     template,
     useAi,
-    database,
     useObservability,
     useResilience,
   }

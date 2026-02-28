@@ -16,7 +16,6 @@ const { values, positionals } = parseArgs({
   options: {
     template: { type: 'string', short: 't' },
     provider: { type: 'string' },
-    database: { type: 'string' },
     platform: { type: 'string' },
     port: { type: 'string' },
     observability: { type: 'boolean' },
@@ -38,7 +37,6 @@ Usage:
 Options:
   -t, --template <type>  Bot template: slack (required for create)
   --provider <name>      AI provider: openai, anthropic, google
-  --database <type>      Database adapter: none, sqlite, postgres
   --observability        Enable observability (tracing, metrics, health)
   --resilience           Enable resilience (circuit breakers, error boundaries)
   --platform <name>      Platform plugin to use (e.g., slack)
@@ -63,7 +61,6 @@ if (positionals[0] === 'create') {
     name: positionals[1],
     template: values.template,
     provider: values.provider,
-    database: values.database,
     useObservability: values.observability,
     useResilience: values.resilience,
   })

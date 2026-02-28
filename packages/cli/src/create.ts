@@ -33,7 +33,6 @@ export async function createBot(options: CreateBotOptions = {}): Promise<void> {
     name: options.name,
     template: options.template,
     useAi: options.useAi,
-    database: options.database,
     useObservability: options.useObservability,
     useResilience: options.useResilience,
   })
@@ -49,7 +48,6 @@ export async function createBot(options: CreateBotOptions = {}): Promise<void> {
     botName: selections.name,
     template: selections.template,
     useAi: selections.useAi,
-    dbAdapter: selections.database,
     useObservability: selections.useObservability,
     useResilience: selections.useResilience,
     overwrite: selections.overwrite,
@@ -87,7 +85,6 @@ function printEnvVarInstructions(selections: UserSelections): void {
   const envVars = getRequiredEnvVars({
     template: selections.template,
     useAi: selections.useAi,
-    dbAdapter: selections.database,
   })
 
   printSectionHeader('Required environment variables:')
@@ -97,10 +94,6 @@ function printEnvVarInstructions(selections: UserSelections): void {
   }
 
   for (const varName of envVars.aiVars) {
-    printEnvVar(varName)
-  }
-
-  for (const varName of envVars.dbVars) {
     printEnvVar(varName)
   }
 
