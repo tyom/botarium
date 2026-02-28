@@ -1,5 +1,3 @@
-import Handlebars from 'handlebars'
-
 // Single source of truth for available options
 export const BOT_TEMPLATES = ['slack'] as const
 export const AI_PROVIDERS = [
@@ -8,88 +6,57 @@ export const AI_PROVIDERS = [
   'google',
   'openrouter',
 ] as const
-export const DB_ADAPTERS = ['none', 'sqlite', 'postgres'] as const
 
 // Derive types from const arrays
 export type BotTemplate = (typeof BOT_TEMPLATES)[number]
 export type AiProvider = (typeof AI_PROVIDERS)[number]
-export type DbAdapter = (typeof DB_ADAPTERS)[number]
 
-// Helper types for derived boolean flags
-type AdapterFlags = Record<
-  `is${Capitalize<Exclude<DbAdapter, 'none'>>}`,
-  boolean
->
-
-export interface TemplateContext extends AdapterFlags {
-  // Bot configuration
+export interface TemplateVars {
   botName: string // e.g., "my-bot"
   botNamePascal: string // e.g., "MyBot"
   packageName: string // e.g., "my-bot"
-
-  // Selections
-  dbAdapter: DbAdapter
-
-  // Derived flags for conditionals
-  isAi: boolean
-  isDb: boolean
-  isObservability: boolean
-  isResilience: boolean
 }
 
 /**
- * Process template content using Handlebars.
- *
- * Syntax:
- * - {{name}} - Variable replacement
- * - {{#if condition}}...{{/if}} - Conditional blocks
- * - {{~#if condition}}...{{~/if}} - Conditional with whitespace trimming
+ * Create template variables from bot name.
  */
-export function processTemplate(content: string, ctx: TemplateContext): string {
-  const template = Handlebars.compile(content, { noEscape: true })
-  return template(ctx)
-}
-
-export interface TemplateOptions {
-  botName: string
-  useAi: boolean
-  dbAdapter: DbAdapter
-  useObservability: boolean
-  useResilience: boolean
-}
-
-/**
- * Create template context from user selections.
- * Boolean flags are auto-derived from adapter values.
- */
-export function createTemplateContext(
-  options: TemplateOptions
-): TemplateContext {
-  const { botName, useAi, dbAdapter, useObservability, useResilience } = options
-
-  // Auto-derive boolean flags for each adapter (except 'none')
-  const adapterFlags = Object.fromEntries(
-    DB_ADAPTERS.filter((a) => a !== 'none').map((a) => [
-      `is${capitalize(a)}`,
-      dbAdapter === a,
-    ])
-  ) as Record<`is${Capitalize<Exclude<DbAdapter, 'none'>>}`, boolean>
-
+export function createTemplateVars(botName: string): TemplateVars {
   return {
     botName,
     botNamePascal: toPascalCase(botName),
     packageName: toPackageName(botName),
-    dbAdapter,
-    isAi: useAi,
-    isDb: dbAdapter !== 'none',
-    isObservability: useObservability,
-    isResilience: useResilience,
-    ...adapterFlags,
   }
 }
 
-function capitalize<T extends string>(str: T): Capitalize<T> {
-  return (str.charAt(0).toUpperCase() + str.slice(1)) as Capitalize<T>
+/** File extensions eligible for variable interpolation. */
+const INTERPOLATABLE_EXTENSIONS = new Set(['.ts', '.json', '.md', '.yaml'])
+
+/** Full file names eligible for variable interpolation. */
+const INTERPOLATABLE_NAMES = new Set(['.env.example'])
+
+/**
+ * Check whether a file should have `{{ var }}` placeholders replaced.
+ */
+export function isInterpolatable(filePath: string): boolean {
+  const ext = filePath.slice(filePath.lastIndexOf('.'))
+  if (INTERPOLATABLE_EXTENSIONS.has(ext)) {
+    return true
+  }
+  const basename = filePath.slice(
+    Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\')) + 1
+  )
+  return INTERPOLATABLE_NAMES.has(basename)
+}
+
+/**
+ * Simple `{{ var }}` replacement — no template engine required.
+ * Unknown variables are preserved as-is.
+ */
+export function interpolate(content: string, vars: TemplateVars): string {
+  return content.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, key: string) => {
+    const value = vars[key as keyof TemplateVars]
+    return value !== undefined ? value : match
+  })
 }
 
 export function toPascalCase(str: string): string {

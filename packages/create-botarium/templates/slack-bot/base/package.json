@@ -1,0 +1,24 @@
+{
+  "name": "{{ packageName }}",
+  "version": "0.1.0",
+  "description": "{{ botName }} Slack bot",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/app.ts",
+    "dev": "bun --watch run src/app.ts",
+    "dev:local": "SLACK_API_URL=http://localhost:7557 bun --watch run src/app.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "botarium": "workspace:*",
+    "@botarium/slack": "workspace:*",
+    "@slack/bolt": "^4.6.0",
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}

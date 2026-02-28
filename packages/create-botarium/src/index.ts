@@ -1,17 +1,15 @@
-export { scaffold, cleanJson, type ScaffoldOptions } from './scaffold'
+export { scaffold, type ScaffoldOptions, type FeatureName } from './scaffold'
 export {
   BOT_TEMPLATES,
-  DB_ADAPTERS,
   AI_PROVIDERS,
-  processTemplate,
-  createTemplateContext,
+  interpolate,
+  createTemplateVars,
+  isInterpolatable,
   toPascalCase,
   toPackageName,
   type BotTemplate,
   type AiProvider,
-  type DbAdapter,
-  type TemplateContext,
-  type TemplateOptions,
+  type TemplateVars,
 } from './utils/template'
 export {
   validateBotName,

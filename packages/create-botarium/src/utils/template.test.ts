@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test'
-import { toPascalCase, toPackageName, createTemplateContext } from './template'
+import {
+  toPascalCase,
+  toPackageName,
+  createTemplateVars,
+  interpolate,
+  isInterpolatable,
+} from './template'
 
 describe('toPascalCase', () => {
   test('converts hyphenated string', () => {
@@ -58,64 +64,92 @@ describe('toPackageName', () => {
   })
 })
 
-describe('createTemplateContext', () => {
-  test('creates context with AI enabled', () => {
-    const ctx = createTemplateContext({
-      botName: 'test-bot',
-      useAi: true,
-      dbAdapter: 'none',
-      useObservability: false,
-      useResilience: false,
-    })
+describe('createTemplateVars', () => {
+  test('creates vars from bot name', () => {
+    const vars = createTemplateVars('test-bot')
 
-    expect(ctx.botName).toBe('test-bot')
-    expect(ctx.botNamePascal).toBe('TestBot')
-    expect(ctx.packageName).toBe('test-bot')
-    expect(ctx.isAi).toBe(true)
-    expect(ctx.isDb).toBe(false)
+    expect(vars.botName).toBe('test-bot')
+    expect(vars.botNamePascal).toBe('TestBot')
+    expect(vars.packageName).toBe('test-bot')
   })
 
-  test('creates context with database enabled', () => {
-    const ctx = createTemplateContext({
-      botName: 'db-bot',
-      useAi: false,
-      dbAdapter: 'sqlite',
-      useObservability: false,
-      useResilience: false,
-    })
+  test('derives pascal case and package name', () => {
+    const vars = createTemplateVars('My Cool Bot')
 
-    expect(ctx.isAi).toBe(false)
-    expect(ctx.isDb).toBe(true)
-    expect(ctx.isSqlite).toBe(true)
-    expect(ctx.isPostgres).toBe(false)
+    expect(vars.botName).toBe('My Cool Bot')
+    expect(vars.botNamePascal).toBe('MyCoolBot')
+    expect(vars.packageName).toBe('my-cool-bot')
+  })
+})
+
+describe('interpolate', () => {
+  test('replaces known variables', () => {
+    const vars = createTemplateVars('test-bot')
+    const result = interpolate('Hello {{ botName }}!', vars)
+    expect(result).toBe('Hello test-bot!')
   })
 
-  test('creates context with postgres adapter', () => {
-    const ctx = createTemplateContext({
-      botName: 'pg-bot',
-      useAi: false,
-      dbAdapter: 'postgres',
-      useObservability: false,
-      useResilience: false,
-    })
-
-    expect(ctx.isDb).toBe(true)
-    expect(ctx.isSqlite).toBe(false)
-    expect(ctx.isPostgres).toBe(true)
+  test('replaces all variable types', () => {
+    const vars = createTemplateVars('my-bot')
+    const result = interpolate(
+      '{{ botName }} {{ botNamePascal }} {{ packageName }}',
+      vars
+    )
+    expect(result).toBe('my-bot MyBot my-bot')
   })
 
-  test('creates context with no AI and no database', () => {
-    const ctx = createTemplateContext({
-      botName: 'simple-bot',
-      useAi: false,
-      dbAdapter: 'none',
-      useObservability: false,
-      useResilience: false,
-    })
+  test('preserves unknown variables', () => {
+    const vars = createTemplateVars('test-bot')
+    const result = interpolate('{{ unknownVar }}', vars)
+    expect(result).toBe('{{ unknownVar }}')
+  })
 
-    expect(ctx.isAi).toBe(false)
-    expect(ctx.isDb).toBe(false)
-    expect(ctx.isSqlite).toBe(false)
-    expect(ctx.isPostgres).toBe(false)
+  test('handles whitespace variations in delimiters', () => {
+    const vars = createTemplateVars('test-bot')
+    expect(interpolate('{{botName}}', vars)).toBe('test-bot')
+    expect(interpolate('{{  botName  }}', vars)).toBe('test-bot')
+    expect(interpolate('{{ botName }}', vars)).toBe('test-bot')
+  })
+
+  test('handles multiple occurrences', () => {
+    const vars = createTemplateVars('test-bot')
+    const result = interpolate('{{ botName }} and {{ botName }}', vars)
+    expect(result).toBe('test-bot and test-bot')
+  })
+
+  test('returns content unchanged when no variables', () => {
+    const vars = createTemplateVars('test-bot')
+    const result = interpolate('no variables here', vars)
+    expect(result).toBe('no variables here')
+  })
+})
+
+describe('isInterpolatable', () => {
+  test('returns true for .ts files', () => {
+    expect(isInterpolatable('src/app.ts')).toBe(true)
+  })
+
+  test('returns true for .json files', () => {
+    expect(isInterpolatable('package.json')).toBe(true)
+  })
+
+  test('returns true for .md files', () => {
+    expect(isInterpolatable('README.md')).toBe(true)
+  })
+
+  test('returns true for .yaml files', () => {
+    expect(isInterpolatable('config.yaml')).toBe(true)
+  })
+
+  test('returns true for .env.example', () => {
+    expect(isInterpolatable('.env.example')).toBe(true)
+  })
+
+  test('returns false for .gitignore', () => {
+    expect(isInterpolatable('.gitignore')).toBe(false)
+  })
+
+  test('returns false for binary files', () => {
+    expect(isInterpolatable('image.png')).toBe(false)
   })
 })

@@ -19,5 +19,5 @@
     }
   },
   "include": ["bin/**/*", "src/**/*"],
-  "exclude": ["node_modules", "templates"]
+  "exclude": ["node_modules"]
 }

@@ -1,82 +1,175 @@
-import { describe, expect, test } from 'bun:test'
-import { cleanJson } from './scaffold'
+import { describe, expect, test, beforeEach, afterEach } from 'bun:test'
+import fs from 'fs'
+import path from 'path'
+import os from 'os'
+import { scaffold, type ScaffoldOptions } from './scaffold'
 
-describe('cleanJson', () => {
-  test('removes trailing comma before closing brace', () => {
-    const input = '{"name": "test",}'
-    const result = cleanJson(input)
-    expect(JSON.parse(result)).toEqual({ name: 'test' })
+function createTempDir(): string {
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'botarium-scaffold-'))
+}
+
+function cleanup(dir: string): void {
+  if (fs.existsSync(dir)) {
+    fs.rmSync(dir, { recursive: true })
+  }
+}
+
+describe('scaffold', () => {
+  let tmpDir: string
+  let targetDir: string
+
+  beforeEach(() => {
+    tmpDir = createTempDir()
+    targetDir = path.join(tmpDir, 'test-bot')
   })
 
-  test('removes trailing comma before closing bracket', () => {
-    const input = '["a", "b",]'
-    const result = cleanJson(input)
-    expect(JSON.parse(result)).toEqual(['a', 'b'])
+  afterEach(() => {
+    cleanup(tmpDir)
   })
 
-  test('removes multiple trailing commas', () => {
-    const input = `{
-      "name": "test",
-      "deps": {
-        "foo": "1.0",
-      },
-    }`
-    const result = cleanJson(input)
-    const parsed = JSON.parse(result)
-    expect(parsed.name).toBe('test')
-    expect(parsed.deps.foo).toBe('1.0')
+  function opts(overrides?: Partial<ScaffoldOptions>): ScaffoldOptions {
+    return {
+      botName: 'test-bot',
+      template: 'slack',
+      useAi: false,
+      useObservability: false,
+      useResilience: false,
+      targetDir,
+      ...overrides,
+    }
+  }
+
+  test('scaffolds base-only bot', async () => {
+    const result = await scaffold(opts())
+
+    expect(result).toBe(targetDir)
+    expect(fs.existsSync(path.join(targetDir, 'package.json'))).toBe(true)
+    expect(fs.existsSync(path.join(targetDir, 'src/app.ts'))).toBe(true)
+    expect(fs.existsSync(path.join(targetDir, 'src/setup.ts'))).toBe(true)
+    expect(fs.existsSync(path.join(targetDir, 'src/listeners/index.ts'))).toBe(
+      true
+    )
+
+    // AI files should NOT exist
+    expect(fs.existsSync(path.join(targetDir, 'src/ai'))).toBe(false)
+    expect(fs.existsSync(path.join(targetDir, 'src/utils/reactions.ts'))).toBe(
+      false
+    )
   })
 
-  test('preserves valid JSON', () => {
-    const input = '{"name": "test", "version": "1.0"}'
-    const result = cleanJson(input)
-    expect(JSON.parse(result)).toEqual({ name: 'test', version: '1.0' })
+  test('scaffolds bot with AI feature', async () => {
+    const result = await scaffold(opts({ useAi: true }))
+
+    expect(result).toBe(targetDir)
+
+    // AI files should exist
+    expect(fs.existsSync(path.join(targetDir, 'src/ai/agent.ts'))).toBe(true)
+    expect(fs.existsSync(path.join(targetDir, 'src/ai/router.ts'))).toBe(true)
+    expect(fs.existsSync(path.join(targetDir, 'src/ai/tools/example.ts'))).toBe(
+      true
+    )
+    expect(fs.existsSync(path.join(targetDir, 'src/utils/reactions.ts'))).toBe(
+      true
+    )
+
+    // AI deps should be in package.json
+    const pkg = JSON.parse(
+      fs.readFileSync(path.join(targetDir, 'package.json'), 'utf-8')
+    )
+    expect(pkg.dependencies.ai).toBeDefined()
+    expect(pkg.dependencies['@ai-sdk/openai']).toBeDefined()
   })
 
-  test('formats output with 2-space indentation', () => {
-    const input = '{"name":"test"}'
-    const result = cleanJson(input)
-    expect(result).toBe('{\n  "name": "test"\n}\n')
+  test('scaffolds bot with all features', async () => {
+    const result = await scaffold(
+      opts({ useAi: true, useObservability: true, useResilience: true })
+    )
+
+    expect(result).toBe(targetDir)
+
+    // All feature deps should be present
+    const pkg = JSON.parse(
+      fs.readFileSync(path.join(targetDir, 'package.json'), 'utf-8')
+    )
+    expect(pkg.dependencies.ai).toBeDefined()
+    expect(pkg.dependencies['@botarium/observability']).toBeDefined()
+    expect(pkg.dependencies['@botarium/resilience']).toBeDefined()
+
+    // Combination files should have been applied
+    // app.ts should have both AI and observability (from ai+observability combo)
+    const appContent = fs.readFileSync(
+      path.join(targetDir, 'src/app.ts'),
+      'utf-8'
+    )
+    expect(appContent).toContain('reloadSettings')
+    expect(appContent).toContain('getHealthResponse')
+
+    // setup.ts should have observability+resilience combo
+    const setupContent = fs.readFileSync(
+      path.join(targetDir, 'src/setup.ts'),
+      'utf-8'
+    )
+    expect(setupContent).toContain('@botarium/observability')
+    expect(setupContent).toContain('@botarium/resilience')
+    expect(setupContent).toContain('breakerRegistry')
   })
 
-  test('adds trailing newline', () => {
-    const input = '{"a": 1}'
-    const result = cleanJson(input)
-    expect(result.endsWith('\n')).toBe(true)
+  test('applies variable interpolation', async () => {
+    await scaffold(opts())
+
+    const pkg = JSON.parse(
+      fs.readFileSync(path.join(targetDir, 'package.json'), 'utf-8')
+    )
+    expect(pkg.name).toBe('test-bot')
+    expect(pkg.description).toBe('test-bot Slack bot')
+
+    const configContent = fs.readFileSync(
+      path.join(targetDir, 'config.yaml'),
+      'utf-8'
+    )
+    expect(configContent).toContain('TestBot')
+    expect(configContent).toContain('test-bot')
   })
 
-  test('returns cleaned content if JSON parsing fails', () => {
-    const input = '{invalid json,}'
-    const result = cleanJson(input)
-    // Trailing comma removed but still invalid
-    expect(result).toBe('{invalid json}')
+  test('creates .env from .env.example', async () => {
+    await scaffold(opts())
+
+    expect(fs.existsSync(path.join(targetDir, '.env'))).toBe(true)
+    expect(fs.existsSync(path.join(targetDir, '.env.example'))).toBe(true)
+
+    const envContent = fs.readFileSync(path.join(targetDir, '.env'), 'utf-8')
+    expect(envContent).toContain('SLACK_BOT_TOKEN')
   })
 
-  test('handles nested objects with trailing commas', () => {
-    const input = `{
-      "scripts": {
-        "dev": "bun run dev",
-        "build": "bun build",
-      },
-      "dependencies": {
-        "react": "^18",
-      },
-    }`
-    const result = cleanJson(input)
-    const parsed = JSON.parse(result)
-    expect(parsed.scripts.dev).toBe('bun run dev')
-    expect(parsed.dependencies.react).toBe('^18')
+  test('merges feature dependencies into package.json', async () => {
+    await scaffold(opts({ useObservability: true, useResilience: true }))
+
+    const pkg = JSON.parse(
+      fs.readFileSync(path.join(targetDir, 'package.json'), 'utf-8')
+    )
+    expect(pkg.dependencies['@botarium/observability']).toBe('workspace:*')
+    expect(pkg.dependencies['@botarium/resilience']).toBe('workspace:*')
+
+    // AI deps should NOT be present
+    expect(pkg.dependencies.ai).toBeUndefined()
   })
 
-  test('handles arrays in objects with trailing commas', () => {
-    const input = `{
-      "files": [
-        "src",
-        "dist",
-      ],
-    }`
-    const result = cleanJson(input)
-    const parsed = JSON.parse(result)
-    expect(parsed.files).toEqual(['src', 'dist'])
+  test('throws when template not found', async () => {
+    expect(
+      scaffold(opts({ template: 'nonexistent' as never }))
+    ).rejects.toThrow('Template not found')
+  })
+
+  test('overwrites existing directory when overwrite is true', async () => {
+    // Create target with a marker file
+    fs.mkdirSync(targetDir, { recursive: true })
+    fs.writeFileSync(path.join(targetDir, 'marker.txt'), 'old')
+
+    await scaffold(opts({ overwrite: true }))
+
+    // Marker file should be gone (directory was replaced)
+    expect(fs.existsSync(path.join(targetDir, 'marker.txt'))).toBe(false)
+    // New files should exist
+    expect(fs.existsSync(path.join(targetDir, 'package.json'))).toBe(true)
   })
 })
